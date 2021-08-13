@@ -1,0 +1,147 @@
+<!DOCTYPE svg [<!ENTITY nbsp "&#160;">]><svg width="394pt" height="400pt" viewBox="0.00 0.00 394.24 400.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 396)">
+<title>state transitions</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-396 390.2425,-396 390.2425,4 -4,4"></polygon>
+<!-- initial -->
+<g id="node1" class="node state initial">
+<title>initial</title>
+<ellipse fill="#000000" stroke="#000000" stroke-width="2" cx="209" cy="-386.5" rx="5.5" ry="5.5"></ellipse>
+</g>
+<!-- SERVO_DISABLED -->
+<g id="node2" class="node state regular">
+<title>SERVO_DISABLED</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="274,-353 144,-353 144,-317 274,-317 274,-353"></polygon>
+<text text-anchor="start" x="154.9904" y="-331.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_DISABLED</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M156.3333,-318C156.3333,-318 261.6667,-318 261.6667,-318 267.3333,-318 273,-323.6667 273,-329.3333 273,-329.3333 273,-340.6667 273,-340.6667 273,-346.3333 267.3333,-352 261.6667,-352 261.6667,-352 156.3333,-352 156.3333,-352 150.6667,-352 145,-346.3333 145,-340.6667 145,-340.6667 145,-329.3333 145,-329.3333 145,-323.6667 150.6667,-318 156.3333,-318"></path>
+</g>
+<!-- initial&#45;&gt;SERVO_DISABLED -->
+<g id="edge1" class="edge transition">
+<title>initial-&gt;SERVO_DISABLED</title>
+<path fill="none" stroke="#000000" d="M209,-380.9886C209,-376.6293 209,-370.1793 209,-363.4801"></path>
+<polygon fill="#000000" stroke="#000000" points="212.5001,-363.0122 209,-353.0122 205.5001,-363.0122 212.5001,-363.0122"></polygon>
+<text text-anchor="start" x="209" y="-364" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">begin() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_READY -->
+<g id="node3" class="node state regular">
+<title>SERVO_READY</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="112,-277 0,-277 0,-241 112,-241 112,-277"></polygon>
+<text text-anchor="start" x="10.9946" y="-255.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_READY</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M12.3333,-242C12.3333,-242 99.6667,-242 99.6667,-242 105.3333,-242 111,-247.6667 111,-253.3333 111,-253.3333 111,-264.6667 111,-264.6667 111,-270.3333 105.3333,-276 99.6667,-276 99.6667,-276 12.3333,-276 12.3333,-276 6.6667,-276 1,-270.3333 1,-264.6667 1,-264.6667 1,-253.3333 1,-253.3333 1,-247.6667 6.6667,-242 12.3333,-242"></path>
+</g>
+<!-- SERVO_DISABLED&#45;&gt;SERVO_READY -->
+<g id="edge2" class="edge transition">
+<title>SERVO_DISABLED-&gt;SERVO_READY</title>
+<path fill="none" stroke="#000000" d="M143.6765,-331.2815C109.285,-327.8728 71.9235,-321.3702 60.538,-309 55.2025,-303.203 53.069,-295.2661 52.5416,-287.4232"></path>
+<polygon fill="#000000" stroke="#000000" points="56.042,-287.3885 52.6391,-277.355 49.0423,-287.3206 56.042,-287.3885"></polygon>
+<text text-anchor="start" x="61" y="-300" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">enableAndHome() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="61" y="-288" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">thisIsHome() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_ERROR -->
+<g id="node5" class="node state regular">
+<title>SERVO_ERROR</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="271,-125 157,-125 157,-89 271,-89 271,-125"></polygon>
+<text text-anchor="start" x="167.9986" y="-103.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_ERROR</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M169.3333,-90C169.3333,-90 258.6667,-90 258.6667,-90 264.3333,-90 270,-95.6667 270,-101.3333 270,-101.3333 270,-112.6667 270,-112.6667 270,-118.3333 264.3333,-124 258.6667,-124 258.6667,-124 169.3333,-124 169.3333,-124 163.6667,-124 158,-118.3333 158,-112.6667 158,-112.6667 158,-101.3333 158,-101.3333 158,-95.6667 163.6667,-90 169.3333,-90"></path>
+</g>
+<!-- SERVO_DISABLED&#45;&gt;SERVO_ERROR -->
+<g id="edge8" class="edge transition">
+<title>SERVO_DISABLED-&gt;SERVO_ERROR</title>
+<path fill="none" stroke="#000000" d="M243.6912,-316.9699C258.2709,-307.3114 273.5563,-293.8916 281,-277 290.328,-255.8324 291.2643,-181.3022 276,-153 271.5146,-144.6834 264.7976,-137.4588 257.4182,-131.3554"></path>
+<polygon fill="#000000" stroke="#000000" points="259.3161,-128.4029 249.2252,-125.1741 255.1001,-133.9909 259.3161,-128.4029"></polygon>
+<text text-anchor="start" x="287" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">safeState() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_READY&#45;&gt;SERVO_DISABLED -->
+<g id="edge5" class="edge transition">
+<title>SERVO_READY-&gt;SERVO_DISABLED</title>
+<path fill="none" stroke="#000000" d="M112.3431,-269.9946C125.465,-273.7443 139.0764,-278.6508 151,-285 151.9344,-285.4976 166.3045,-297.8842 180.5055,-310.2027"></path>
+<polygon fill="#000000" stroke="#000000" points="178.4458,-313.0495 188.2912,-316.9634 183.0354,-307.7641 178.4458,-313.0495"></polygon>
+<text text-anchor="start" x="179" y="-294" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">disable() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_READY&#45;&gt;SERVO_READY -->
+<g id="edge7" class="edge transition">
+<title>SERVO_READY-&gt;SERVO_READY</title>
+<path fill="none" stroke="#000000" d="M112.092,-265.951C124.7451,-265.3248 134,-263.0078 134,-259 134,-256.182 129.4245,-254.1999 122.3094,-253.0537"></path>
+<polygon fill="#000000" stroke="#000000" points="122.3865,-249.5445 112.092,-252.049 121.7014,-256.5109 122.3865,-249.5445"></polygon>
+<text text-anchor="start" x="134" y="-262" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="134" y="-250" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_RUNNING -->
+<g id="node4" class="node state regular">
+<title>SERVO_RUNNING</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="170,-189 44,-189 44,-153 170,-153 170,-189"></polygon>
+<text text-anchor="start" x="54.6698" y="-167.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_RUNNING</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M56.3333,-154C56.3333,-154 157.6667,-154 157.6667,-154 163.3333,-154 169,-159.6667 169,-165.3333 169,-165.3333 169,-176.6667 169,-176.6667 169,-182.3333 163.3333,-188 157.6667,-188 157.6667,-188 56.3333,-188 56.3333,-188 50.6667,-188 45,-182.3333 45,-176.6667 45,-176.6667 45,-165.3333 45,-165.3333 45,-159.6667 50.6667,-154 56.3333,-154"></path>
+</g>
+<!-- SERVO_READY&#45;&gt;SERVO_RUNNING -->
+<g id="edge3" class="edge transition">
+<title>SERVO_READY-&gt;SERVO_RUNNING</title>
+<path fill="none" stroke="#000000" d="M30.5784,-240.7542C28.5751,-238.3681 26.8355,-235.7774 25.555,-233 18.8561,-218.4699 16.1171,-209.92 25.555,-197 27.2705,-194.6516 30.3692,-192.4129 34.3875,-190.3054"></path>
+<polygon fill="#000000" stroke="#000000" points="36.0368,-193.4035 43.7785,-186.1705 33.216,-186.997 36.0368,-193.4035"></polygon>
+<text text-anchor="start" x="26" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">startMotion() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_READY&#45;&gt;SERVO_ERROR -->
+<g id="edge9" class="edge transition">
+<title>SERVO_READY-&gt;SERVO_ERROR</title>
+<path fill="none" stroke="#000000" d="M112.3288,-252.9593C140.2085,-248.8607 170.0066,-242.4406 180,-233 206.5803,-207.8902 213.1599,-164.3657 214.3925,-135.6227"></path>
+<polygon fill="#000000" stroke="#000000" points="217.8968,-135.4794 214.6337,-125.3996 210.8987,-135.3142 217.8968,-135.4794"></polygon>
+<text text-anchor="start" x="214" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">safeState() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_RUNNING&#45;&gt;SERVO_DISABLED -->
+<g id="edge6" class="edge transition">
+<title>SERVO_RUNNING-&gt;SERVO_DISABLED</title>
+<path fill="none" stroke="#000000" d="M167.5802,-189.0462C171.9663,-191.4 176.1658,-194.041 180,-197 198.7375,-211.4604 198.9958,-220.0452 210,-241 223.1259,-265.9949 234.0517,-277.1129 226.4307,-307.0444"></path>
+<polygon fill="#000000" stroke="#000000" points="222.9731,-306.3896 223.4521,-316.9736 229.6779,-308.401 222.9731,-306.3896"></polygon>
+<text text-anchor="start" x="229" y="-256" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">disable() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_RUNNING&#45;&gt;SERVO_READY -->
+<g id="edge4" class="edge transition">
+<title>SERVO_RUNNING-&gt;SERVO_READY</title>
+<path fill="none" stroke="#000000" d="M105.5493,-189.1426C103.7706,-202.2592 99.8115,-219.9027 91,-233 90.9419,-233.0864 90.8834,-233.1725 90.8246,-233.2585"></path>
+<polygon fill="#000000" stroke="#000000" points="88.2759,-230.8539 84.4287,-240.7255 93.5922,-235.4076 88.2759,-230.8539"></polygon>
+<text text-anchor="start" x="105" y="-224" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">stopMotion() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="105" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="105" y="-200" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
+</g>
+<!-- SERVO_RUNNING&#45;&gt;SERVO_ERROR -->
+<g id="edge10" class="edge transition">
+<title>SERVO_RUNNING-&gt;SERVO_ERROR</title>
+<path fill="none" stroke="#000000" d="M119.3942,-152.8943C124.9425,-145.8878 131.9884,-138.297 139.763,-133 142.3322,-131.2495 145.0316,-129.6048 147.8176,-128.0608"></path>
+<polygon fill="#000000" stroke="#000000" points="149.5944,-131.0851 156.9571,-123.4666 146.4505,-124.8308 149.5944,-131.0851"></polygon>
+<text text-anchor="start" x="140" y="-136" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">safeState() &nbsp;&nbsp;</text>
+</g>
+<!-- i_note_tr_SERVO_ERROR_final_11 -->
+<!-- SERVO_ERROR&#45;&gt;i_note_tr_SERVO_ERROR_final_11 -->
+<g id="edge11" class="edge">
+<title>SERVO_ERROR-&gt;i_note_tr_SERVO_ERROR_final_11</title>
+<path fill="none" stroke="#000000" d="M214,-88.68C214,-80.7409 214,-73.0275 214,-72.0943"></path>
+</g>
+<!-- final -->
+<g id="node6" class="node state final">
+<title>final</title>
+<ellipse fill="#000000" stroke="#000000" stroke-width="2" cx="214" cy="-22" rx="5.5" ry="5.5"></ellipse>
+<ellipse fill="none" stroke="#000000" stroke-width="2" cx="214" cy="-22" rx="9.5" ry="9.5"></ellipse>
+</g>
+<!-- i_note_tr_SERVO_ERROR_final_11&#45;&gt;final -->
+<g id="edge12" class="edge">
+<title>i_note_tr_SERVO_ERROR_final_11-&gt;final</title>
+<path fill="none" stroke="#000000" d="M214,-71.8566C214,-70.2277 214,-55.0279 214,-41.8348"></path>
+<polygon fill="#000000" stroke="#000000" points="217.5001,-41.5665 214,-31.5666 210.5001,-41.5666 217.5001,-41.5665"></polygon>
+<text text-anchor="middle" x="215.3895" y="-55" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> </text>
+</g>
+<!-- note_tr_SERVO_ERROR_final_11 -->
+<g id="node8" class="node">
+<title>note_tr_SERVO_ERROR_final_11</title>
+<polygon fill="#ffffcc" stroke="#000000" points="380.4858,-44 245.5142,-44 245.5142,0 386.4858,0 386.4858,-38 380.4858,-44"></polygon>
+<polyline fill="none" stroke="#000000" points="380.4858,-44 380.4858,-38 "></polyline>
+<polyline fill="none" stroke="#000000" points="386.4858,-38 380.4858,-38 "></polyline>
+<text text-anchor="start" x="253.7575" y="-31" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">SERVO_ERROR can only</text>
+<text text-anchor="start" x="253.7575" y="-19" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">be cleared by removing</text>
+<text text-anchor="start" x="253.7575" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">power and resetting ESP32.</text>
+</g>
+<!-- i_note_tr_SERVO_ERROR_final_11&#45;&gt;note_tr_SERVO_ERROR_final_11 -->
+<g id="edge13" class="edge">
+<title>i_note_tr_SERVO_ERROR_final_11-&gt;note_tr_SERVO_ERROR_final_11</title>
+<path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M214.0739,-71.9638C215.7148,-71.1594 244.3785,-57.1086 270.8901,-44.1127"></path>
+</g>
+</g>
+</svg>
