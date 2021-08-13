@@ -1,0 +1,19 @@
+initial => "SERVO_DISABLED": begin();
+
+"SERVO_DISABLED" => "SERVO_READY" :enableAndHome()
+                                   thisIsHome();
+"SERVO_READY" => "SERVO_RUNNING" :startMotion();
+"SERVO_RUNNING" => "SERVO_READY" :stopMotion()
+                                  moveToMin()
+                                  moveToMax();
+"SERVO_READY" => "SERVO_DISABLED" :disable();
+"SERVO_RUNNING" => "SERVO_DISABLED" :disable();
+"SERVO_READY" => "SERVO_READY" :moveToMin()
+                                moveToMax();
+"SERVO_DISABLED" => "SERVO_ERROR" :safeState();
+"SERVO_READY" => "SERVO_ERROR" :safeState();
+"SERVO_RUNNING" => "SERVO_ERROR" :safeState();
+#SERVO_ERROR can only 
+#be cleared by removing 
+#power and resetting ESP32.
+"SERVO_ERROR" => final;
