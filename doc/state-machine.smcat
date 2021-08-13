@@ -10,6 +10,7 @@ initial => "SERVO_DISABLED": begin();
 "SERVO_RUNNING" => "SERVO_DISABLED" :disable();
 "SERVO_READY" => "SERVO_READY" :moveToMin()
                                 moveToMax();
+"SERVO_RUNNING" => "SERVO_RUNNING" :applyNewSettingsNow();
 "SERVO_DISABLED" => "SERVO_ERROR" :safeState();
 "SERVO_READY" => "SERVO_ERROR" :safeState();
 "SERVO_RUNNING" => "SERVO_ERROR" :safeState();
