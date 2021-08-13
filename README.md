@@ -4,7 +4,7 @@ A library to create a variety of stroking motions with a stepper or servo motor 
 # Concepts
 
 ## Coordinate System
-![Coordinate System](./doc/Coordinates.svg)
+![Coordinate System](./doc/coordinates.svg)
 
 ## State Machine
 ![State Machine](./doc/state-machine.svg)
