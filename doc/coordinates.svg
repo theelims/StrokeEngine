@@ -7,17 +7,73 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="122.98033mm"
-   height="107.06265mm"
-   viewBox="0 0 122.98033 107.06265"
+   width="128.98033mm"
+   height="115.79168mm"
+   viewBox="0 0 128.98033 115.79168"
    version="1.1"
    id="svg8"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="Coordinates.svg">
   <defs
      id="defs2">
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Strips1_4"
+       id="pattern11466"
+       patternTransform="matrix(-0.26065231,-0.17599598,-8.6967354,12.879977,0,0)" />
+    <pattern
+       inkscape:stockid="Stripes 1:4"
+       id="Strips1_4"
+       patternTransform="translate(0,0) scale(10,10)"
+       height="1"
+       width="5"
+       patternUnits="userSpaceOnUse"
+       inkscape:collect="always">
+      <rect
+         id="rect10615"
+         height="2"
+         width="1"
+         y="-0.5"
+         x="0"
+         style="fill:black;stroke:none" />
+    </pattern>
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Strips1_1"
+       id="pattern11439"
+       patternTransform="matrix(37.795276,0,0,37.795276,-188.47561,-290.52283)" />
+    <pattern
+       inkscape:isstock="true"
+       inkscape:stockid="Stripes 1:1"
+       id="Strips1_1"
+       patternTransform="translate(0,0) scale(10,10)"
+       height="1"
+       width="2"
+       patternUnits="userSpaceOnUse"
+       inkscape:collect="always">
+      <rect
+         id="rect10591"
+         height="2"
+         width="1"
+         y="-0.5"
+         x="0"
+         style="fill:black;stroke:none" />
+    </pattern>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient11313">
+      <stop
+         style="stop-color:#808080;stop-opacity:1;"
+         offset="0"
+         id="stop11309" />
+      <stop
+         style="stop-color:#808080;stop-opacity:0;"
+         offset="1"
+         id="stop11311" />
+    </linearGradient>
     <marker
        inkscape:stockid="Arrow1Sstart"
        orient="auto"
@@ -248,17 +304,63 @@
          style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
          transform="scale(0.8)" />
     </marker>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient11313"
+       id="radialGradient11317"
+       cx="55.000004"
+       cy="102"
+       fx="55.000004"
+       fy="102"
+       r="5.1325002"
+       gradientTransform="matrix(3.7795276,0,0,18.507351,-188.47561,-1792.7608)"
+       gradientUnits="userSpaceOnUse" />
+    <pattern
+       patternUnits="userSpaceOnUse"
+       width="38.79685"
+       height="189.97795"
+       patternTransform="matrix(0.26458333,0,0,0.26458333,9.8675029,61.867495)"
+       id="pattern11441">
+      <rect
+         y="0.50078738"
+         x="0.50078738"
+         height="188.97638"
+         width="37.795277"
+         id="rect9873"
+         style="fill:url(#pattern11439);fill-opacity:1;stroke:url(#radialGradient11317);stroke-width:1.00157475;stroke-linecap:butt;stroke-miterlimit:4;stroke-dasharray:1.00157473, 2.00314949;stroke-dashoffset:0;stroke-opacity:1" />
+    </pattern>
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Strips1_4-3"
+       id="pattern11466-9"
+       patternTransform="matrix(-0.26065231,-0.17599598,-8.6967353,12.879977,90.000004,-6.8759766e-6)" />
+    <pattern
+       inkscape:stockid="Stripes 1:4"
+       id="Strips1_4-3"
+       patternTransform="translate(0,0) scale(10,10)"
+       height="1"
+       width="5"
+       patternUnits="userSpaceOnUse"
+       inkscape:collect="always">
+      <rect
+         id="rect10615-2"
+         height="2"
+         width="1"
+         y="-0.5"
+         x="0"
+         style="fill:black;stroke:none" />
+    </pattern>
   </defs>
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="363.53737"
-     inkscape:cy="45.187456"
+     inkscape:zoom="1.979899"
+     inkscape:cx="169.4666"
+     inkscape:cy="193.55911"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -268,18 +370,18 @@
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     fit-margin-top="2"
-     fit-margin-left="2"
-     fit-margin-right="2"
-     fit-margin-bottom="2">
+     fit-margin-top="5"
+     fit-margin-left="5"
+     fit-margin-right="5"
+     fit-margin-bottom="5">
     <inkscape:grid
        type="xygrid"
        id="grid4898"
        units="mm"
        spacingx="5"
        spacingy="5"
-       originx="-36.099306"
-       originy="-167.20832" />
+       originx="-33.099306"
+       originy="-164.20832" />
   </sodipodi:namedview>
   <metadata
      id="metadata5">
@@ -297,13 +399,23 @@
      inkscape:label="Ebene 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-36.099309,-22.729026)">
-    <path
-       style="fill:none;stroke:#000000;stroke-width:0.26499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.26499999, 0.52999997;stroke-dashoffset:0;stroke-opacity:1"
-       d="m 140,77 v 50"
-       id="path8436-3"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
+     transform="translate(-33.099309,-16.999996)">
+    <rect
+       style="opacity:0.28900003;fill:url(#pattern11466-9);fill-opacity:1;stroke:none;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       width="9.9999971"
+       height="105"
+       x="140"
+       y="21.999996"
+       id="rect11444-8"
+       ry="0" />
+    <rect
+       style="opacity:0.28900003;fill:url(#pattern11466);fill-opacity:1;stroke:none;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       width="9.9999971"
+       height="105"
+       x="50.000004"
+       y="21.999996"
+       id="rect11444"
+       ry="0" />
     <path
        style="fill:#808080;fill-opacity:1;stroke:#808080;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Send)"
        d="M 150,102 H 50"
@@ -364,26 +476,26 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="-80.360428"
-       y="56.755596"
+       x="-79.82589"
+       y="56.889233"
        id="text5176-9-5"
        transform="rotate(-90)"><tspan
          sodipodi:role="line"
          id="tspan5174-0-1"
-         x="-80.360428"
-         y="56.755596"
+         x="-79.82589"
+         y="56.889233"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.26458332">KEEPOUT_BOUNDARY</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.58333302px;line-height:1.25;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="-81.04644"
-       y="146.83745"
+       x="-79.442825"
+       y="146.70381"
        id="text5176-9-5-0"
        transform="rotate(-90)"><tspan
          sodipodi:role="line"
          id="tspan5174-0-1-6"
-         x="-81.04644"
-         y="146.83745"
+         x="-79.442825"
+         y="146.70381"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;stroke-width:0.26458332">KEEPOUT_BOUNDARY</tspan></text>
     <text
        xml:space="preserve"
@@ -424,12 +536,6 @@
        style="fill:none;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#Arrow1Sstart);marker-end:url(#Arrow2Send-9)"
        d="M 110,107 H 70"
        id="path4518-4"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
-    <path
-       style="fill:none;stroke:#000000;stroke-width:0.26499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.26499999, 0.52999997;stroke-dashoffset:0;stroke-opacity:1"
-       d="M 59.999998,76.999998 60,127"
-       id="path8436"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <text
