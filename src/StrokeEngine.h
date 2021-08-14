@@ -19,10 +19,6 @@
 //#define DEBUG_STROKE                // Show debug messaged for each individual stroke on Serial
 #define DEBUG_PATTERN               // Show debug messages from inside pattern generator on Serial
 
-#ifndef STRING_LEN
-  #define STRING_LEN           64     // Bytes used to initalize char array. No path, topic, name, etc. should exceed this value
-#endif
-
 /**************************************************************************/
 /*!
   @brief  Struct defining the physical propoerties of the stroking machine.
@@ -131,9 +127,10 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  Set the depthsensation of a pattern. Settings tale effect with next 
-          stroke, or after calling applyNewSettingsNow().
-          @param speed  Sesation in [mm]. Is constrained from -100 to 100 with 0 
+          @brief  Set the sensation of a pattern. Sensation is an additional 
+          parameter a pattern may use to alter its behaviour. Settings takes 
+          effect with next stroke, or after calling applyNewSettingsNow().
+          @param speed  Sesation in [a.u.]. Is constrained from -100 to 100 with 0 
                         beeing assumed as neutral 
         */
         /**************************************************************************/

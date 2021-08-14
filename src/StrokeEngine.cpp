@@ -15,8 +15,8 @@ void StrokeEngine::begin(machineGeometry *physics, motorProperties *motor) {
     // Derived Machine Geometry & Motor Limits in steps:
     _travel = (_physics->physicalTravel - (2 * _physics->keepoutBoundary));
     _minStep = 0;
-    _maxStep = int(0.5 + _travel * _motor->stepsPerMillimeter)
-    _maxStepPerSecond = int(0.5 + (_motor->maxRPM * _motor->stepsPerRevolution) / 60)
+    _maxStep = int(0.5 + _travel * _motor->stepsPerMillimeter);
+    _maxStepPerSecond = int(0.5 + (_motor->maxRPM * _motor->stepsPerRevolution) / 60);
     _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerRevolution);
           
     // Initialize with default values

@@ -16,6 +16,10 @@
 #include <math.h>
 #include "PatternMath.h"
 
+#ifndef STRING_LEN
+  #define STRING_LEN           64     // Bytes used to initalize char array. No path, topic, name, etc. should exceed this value
+#endif
+
 /**************************************************************************/
 /*!
   @brief  struct to return all parameters FastAccelStepper needs to calculate
