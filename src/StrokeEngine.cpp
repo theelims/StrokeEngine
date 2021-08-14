@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <StrokeEngine.h>
 #include <FastAccelStepper.h>
-#include <housekeeping.h>
 #include <pattern.h>
 
 
