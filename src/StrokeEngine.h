@@ -13,7 +13,6 @@
 
 #include <Arduino.h>
 #include <pattern.h>
-#include <config.h>
 
 // Debug Levels
 #define DEBUG_VERBOSE               // Show debug messages from the StrokeEngine on Serial
@@ -294,6 +293,7 @@ class StrokeEngine {
         TaskHandle_t _taskStrokingHandle = NULL;
         TaskHandle_t _taskHomingHandle = NULL;
         void(*_callBackHomeing)(bool);
+        int _homeingSpeed;
         int _homeingPin;
         bool _homeingActiveLow;      /*> Polarity of the homing signal*/
 };

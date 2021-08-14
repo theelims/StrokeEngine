@@ -63,10 +63,10 @@ void StrokeEngine::setSpeed(float speed) {
 
 void StrokeEngine::setDepth(float depth) {
     // Convert depth from mm into steps
-    _depth = int(depth * STEP_PER_MM);
+    _depth = int(depth * _motor->stepsPerMillimeter);
 
-    // Constrain depth between 0 and MAX_STEP
-    _depth = constrain(_depth, 0, MAX_STEP); 
+    // Constrain depth between minStep and maxStep
+    _depth = constrain(_depth, _minStep, _maxStep); 
 
     // Update pattern with new speed, will be used with the next stroke or on update request
     patternTable[_patternIndex]->setDepth(_depth);
@@ -78,10 +78,10 @@ void StrokeEngine::setDepth(float depth) {
 
 void StrokeEngine::setStroke(float stroke) {
     // Convert stroke from mm into steps
-    _stroke = int(stroke * STEP_PER_MM);
+    _stroke = int(stroke * _motor->stepsPerMillimeter);
 
-    // Constrain stroke between 1 and MAX_STEP
-    _stroke = constrain(_stroke, 1, MAX_STEP); 
+    // Constrain stroke between minStep and maxStep
+    _stroke = constrain(_stroke, _minStep, _maxStep); 
 
     // Update pattern with new speed, will be used with the next stroke or on update request
     patternTable[_patternIndex]->setStroke(_stroke);
@@ -177,7 +177,7 @@ bool StrokeEngine::startMotion() {
     // Stop current move, should one be pending (moveToMax or moveToMin)
     if (servo->isRunning()) {
         // Stop servo motor as fast as legaly allowed
-        servo->setAcceleration(MAX_STEP_ACCEL);
+        servo->setAcceleration(_maxStepAcceleration);
         servo->applySpeedAcceleration();
         servo->stopMove();
     }
@@ -215,7 +215,7 @@ void StrokeEngine::stopMotion() {
     // only valid when 
     if (_state == SERVO_RUNNING) {
         // Stop servo motor as fast as legaly allowed
-        servo->setAcceleration(MAX_STEP_ACCEL);
+        servo->setAcceleration(_maxStepAcceleration);
         servo->applySpeedAcceleration();
         servo->stopMove();
 
@@ -238,7 +238,7 @@ void StrokeEngine::enableAndHome(int pin, int activeLow, void(*callBackHoming)(b
     _callBackHomeing = callBackHoming;
 
     // enable and home
-    enableAndHome();
+    enableAndHome(pin, activeLow, speed);
 }
 
 void StrokeEngine::enableAndHome(int pin, int activeLow, float speed = 5.0) {
@@ -246,6 +246,7 @@ void StrokeEngine::enableAndHome(int pin, int activeLow, float speed = 5.0) {
     _homeingPin = pin;
     pinMode(_homeingPin, INPUT);
     _homeingActiveLow = activeLow;
+    _homeingSpeed = speed * _motor->stepsPerMillimeter;
 
     // first stop current motion and delete stroke task
     stopMotion();
@@ -281,7 +282,7 @@ void StrokeEngine::thisIsHome() {
     }
 }
 
-bool StrokeEngine::moveToMax() {
+bool StrokeEngine::moveToMax(float speed = 10.0) {
     motionParameter currentMotion;
 
 #ifdef DEBUG_VERBOSE
@@ -293,9 +294,9 @@ bool StrokeEngine::moveToMax() {
         stopMotion();
 
         // Set feedrate for safe move
-        currentMotion.speed = SAFE_SPEED;       
-        currentMotion.acceleration = SAFE_ACCEL;
-        currentMotion.position = MAX_STEP;
+        currentMotion.speed = speed * _motor->stepsPerMillimeter;       
+        currentMotion.acceleration = _maxStepAcceleration / 10;
+        currentMotion.position = _maxStep;
 
         // Apply new trapezoidal motion profile to servo
         _applyMotionProfile(&currentMotion);
@@ -316,7 +317,7 @@ bool StrokeEngine::moveToMax() {
     }
 }
 
-bool StrokeEngine::moveToMin() {
+bool StrokeEngine::moveToMin(float speed = 10.0) {
     motionParameter currentMotion;
 
 #ifdef DEBUG_VERBOSE
@@ -328,9 +329,9 @@ bool StrokeEngine::moveToMin() {
         stopMotion();
 
         // Set feedrate for safe move
-        currentMotion.speed = SAFE_SPEED;       
-        currentMotion.acceleration = SAFE_ACCEL;
-        currentMotion.position = MIN_STEP;
+        currentMotion.speed = speed * _motor->stepsPerMillimeter;       
+        currentMotion.acceleration = _maxStepAcceleration / 10;
+        currentMotion.position = _minStep;
 
         // Apply new trapezoidal motion profile to servo
         _applyMotionProfile(&currentMotion);
@@ -408,13 +409,13 @@ String StrokeEngine::getPatternJSON() {
 
 void StrokeEngine::_homingProcedure() {
     // Set feedrate for homing
-    servo->setSpeedInHz(HOMING_SPEED);       
-    servo->setAcceleration(HOMING_ACCEL);    
+    servo->setSpeedInHz(_homeingSpeed);       
+    servo->setAcceleration(_maxStepAcceleration / 10);    
 
     // Check if we are aleady at the homing switch
-    if (digitalRead(SERVO_ENDSTOP) == LOW) {
+    if (digitalRead(SERVO_ENDSTOP) == !_homeingActiveLow) {
         //back off 5 mm from switch
-        servo->move(STEP_PER_MM * 2 * KEEPOUT_BOUNDARY);
+        servo->move(_motor->stepsPerMillimeter * 2 * _physics->keepoutBoundary);
 
         // wait for move to complete
         while (servo->isRunning()) {
@@ -423,11 +424,11 @@ void StrokeEngine::_homingProcedure() {
         }
 
         // move back towards endstop
-        servo->move(-STEP_PER_MM * 4 * KEEPOUT_BOUNDARY);
+        servo->move(-_motor->stepsPerMillimeter * 4 * _physics->keepoutBoundary);
 
     } else {
         // Move MAX_TRAVEL towards the homing switch
-        servo->move(-STEP_PER_MM * MAX_TRAVEL);
+        servo->move(-_motor->stepsPerMillimeter * _physics->physicalTravel);
     }
 
     // Poll homing switch
@@ -437,7 +438,7 @@ void StrokeEngine::_homingProcedure() {
         if (digitalRead(SERVO_ENDSTOP) == LOW) {
 
             //Switch is at -KEEPOUT_BOUNDARY
-            servo->forceStopAndNewPosition(-STEP_PER_MM * KEEPOUT_BOUNDARY);
+            servo->forceStopAndNewPosition(-_motor->stepsPerMillimeter * _physics->keepoutBoundary);
             _isHomed = true;
 
             // drive free of switch and set axis to 0
@@ -514,10 +515,10 @@ void StrokeEngine::_stroking() {
             // Calculate distance to boundary in current motion direction
             if (currentSpeed > 0) {
                 // forward move
-                distanceToCrash = MAX_STEP - servo->getCurrentPosition();
+                distanceToCrash = _maxStep - servo->getCurrentPosition();
             } else {
                 // backward move
-                distanceToCrash = servo->getCurrentPosition() - MIN_STEP;
+                distanceToCrash = servo->getCurrentPosition() - _minStep;
             }
 
             // Calculate minimal required deceleration to avoid crash
@@ -543,14 +544,14 @@ void StrokeEngine::_stroking() {
 
 void StrokeEngine::_applyMotionProfile(motionParameter* motion) {
     // Apply new trapezoidal motion profile to servo
-    // Constrain speed between 1 step/sec and MAX_STEP_PER_SEC
-    servo->setSpeedInHz(constrain(motion->speed, 1, MAX_STEP_PER_SEC));
+    // Constrain speed between 1 step/sec and _maxStepPerSecond
+    servo->setSpeedInHz(constrain(motion->speed, 1, _maxStepPerSecond);
 
-    // Constrain acceleration between 1 step/sec^2 and MAX_STEP_ACC
-    servo->setAcceleration(constrain(motion->acceleration, 1, MAX_STEP_ACCEL));
+    // Constrain acceleration between 1 step/sec^2 and _maxStepAcceleration
+    servo->setAcceleration(constrain(motion->acceleration, 1, _maxStepAcceleration));
 
-    // Constrain position between 0 and MAX_STEP
-    servo->moveTo(constrain(motion->position, 0, MAX_STEP));
+    // Constrain position between 0 and _maxStep
+    servo->moveTo(constrain(motion->position, _minStep, _maxStep));
 
 #ifdef DEBUG_STROKE
     Serial.println("motion.position: " + String(motion->position));
