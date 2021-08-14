@@ -7,31 +7,36 @@
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *servo = NULL;
 
-void StrokeEngine::begin() {
+void StrokeEngine::begin(machineGeometry *physics, motorProperties *motor) {
+    // store the machine geometry and motor properties pointer
+    _physics = physics;
+    _motor = motor;
+
+    // Derived Machine Geometry & Motor Limits in steps:
+    _travel = (_physics->physicalTravel - (2 * _physics->keepoutBoundary));
+    _minStep = 0;
+    _maxStep = int(0.5 + _travel * _motor->stepPerMillimeter)
+    _maxStepPerSecond = int(0.5 + (_motor->maxRPM * _motor->stepsPerRevolution) / 60)
+    _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerRevolution);
+          
     // Initialize with default values
     _state = SERVO_DISABLED;
     _isHomed = false;
     _patternIndex = 0;
     _index = 0;
-    _depth = DEPTH * STEP_PER_MM;
-    _stroke = STROKE * STEP_PER_MM;
-    _timeOfStroke = 60.0 / SPEED;
+    _depth = _maxStep; 
+    _stroke = 1/3 * _maxStep;
+    _timeOfStroke = 1.0;
     _sensation = 0.0;
-
-#ifdef SERVO_ENDSTOP
-    pinMode(SERVO_ENDSTOP, INPUT);
-#endif
 
     // Setup FastAccelStepper 
     engine.init();
-    servo = engine.stepperConnectToPin(SERVO_PULSE);
+    servo = engine.stepperConnectToPin(_motor->stepPin);
     if (servo) {
-        servo->setDirectionPin(SERVO_DIR, !INVERT_DIRECTION);
-        servo->setEnablePin(SERVO_ENABLE, SERVO_ACTIVE_LOW);
+        servo->setDirectionPin(_motor->directionPin, _motor->directionPin);
+        servo->setEnablePin(_motor->enablePin, _motor->enableActiveLow);
         servo->setAutoEnable(false);
-        servo->disableOutputs();
-        servo->setSpeedInHz(HOMING_SPEED);       
-        servo->setAcceleration(HOMING_ACCEL);   
+        servo->disableOutputs(); 
     }
     Serial.println("Servo initialized");
 
@@ -228,7 +233,7 @@ void StrokeEngine::stopMotion() {
 #endif
 }
 
-void StrokeEngine::enableAndHome(void(*callBackHoming)(bool)) {
+void StrokeEngine::enableAndHome(int pin, int activeLow, void(*callBackHoming)(bool), float speed = 5.0) {
     // Store callback
     _callBackHomeing = callBackHoming;
 
@@ -236,7 +241,12 @@ void StrokeEngine::enableAndHome(void(*callBackHoming)(bool)) {
     enableAndHome();
 }
 
-void StrokeEngine::enableAndHome() {
+void StrokeEngine::enableAndHome(int pin, int activeLow, float speed = 5.0) {
+    // set homing pin as input
+    _homeingPin = pin;
+    pinMode(_homeingPin, INPUT);
+    _homeingActiveLow = activeLow;
+
     // first stop current motion and delete stroke task
     stopMotion();
 
@@ -264,7 +274,7 @@ void StrokeEngine::thisIsHome() {
         servo->enableOutputs();
 
         // Stet current position as home
-        servo->setCurrentPosition(-STEP_PER_MM * KEEPOUT_BOUNDARY);
+        servo->setCurrentPosition(-_motor->stepsPerMillimeter * _physics->keepoutBoundary);
         _isHomed = true;
 
         _state = SERVO_READY;

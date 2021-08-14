@@ -1,3 +1,14 @@
+/**
+ *   StrokeEngine
+ *   A library to create a variety of stroking motions with a stepper or servo motor on an ESP32.
+ *   https://github.com/theelims/SrokeEngine 
+ *
+ * Copyright (C) 2021 theelims <elims@gmx.net>
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 #pragma once
 
 #include <Arduino.h>
@@ -9,87 +20,50 @@
 //#define DEBUG_STROKE                // Show debug messaged for each individual stroke on Serial
 #define DEBUG_PATTERN               // Show debug messages from inside pattern generator on Serial
 
-// Servo Settings:
-#ifndef STEP_PER_REV
-  #define STEP_PER_REV      3200      // How many steps per revolution of the motor (S1 on)
-#endif
-
-#ifndef PULLEY_TEETH
-  #define PULLEY_TEETH      20        // How many teeth has the pulley
-#endif
-
-#ifndef BELT_PITCH
-  #define BELT_PITCH        2         // What is the timing belt pitch in mm
-#endif
-
-#ifndef MAX_TRAVEL
-  #define MAX_TRAVEL        160       // What is the maximum physical travel in mm
-#endif
-
-#ifndef KEEPOUT_BOUNDARY
-  #define KEEPOUT_BOUNDARY  5         // Soft endstop preventing hard crashes in mm. Will be 
-#endif                                // subtracted twice from MAX_TRAVEL
-                                      // Should be sufficiently to completley drive clear from 
-                                      // homing switch
-#ifndef MAX_RPM                                     
-  #define MAX_RPM           2900      // What is the maximum RPM of the servo
-#endif
-
-#ifndef MAX_ACCEL 
-  #define MAX_ACCEL         300000    // Maximum acceleration in mm/s^2
-#endif
-
-#ifndef INVERT_DIRECTION
-  #define INVERT_DIRECTION  false     // Set to true to invert the direction signal
-#endif                                // The firmware expects the home switch to be located at the 
-                                      // end of an retraction move. That way the machine homes 
-                                      // itself away from the body. Home position is -KEEPOUTBOUNDARY
-
-#ifndef SERVO_ACTIVE_LOW                         
-  #define SERVO_ACTIVE_LOW  true      // Polarity of the enable signal. True for active low.
-#endif
-
-// Motion Settings:
-#ifndef HOMING_SPEED
-  #define HOMING_SPEED      5 * STEP_PER_MM       // Home with 5 mm/s
-#endif
-
-#ifndef HOMING_ACCEL
-  #define HOMING_ACCEL      MAX_STEP_ACCEL / 10     // Acceleation is 10% of max allowed acceleration
-#endif
-
-#ifndef SAFE_SPEED
-  #define SAFE_SPEED        10 * STEP_PER_MM      // Safe Speed is 10 mm/s
-#endif
-
-#ifndef SAFE_ACCEL
-  #define SAFE_ACCEL        MAX_STEP_ACCEL / 10     // Acceleation is 10% of max allowed acceleration
-#endif
-
-// Default Settings:
-#ifndef STROKE
-  #define STROKE            60        // Stroke defaults to 60 mm
-#endif
-
-#ifndef DEPTH
-  #define DEPTH             TRAVEL    // Stroke is carried out at the front of the machine
-#endif
-
-#ifndef SPEED
-  #define SPEED             60        // 60 Strokes per Minute
-#endif
-
-// Derived Servo Settings:
-#define STEP_PER_MM       STEP_PER_REV / (PULLEY_TEETH * BELT_PITCH)
-#define TRAVEL            (MAX_TRAVEL - (2 * KEEPOUT_BOUNDARY))
-#define MIN_STEP          0
-#define MAX_STEP          int(0.5 + TRAVEL * STEP_PER_MM)
-#define MAX_STEP_PER_SEC  int(0.5 + (MAX_RPM * STEP_PER_REV) / 60)
-#define MAX_STEP_ACCEL    int(0.5 + MAX_ACCEL * STEP_PER_MM)
-
 #ifndef STRING_LEN
-  #define STRING_LEN           64             // Bytes used to initalize char array. No path, topic, name, etc. should exceed this value
+  #define STRING_LEN           64     // Bytes used to initalize char array. No path, topic, name, etc. should exceed this value
 #endif
+
+
+// Step per mm calculation aid:
+#define STEP_PER_REV      3200      // How many steps per revolution of the motor (S1 on)
+#define PULLEY_TEETH      20        // How many teeth has the pulley
+#define BELT_PITCH        2         // What is the timing belt pitch in mm
+
+/**************************************************************************/
+/*!
+  @brief  Struct defining the physical propoerties of the stroking machine.
+*/
+/**************************************************************************/
+typedef struct {
+  float physicalTravel;       /*> What is the maximum physical travel in mm */
+  float keepoutBoundary;      /*> Soft endstop preventing hard crashes in mm. Will be 
+                               *  subtracted twice from pysicalTravel. Should be 
+                               *  sufficiently to completley drive clear from 
+                               *  homing switch */
+} machineGeometry;
+
+/**************************************************************************/
+/*!
+  @brief  Struct defining the motor (stepper or servo with STEP/DIR 
+  interface) and the motion system translating the rotation into a 
+  linear motion.
+*/
+/**************************************************************************/
+typedef struct {
+  int stepsPerRevolution;     /*> How many steps per revolution of the motor */
+  int maxRPM;                 /*> What is the maximum RPM of the servo */
+  int maxAcceleration;        /*> Maximum acceleration in mm/s^2 */
+  float stepsPerMillimeter;   /*> Number of steps per millimeter */
+  bool invertDirection;       /*> Set to true to invert the direction signal
+                               *  The firmware expects the home switch to be located at the 
+                               *  end of an retraction move. That way the machine homes 
+                               *  itself away from the body. Home position is -KEEPOUTBOUNDARY */
+  bool enableActiveLow;       /*> Polarity of the enable signal. True for active low. */
+  int stepPin;                /*> Pin connected to the STEP input */
+  int directionPin;           /*> Pin connected to the DIR input */
+  int enablePin;              /*> Pin connected to the ENA input */
+} motorProperties;
 
 /**************************************************************************/
 /*!
@@ -131,7 +105,7 @@ class StrokeEngine {
           accordingly. StrokeEngine is in state SERVO_DISABLED
         */
         /**************************************************************************/
-        void begin();
+        void begin(machineGeometry *physics, motorProperties *motor);
 
         /**************************************************************************/
         /*!
@@ -216,14 +190,16 @@ class StrokeEngine {
           the endstop with HOMING_SPEED. Function is non-blocking and backed by a task.
           Optionally a callback can be given to receive feedback if homing succeded 
           going in state SERVO_READY. If homing switch is not found after traveling 
-          MAX_TRAVEL it times out, disables the servo and goes into SERVO_DISABLED. 
+          MAX_TRAVEL it times out, disables the servo and goes into SERVO_DISABLED.
+          @param speed  Speed in mm/s used for finding the homing switch. 
+                        Defaults to 5.0 mm/s
           @param callBackHoming Callback function is called after homing is done. 
                         Function parametere holds a bool containing the success (TRUE)
                         or failure (FALSE) of homing.
         */
         /**************************************************************************/
-        void enableAndHome();
-        void enableAndHome(void(*callBackHoming)(bool));
+        void enableAndHome(int pin, int activeLow, float speed = 5.0);
+        void enableAndHome(int pin, int activeLow, void(*callBackHoming)(bool), float speed = 5.0);
 
         /**************************************************************************/
         /*!
@@ -239,20 +215,24 @@ class StrokeEngine {
           @brief  In state SERVO_RUNNING and SERVO_READY this moves the endeffector
           to TRAVEL with SAFE_SPEED. Can be used for adjustments. Stops any running
           pattern and ends in state SERVO_READY.
+          @param speed  Speed in mm/s used for driving to max. 
+                        Defaults to 10.0 mm/s
           @return TRUE on success, FALSE if state does not allow this.
         */
         /**************************************************************************/
-        bool moveToMax();
+        bool moveToMax(float speed = 10.0);
 
         /**************************************************************************/
         /*!
           @brief  In state SERVO_RUNNING and SERVO_READY this moves the endeffector
           to 0 with SAFE_SPEED. Can be used for adjustments. Stops any running
           pattern and ends in state SERVO_READY.
+          @param speed  Speed in mm/s used for driving to min. 
+                        Defaults to 10.0 mm/s
           @return TRUE on success, FALSE if state does not allow this.
         */
         /**************************************************************************/
-        bool moveToMin();
+        bool moveToMin(float speed = 10.0);
 
         /**************************************************************************/
         /*!
@@ -292,6 +272,13 @@ class StrokeEngine {
 
     protected:
         ServoState _state = SERVO_DISABLED;
+        motorProperties *_motor;
+        machineGeometry *_physics;
+        float _travel;
+        int _minStep;
+        int _maxStep;
+        int _maxStepPerSecond;
+        int _maxStepAcceleration;
         int _patternIndex = 0;
         bool _isHomed = false;
         int _index = 0;
@@ -307,5 +294,7 @@ class StrokeEngine {
         TaskHandle_t _taskStrokingHandle = NULL;
         TaskHandle_t _taskHomingHandle = NULL;
         void(*_callBackHomeing)(bool);
+        int _homeingPin;
+        bool _homeingActiveLow;      /*> Polarity of the homing signal*/
 };
 
