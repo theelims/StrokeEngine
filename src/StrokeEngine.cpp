@@ -15,7 +15,7 @@ void StrokeEngine::begin(machineGeometry *physics, motorProperties *motor) {
     // Derived Machine Geometry & Motor Limits in steps:
     _travel = (_physics->physicalTravel - (2 * _physics->keepoutBoundary));
     _minStep = 0;
-    _maxStep = int(0.5 + _travel * _motor->stepPerMillimeter)
+    _maxStep = int(0.5 + _travel * _motor->stepsPerMillimeter)
     _maxStepPerSecond = int(0.5 + (_motor->maxRPM * _motor->stepsPerRevolution) / 60)
     _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerRevolution);
           
@@ -233,7 +233,7 @@ void StrokeEngine::stopMotion() {
 #endif
 }
 
-void StrokeEngine::enableAndHome(int pin, int activeLow, void(*callBackHoming)(bool), float speed = 5.0) {
+void StrokeEngine::enableAndHome(int pin, int activeLow, void(*callBackHoming)(bool), float speed) {
     // Store callback
     _callBackHomeing = callBackHoming;
 
@@ -241,7 +241,7 @@ void StrokeEngine::enableAndHome(int pin, int activeLow, void(*callBackHoming)(b
     enableAndHome(pin, activeLow, speed);
 }
 
-void StrokeEngine::enableAndHome(int pin, int activeLow, float speed = 5.0) {
+void StrokeEngine::enableAndHome(int pin, int activeLow, float speed) {
     // set homing pin as input
     _homeingPin = pin;
     pinMode(_homeingPin, INPUT);
@@ -282,7 +282,7 @@ void StrokeEngine::thisIsHome() {
     }
 }
 
-bool StrokeEngine::moveToMax(float speed = 10.0) {
+bool StrokeEngine::moveToMax(float speed) {
     motionParameter currentMotion;
 
 #ifdef DEBUG_VERBOSE
@@ -317,7 +317,7 @@ bool StrokeEngine::moveToMax(float speed = 10.0) {
     }
 }
 
-bool StrokeEngine::moveToMin(float speed = 10.0) {
+bool StrokeEngine::moveToMin(float speed) {
     motionParameter currentMotion;
 
 #ifdef DEBUG_VERBOSE
@@ -413,7 +413,7 @@ void StrokeEngine::_homingProcedure() {
     servo->setAcceleration(_maxStepAcceleration / 10);    
 
     // Check if we are aleady at the homing switch
-    if (digitalRead(SERVO_ENDSTOP) == !_homeingActiveLow) {
+    if (digitalRead(_homeingPin) == !_homeingActiveLow) {
         //back off 5 mm from switch
         servo->move(_motor->stepsPerMillimeter * 2 * _physics->keepoutBoundary);
 
@@ -435,7 +435,7 @@ void StrokeEngine::_homingProcedure() {
     while (servo->isRunning()) {
 
         // Switch is active low
-        if (digitalRead(SERVO_ENDSTOP) == LOW) {
+        if (digitalRead(_homeingPin) == LOW) {
 
             //Switch is at -KEEPOUT_BOUNDARY
             servo->forceStopAndNewPosition(-_motor->stepsPerMillimeter * _physics->keepoutBoundary);
@@ -545,7 +545,7 @@ void StrokeEngine::_stroking() {
 void StrokeEngine::_applyMotionProfile(motionParameter* motion) {
     // Apply new trapezoidal motion profile to servo
     // Constrain speed between 1 step/sec and _maxStepPerSecond
-    servo->setSpeedInHz(constrain(motion->speed, 1, _maxStepPerSecond);
+    servo->setSpeedInHz(constrain(motion->speed, 1, _maxStepPerSecond));
 
     // Constrain acceleration between 1 step/sec^2 and _maxStepAcceleration
     servo->setAcceleration(constrain(motion->acceleration, 1, _maxStepAcceleration));

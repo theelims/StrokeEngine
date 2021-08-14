@@ -23,12 +23,6 @@
   #define STRING_LEN           64     // Bytes used to initalize char array. No path, topic, name, etc. should exceed this value
 #endif
 
-
-// Step per mm calculation aid:
-#define STEP_PER_REV      3200      // How many steps per revolution of the motor (S1 on)
-#define PULLEY_TEETH      20        // How many teeth has the pulley
-#define BELT_PITCH        2         // What is the timing belt pitch in mm
-
 /**************************************************************************/
 /*!
   @brief  Struct defining the physical propoerties of the stroking machine.

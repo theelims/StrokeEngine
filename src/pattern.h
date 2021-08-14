@@ -12,7 +12,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <config.h>
+#include <StrokeEngine.h>
 #include <math.h>
 #include "PatternMath.h"
 
