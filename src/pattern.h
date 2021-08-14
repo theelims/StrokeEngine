@@ -1,3 +1,14 @@
+/**
+ *   Patterns of the StrokeEngine
+ *   A library to create a variety of stroking motions with a stepper or servo motor on an ESP32.
+ *   https://github.com/theelims/SrokeEngine 
+ *
+ * Copyright (C) 2021 theelims <elims@gmx.net>
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 #pragma once
 
 #include <Arduino.h>
