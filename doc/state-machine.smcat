@@ -11,9 +11,9 @@ initial => "SERVO_DISABLED": begin();
 "SERVO_READY" => "SERVO_READY" :moveToMin()
                                 moveToMax();
 "SERVO_RUNNING" => "SERVO_RUNNING" :applyNewSettingsNow();
-"SERVO_DISABLED" => "SERVO_ERROR" :safeState();
-"SERVO_READY" => "SERVO_ERROR" :safeState();
-"SERVO_RUNNING" => "SERVO_ERROR" :safeState();
+"SERVO_DISABLED" => "SERVO_ERROR" :motorFault();
+"SERVO_READY" => "SERVO_ERROR" :motorFault();
+"SERVO_RUNNING" => "SERVO_ERROR" :motorFault();
 #SERVO_ERROR can only 
 #be cleared by removing 
 #power and resetting ESP32.
