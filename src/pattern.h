@@ -212,8 +212,9 @@ class TeasingPounding : public Pattern {
   Array holding all different patterns. Please include any custom pattern here.
 */
 /**************************************************************************/
-static SimpleStroke p00 = SimpleStroke("Simple Stroke");
-static TeasingPounding p01 = TeasingPounding("Teasing or Pounding");
+static Pattern *patternTable[] = { 
+  new SimpleStroke("Simple Stroke"),
+  new TeasingPounding("Teasing or Pounding")
+ };
 
-static Pattern *patternTable[] = { &p00, &p01 };
 static const unsigned int patternTableSize = sizeof(patternTable) / sizeof(patternTable[0]);
