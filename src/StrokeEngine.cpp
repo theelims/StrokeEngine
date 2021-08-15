@@ -376,7 +376,7 @@ void StrokeEngine::disable() {
 
 }
 
-void StrokeEngine::safeState() {
+void StrokeEngine::motorFault() {
 //TODO: propably not interrupt safe. But does it matter?
 
     // call disable
@@ -390,21 +390,6 @@ void StrokeEngine::safeState() {
 #ifdef DEBUG_VERBOSE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
-}
-
-String StrokeEngine::getPatternJSON() {
-    String JSON = "[{\"";
-    for (size_t i = 0; i < patternTableSize; i++) {
-        JSON += String(patternTable[i]->getName());
-        JSON += "\": ";
-        JSON += String(i, DEC);
-        if (i < patternTableSize - 1) {
-            JSON += "},{\"";
-        } else {
-            JSON += "}]";
-        }
-    }
-    return JSON;
 }
 
 void StrokeEngine::_homingProcedure() {

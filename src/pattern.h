@@ -1,7 +1,7 @@
 /**
  *   Patterns of the StrokeEngine
  *   A library to create a variety of stroking motions with a stepper or servo motor on an ESP32.
- *   https://github.com/theelims/SrokeEngine 
+ *   https://github.com/theelims/StrokeEngine 
  *
  * Copyright (C) 2021 theelims <elims@gmx.net>
  *
@@ -31,6 +31,7 @@ typedef struct {
     int speed;          //!< Speed of a move in Hz 
     int acceleration;   //!< Acceleration to get to speed or halt 
 } motionParameter;
+
 
 /**************************************************************************/
 /*!
@@ -73,7 +74,7 @@ class Pattern {
         */
         virtual void setStroke(int stroke) { _stroke = stroke; }
 
-        //! Sensation is a additional parametere a pattern can take to alter its behaviour
+        //! Sensation is an additional parameter a pattern can take to alter its behaviour
         /*! 
           @param sesation Arbitrary value from -100 to 100, with 0 beeing neutral 
         */

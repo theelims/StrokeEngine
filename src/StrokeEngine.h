@@ -1,7 +1,7 @@
 /**
  *   StrokeEngine
  *   A library to create a variety of stroking motions with a stepper or servo motor on an ESP32.
- *   https://github.com/theelims/SrokeEngine 
+ *   https://github.com/theelims/StrokeEngine 
  *
  * Copyright (C) 2021 theelims <elims@gmx.net>
  *
@@ -18,6 +18,7 @@
 #define DEBUG_VERBOSE               // Show debug messages from the StrokeEngine on Serial
 //#define DEBUG_STROKE                // Show debug messaged for each individual stroke on Serial
 #define DEBUG_PATTERN               // Show debug messages from inside pattern generator on Serial
+
 
 /**************************************************************************/
 /*!
@@ -130,8 +131,8 @@ class StrokeEngine {
           @brief  Set the sensation of a pattern. Sensation is an additional 
           parameter a pattern may use to alter its behaviour. Settings takes 
           effect with next stroke, or after calling applyNewSettingsNow().
-          @param speed  Sesation in [a.u.]. Is constrained from -100 to 100 with 0 
-                        beeing assumed as neutral 
+          @param sensation  Sensation in [a.u.]. Is constrained from -100 to 100  
+                        with 0 beeing assumed as neutral.
         */
         /**************************************************************************/
         void setSensation(float sensation);
@@ -149,7 +150,7 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  Normally parameter changes take affect only with next stroke. If
+          @brief  Normally parameter changes take effect only with next stroke. If
           immideate parameter changes are desired call applyNewSettingsNow() to 
           change even mid-stroke.
         */
@@ -249,15 +250,17 @@ class StrokeEngine {
           maybe even doesn't matter.
         */
         /**************************************************************************/
-        void safeState();
+        void motorFault();
+
 
         /**************************************************************************/
         /*!
-          @brief  Creates a JSON describing all available pattern from pattern.h
-          @return JSON string
+          @brief  Makes the pattern list available for the main program to retreive 
+          informations like pattern names.
         */
         /**************************************************************************/
-        String getPatternJSON();
+        Pattern *patternList = *patternTable;
+        const unsigned int patternListSize = patternTableSize;
 
 
     protected:
