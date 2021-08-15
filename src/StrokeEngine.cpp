@@ -25,7 +25,7 @@ void StrokeEngine::begin(machineGeometry *physics, motorProperties *motor) {
     _patternIndex = 0;
     _index = 0;
     _depth = _maxStep; 
-    _stroke = 1/3 * _maxStep;
+    _stroke = _maxStep / 3;
     _timeOfStroke = 1.0;
     _sensation = 0.0;
 
@@ -146,6 +146,15 @@ bool StrokeEngine::applyNewSettingsNow() {
         // Ask pattern for update on motion parameters
         currentMotion = patternTable[_patternIndex]->nextTarget(_index);
 
+        // Increase deceleration if required to avoid crash
+        if (servo->getAcceleration() > currentMotion.acceleration) {
+#ifdef DEBUG_VERBOSE
+            Serial.print("Crash avoidance! Set Acceleration from " + String(currentMotion.acceleration));
+            Serial.println(" to " + String(servo->getAcceleration()));
+#endif
+            currentMotion.acceleration = servo->getAcceleration();
+        }
+
         // Apply new trapezoidal motion profile to servo
         _applyMotionProfile(&currentMotion);
 
@@ -191,6 +200,12 @@ bool StrokeEngine::startMotion() {
     patternTable[_patternIndex]->setDepth(_depth);
     patternTable[_patternIndex]->setStroke(_stroke);
     patternTable[_patternIndex]->setSensation(_sensation);
+#ifdef DEBUG_VERBOSE
+    Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
+    Serial.print(" | _depth: " + String(_depth));
+    Serial.print(" | _stroke: " + String(_stroke));
+    Serial.println(" | _sensation: " + String(_sensation));
+#endif
 
     // Create Stroke Task
     xTaskCreate(
@@ -376,6 +391,16 @@ void StrokeEngine::disable() {
 
 }
 
+String StrokeEngine::getPatternName(int index) {
+    if (index >= 0 && index <= patternTableSize) {
+        return String(patternTable[index]->getName());
+    } else {
+        return String("Invalid");
+    }
+    
+}
+
+
 void StrokeEngine::motorFault() {
 //TODO: propably not interrupt safe. But does it matter?
 
@@ -471,9 +496,7 @@ void StrokeEngine::_homingProcedure() {
 
 void StrokeEngine::_stroking() {
     motionParameter currentMotion;
-    int distanceToCrash = 0;
-    int currentSpeed = 0;
-    int minimumDeceleration = 0;
+
     while(1) { // infinite loop
 
         // Delete task, if not in RUNNING state
@@ -493,33 +516,9 @@ void StrokeEngine::_stroking() {
 
             // Ask pattern for update on motion parameters
             currentMotion = patternTable[_patternIndex]->nextTarget(_index);
-            
-            // current speed in Steps/s
-            currentSpeed = int((1000000.0/servo->getCurrentSpeedInUs()) + 0.5);
-
-            // Calculate distance to boundary in current motion direction
-            if (currentSpeed > 0) {
-                // forward move
-                distanceToCrash = _maxStep - servo->getCurrentPosition();
-            } else {
-                // backward move
-                distanceToCrash = servo->getCurrentPosition() - _minStep;
-            }
-
-            // Calculate minimal required deceleration to avoid crash
-            minimumDeceleration = int(sq(currentSpeed) / (2.0 * distanceToCrash) + 0.5);
-
-            // Modify acceleration value, if it is lower then minimally required deceleration
-            currentMotion.acceleration = max(currentMotion.acceleration, minimumDeceleration);
 
             // Apply new trapezoidal motion profile to servo
             _applyMotionProfile(&currentMotion);
-
-#ifdef DEBUG_STROKE
-            Serial.println("Minimum Deceleration: " + String(minimumDeceleration));
-            Serial.println("Current Speed: " + String(currentSpeed));
-            Serial.println("Distance to Crash: " + String(distanceToCrash));
-#endif
         }
         
         // Delay 10ms 

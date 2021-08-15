@@ -16,7 +16,7 @@
 
 // Debug Levels
 #define DEBUG_VERBOSE               // Show debug messages from the StrokeEngine on Serial
-//#define DEBUG_STROKE                // Show debug messaged for each individual stroke on Serial
+#define DEBUG_STROKE                // Show debug messaged for each individual stroke on Serial
 #define DEBUG_PATTERN               // Show debug messages from inside pattern generator on Serial
 
 
@@ -252,15 +252,27 @@ class StrokeEngine {
         /**************************************************************************/
         void motorFault();
 
+        /**************************************************************************/
+        /*!
+          @brief  Makes the pattern list available for the main program to retreive 
+          informations like pattern names.
+          @param index index of a pattern.
+          @return String holding a pattern name with a certain index. If index is 
+                        out of range it returns "Invalid"
+        */
+        /**************************************************************************/
+        String getPatternName(int index);
 
         /**************************************************************************/
         /*!
           @brief  Makes the pattern list available for the main program to retreive 
           informations like pattern names.
+          @return The number of pattern available.
         */
         /**************************************************************************/
-        Pattern *patternList = *patternTable;
-        const unsigned int patternListSize = patternTableSize;
+        unsigned int getNumberOfPattern() { 
+          return patternTableSize; 
+        };
 
 
     protected:
@@ -283,9 +295,9 @@ class StrokeEngine {
         void _homingProcedure();
         static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
         void _stroking();
-        void _applyMotionProfile(motionParameter* motion);
         TaskHandle_t _taskStrokingHandle = NULL;
         TaskHandle_t _taskHomingHandle = NULL;
+        void _applyMotionProfile(motionParameter* motion);
         void(*_callBackHomeing)(bool);
         int _homeingSpeed;
         int _homeingPin;
