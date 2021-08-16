@@ -145,12 +145,12 @@ You can move to either end of the machine for setting up reaches. Call `Stroker.
 #### Change Parameters
 Parameters can be updated in any state and are stored internally. On `Stroker.startMotion();` they will be used to initialize the pattern. Each one may be called individually. The argument given to the function is constrained to the physical limits of the machine:
 ```cpp
-Stroker.setSpeed(speed);          // Speed in Cycles (in & out) per minute, constrained from 0.5 to 6000
-Stroker.setDepth(depth);          // Depth in mm, constrained to [0, _travel]
-Stroker.setStroke(stroke);        // Stroke length in mm, constrained to [0, _travel]
-Stroker.setSensation(sensation);  // Sensation (arbitrary value a pattern may use to alter its behaviour), 
+Stroker.setSpeed(float speed);          // Speed in Cycles (in & out) per minute, constrained from 0.5 to 6000
+Stroker.setDepth(float depth);          // Depth in mm, constrained to [0, _travel]
+Stroker.setStroke(float stroke);        // Stroke length in mm, constrained to [0, _travel]
+Stroker.setSensation(float sensation);  // Sensation (arbitrary value a pattern may use to alter its behaviour), 
                                   // constrained to [-100, 100] with 0 beeing neutral.
-Stroker.setPattern(index);        // Pattern, index must be < Stroker.getNumberOfPattern()
+Stroker.setPattern(int index);        // Pattern, index must be < Stroker.getNumberOfPattern()
 ```
 Normally a parameter change is only executed after the current stroke has finished. However, sometimes it is desired to have the changes take effect immideately, even mid-stroke. In that case call 
 ```cpp
