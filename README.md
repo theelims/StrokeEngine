@@ -149,8 +149,8 @@ Stroker.setSpeed(float speed);          // Speed in Cycles (in & out) per minute
 Stroker.setDepth(float depth);          // Depth in mm, constrained to [0, _travel]
 Stroker.setStroke(float stroke);        // Stroke length in mm, constrained to [0, _travel]
 Stroker.setSensation(float sensation);  // Sensation (arbitrary value a pattern may use to alter its behaviour), 
-                                  // constrained to [-100, 100] with 0 beeing neutral.
-Stroker.setPattern(int index);        // Pattern, index must be < Stroker.getNumberOfPattern()
+                                        // constrained to [-100, 100] with 0 beeing neutral.
+Stroker.setPattern(int index);          // Pattern, index must be < Stroker.getNumberOfPattern()
 ```
 Normally a parameter change is only executed after the current stroke has finished. However, sometimes it is desired to have the changes take effect immideately, even mid-stroke. In that case call 
 ```cpp
