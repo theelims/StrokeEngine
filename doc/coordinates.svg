@@ -358,9 +358,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
-     inkscape:cx="259.95918"
-     inkscape:cy="193.55912"
+     inkscape:zoom="1.4"
+     inkscape:cx="221.60459"
+     inkscape:cy="66.448081"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -504,14 +504,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05555534px;line-height:1.25;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="123.27668"
-       y="98.601776"
+       x="134.9408"
+       y="42.608143"
        id="text7177-8-3"><tspan
          sodipodi:role="line"
          id="tspan7175-7-5"
-         x="123.27668"
-         y="98.601776"
-         style="font-size:7.05555534px;fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:0.26458332;stroke-opacity:1">MIN = 0</tspan></text>
+         x="134.9408"
+         y="42.608143"
+         style="font-size:7.05555534px;fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:0.26458332;stroke-opacity:1">0</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:8.46666622px;line-height:1.25;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
@@ -544,15 +544,15 @@
        sodipodi:nodetypes="cc" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05555534px;line-height:1.25;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="52.613102"
-       y="98.885414"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;line-height:1.25;font-family:Tahoma;-inkscape-font-specification:'Tahoma, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="61.87352"
+       y="41.811008"
        id="text7177-8"><tspan
          sodipodi:role="line"
          id="tspan7175-7"
-         x="52.613102"
-         y="98.885414"
-         style="font-size:7.05555534px;fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:0.26458332;stroke-opacity:1">MAX</tspan></text>
+         x="61.87352"
+         y="41.811008"
+         style="font-size:5.64444447px;fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:0.26458332;stroke-opacity:1">MAX = _travel</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.26499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#StopL-6);marker-end:url(#StopL-6)"
        d="m 70,112 h 40"
@@ -593,5 +593,17 @@
          x="98.065941"
          y="126.65617"
          style="font-size:5.64444447px;stroke-width:0.26458332">Depth</tspan></text>
+    <path
+       style="fill:none;stroke:#ff0000;stroke-width:0.66500002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.66500005, 0.66500005;stroke-dashoffset:0;stroke-opacity:1"
+       d="M 140,37.000002 V 127"
+       id="path5505"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#ff0000;stroke-width:0.66500002;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:0.66500006, 0.66500006;stroke-dashoffset:0;stroke-opacity:1"
+       d="m 60.000004,37.000002 0,89.999998"
+       id="path5505-1"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cc" />
   </g>
 </svg>
