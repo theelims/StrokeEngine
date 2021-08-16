@@ -153,6 +153,7 @@ class StrokeEngine {
           @brief  Normally parameter changes take effect only with next stroke. If
           immideate parameter changes are desired call applyNewSettingsNow() to 
           change even mid-stroke.
+          @return 
         */
         /**************************************************************************/
         bool applyNewSettingsNow();
@@ -182,6 +183,9 @@ class StrokeEngine {
           Optionally a callback can be given to receive feedback if homing succeded 
           going in state SERVO_READY. If homing switch is not found after traveling 
           MAX_TRAVEL it times out, disables the servo and goes into SERVO_DISABLED.
+          @param pin    The pin used by the homeing switch
+          @param aciveLow True if the switch id active low (pressed = 0V), 
+                        False otherwise.
           @param speed  Speed in mm/s used for finding the homing switch. 
                         Defaults to 5.0 mm/s
           @param callBackHoming Callback function is called after homing is done. 
@@ -189,17 +193,19 @@ class StrokeEngine {
                         or failure (FALSE) of homing.
         */
         /**************************************************************************/
-        void enableAndHome(int pin, int activeLow, float speed = 5.0);
-        void enableAndHome(int pin, int activeLow, void(*callBackHoming)(bool), float speed = 5.0);
+        void enableAndHome(int pin, bool activeLow, float speed = 5.0);
+        void enableAndHome(int pin, bool activeLow, void(*callBackHoming)(bool), float speed = 5.0);
 
         /**************************************************************************/
         /*!
           @brief  If no homing switch is present homing can be done manually. Push 
           the endeffector all the way in and call thisIsHome(). This enables the
           the servo and sets the position to -KEEPOUT_BOUNDARY
+          @param speed  Speed in mm/s used for finding the homing switch. 
+                        Defaults to 5.0 mm/s
         */
         /**************************************************************************/
-        void thisIsHome();
+        void thisIsHome(float speed = 5.0);
 
         /**************************************************************************/
         /*!

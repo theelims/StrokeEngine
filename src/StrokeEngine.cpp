@@ -248,7 +248,7 @@ void StrokeEngine::stopMotion() {
 #endif
 }
 
-void StrokeEngine::enableAndHome(int pin, int activeLow, void(*callBackHoming)(bool), float speed) {
+void StrokeEngine::enableAndHome(int pin, bool activeLow, void(*callBackHoming)(bool), float speed) {
     // Store callback
     _callBackHomeing = callBackHoming;
 
@@ -256,7 +256,7 @@ void StrokeEngine::enableAndHome(int pin, int activeLow, void(*callBackHoming)(b
     enableAndHome(pin, activeLow, speed);
 }
 
-void StrokeEngine::enableAndHome(int pin, int activeLow, float speed) {
+void StrokeEngine::enableAndHome(int pin, bool activeLow, float speed) {
     // set homing pin as input
     _homeingPin = pin;
     pinMode(_homeingPin, INPUT);
@@ -284,15 +284,26 @@ void StrokeEngine::enableAndHome(int pin, int activeLow, float speed) {
 
 }
 
-void StrokeEngine::thisIsHome() {
+void StrokeEngine::thisIsHome(float speed) {
+    // set homeing speed
+    _homeingSpeed = speed * _motor->stepsPerMillimeter;
+
     if (_state != SERVO_ERROR) {
         // Enable Servo
         servo->enableOutputs();
 
         // Stet current position as home
         servo->setCurrentPosition(-_motor->stepsPerMillimeter * _physics->keepoutBoundary);
-        _isHomed = true;
 
+        // Set feedrate for homing
+        servo->setSpeedInHz(_homeingSpeed);       
+        servo->setAcceleration(_maxStepAcceleration / 10);
+
+        // drive free of switch and set axis to 0
+        servo->moveTo(0);
+        
+        // Change state
+        _isHomed = true;
         _state = SERVO_READY;
     }
 }
