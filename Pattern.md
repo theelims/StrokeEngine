@@ -69,7 +69,7 @@ static Pattern *patternTable[] = {
 ```
 ### Expected Behaviour
 #### Adhere to Depth & Stroke at All Times
-Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no vialation against stroke, depth and the machines physics were returned. Positions outside the interval [depth - stroke, depth] will be trunkated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries.
+Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no violation against stroke, depth and the machines physics were returned. Positions outside the interval [depth - stroke, depth] will be truncated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries.
 
 #### Use `index` Properly 
 `index` provides further information then just the stroke count:
