@@ -73,7 +73,7 @@ Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitor
 
 #### Use `index` Properly 
 `index` provides further information then just the stroke count:
-* It always starts at `0` if a pattern is called the first time. It resets with every `setPattern(int)`-call.
+* It always starts at `0` if a pattern is called the first time. It resets with every call of `StrokeEngine.setPattern(int)` or `StrokeEngine.startMotion()`.
 * It increments after each succesfully executed move.
 * Store the last index in `_index` bevor returning. By comparing `index == _index` you can determine that this time it is not a new stroke, but rather an update of a current stroke. This information can be handy in pattern variying over time.
 
