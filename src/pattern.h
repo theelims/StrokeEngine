@@ -215,6 +215,7 @@ class TeasingPounding : public Pattern {
 static Pattern *patternTable[] = { 
   new SimpleStroke("Simple Stroke"),
   new TeasingPounding("Teasing or Pounding")
+  // <-- insert your new pattern class here!
  };
 
 static const unsigned int patternTableSize = sizeof(patternTable) / sizeof(patternTable[0]);
