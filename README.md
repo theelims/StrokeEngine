@@ -41,7 +41,7 @@ Also on the pattern side `constrain()` is used to ensure no impossible motion co
 It is possible to update any parameter like depth, stroke, speed and pattern mid-stroke. This gives a very responsive and fluid user experience. Safeguards are in place to ensure the move stays inside the bounds of the machine at any time.
 
 ### State Machine
-An internal finite state machine handles the different states of the machine. See the below graph with all functions relating to the state machine and how the cause transitions:
+An internal finite state machine handles the different states of the machine. See the below graph with all functions relating to the state machine and how to cause transitions:
 
 ![State Machine](./doc/state-machine.svg)
 * __SERVO_DISABLED:__ The initial state prior to homeing. Stepper / Servo are disabled and the position is undefined.
@@ -52,7 +52,7 @@ An internal finite state machine handles the different states of the machine. Se
 ## Usage
 StrokeEngine aims to have a simple and straight forward, yet powerful API. The follwoing describes the minimum case to get up and running. All input parameteres need to be specified in real world (metric) units.
 ### Initialize
-First all parameteres of the machine and the servo need to be set. Including the pins for interacting with the driver and an (optional) homeing switch.
+First all parameteres of the machine and the servo need to be set. Including the pins for interacting with the driver and an (optionally) homeing switch.
 ```cpp
 #include <StrokeEngine.h>
 
@@ -73,7 +73,7 @@ static motorProperties servoMotor {
   .maxRPM = 2900,                     // Maximum RPM your motor can / should go
   .maxAcceleration = 300000,          // Maximum linear acceleration in mm/s²
   .stepsPerMillimeter = STEP_PER_MM,  // Steps per millimeter 
-  .invertDirection = true,            // One of many ways to change the direction of 
+  .invertDirection = true,            // One of many ways to change the direction should 
                                       // things move the wrong way
   .enableActiveLow = true,            // Polarity of the enable signal      
   .stepPin = SERVO_PULSE,             // Pin of the STEP signal
@@ -143,7 +143,7 @@ Use `Stroker.startMotion();` and `Stroker.stopMotion();` to start and stop the m
 You can move to either end of the machine for setting up reaches. Call `Stroker.moveToMin();` to move all they way back towards home. With `Stroker.moveToMax();` it moves all the way out. Takes the speed in mm/s as an argument: e.g. `Stroker.moveToMax(10.0);` Speed defaults to 10 mm/s. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state.
 
 #### Change Parameters
-Parameters can be updated at any state and are stored internally. On `Stroker.startMotion();` they will be used to initialize the pattern. Each one may be called individually. The argument given to the function is constrained to the physical limits of the machine:
+Parameters can be updated in any state and are stored internally. On `Stroker.startMotion();` they will be used to initialize the pattern. Each one may be called individually. The argument given to the function is constrained to the physical limits of the machine:
 ```cpp
 Stroker.setSpeed(speed);          // Speed in Cycles (in & out) per minute, constrained from 0.5 to 6000
 Stroker.setDepth(depth);          // Depth in mm, constrained to [0, _travel]
@@ -159,4 +159,4 @@ Stroker.applyNewSettingsNow();
 directly after changing one or more parameter.
 
 #### Advanced Functions
-Consult [StrokeEngine.h](./src/StrokeEngine.h) for further functions and a more detailed documentation of each function. Some functions are overloaded and may have additional useful functionalities.
+Consult [StrokeEngine.h](./src/StrokeEngine.h) for further functions and a more detailed documentation of each function. Some functions are overloaded and may provide additional useful functionalities.
