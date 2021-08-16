@@ -545,8 +545,8 @@ void StrokeEngine::_applyMotionProfile(motionParameter* motion) {
     // Constrain acceleration between 1 step/sec^2 and _maxStepAcceleration
     servo->setAcceleration(constrain(motion->acceleration, 1, _maxStepAcceleration));
 
-    // Constrain position between 0 and _maxStep
-    servo->moveTo(constrain(motion->position, _minStep, _maxStep));
+    // Constrain position between (_depth - _stroke) and _depth
+    servo->moveTo(constrain(motion->position, (_depth - _stroke), _depth));
 
 #ifdef DEBUG_STROKE
     Serial.println("motion.position: " + String(motion->position));
