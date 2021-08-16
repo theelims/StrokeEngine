@@ -137,7 +137,7 @@ String getPatternJSON() {
 
 ### Running
 #### Start & Stop the Stroking Action
-Use `Stroker.startMotion();` and `Stroker.stopMotion();` to start and stop the motion. Stop is immideate and with the the highest possible acceleration.
+Use `Stroker.startMotion();` and `Stroker.stopMotion();` to start and stop the motion. Stop is immideate and with the highest possible acceleration.
 
 #### Move to the Minimum or Maximum Position
 You can move to either end of the machine for setting up reaches. Call `Stroker.moveToMin();` to move all they way back towards home. With `Stroker.moveToMax();` it moves all the way out. Takes the speed in mm/s as an argument: e.g. `Stroker.moveToMax(10.0);` Speed defaults to 10 mm/s. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state.
