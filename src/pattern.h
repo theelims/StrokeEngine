@@ -215,7 +215,7 @@ class TeasingPounding : public Pattern {
   @brief  Robot Stroke Pattern. Sensation controls the acceleration of the
   stroke. Positive value increase acceleration until it is a constant speed
   motion (feels robotic). Neutral is equal to simple stroke (1/3, 1/3, 1/3).
-  Negative a reduces acceleration into a triangle profile.
+  Negative reduces acceleration into a triangle profile.
 */
 /**************************************************************************/ 
 class RoboStroke : public Pattern {
@@ -350,8 +350,8 @@ class HalfnHalf : public Pattern {
 /**************************************************************************/
 /*!
   @brief  The insertion depth ramps up gradually with each stroke until it
-  reaches its maximum. It then resets and restars. Sensations controls the
-  slope of the ramp. 
+  reaches its maximum. It then resets and restars. Sensations controls how 
+  many strokes there are in a ramp.
 */
 /**************************************************************************/
 class Deeper : public Pattern {
