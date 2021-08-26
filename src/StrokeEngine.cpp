@@ -309,7 +309,6 @@ void StrokeEngine::thisIsHome(float speed) {
 }
 
 bool StrokeEngine::moveToMax(float speed) {
-    motionParameter currentMotion;
 
 #ifdef DEBUG_VERBOSE
     Serial.println("Move to max");
@@ -319,13 +318,11 @@ bool StrokeEngine::moveToMax(float speed) {
         // Stop motion immideately
         stopMotion();
 
-        // Set feedrate for safe move
-        currentMotion.speed = speed * _motor->stepsPerMillimeter;       
-        currentMotion.acceleration = _maxStepAcceleration / 10;
-        currentMotion.position = _maxStep;
-
-        // Apply new trapezoidal motion profile to servo
-        _applyMotionProfile(&currentMotion);
+        // Set feedrate for safe move 
+        // Constrain speed between 1 step/sec and _maxStepPerSecond
+        servo->setSpeedInHz(constrain(speed * _motor->stepsPerMillimeter, 1, _maxStepPerSecond));
+        servo->setAcceleration(_maxStepAcceleration / 10);
+        servo->moveTo(_maxStep);
 
         // Set state
         _state = SERVO_READY;
@@ -344,7 +341,6 @@ bool StrokeEngine::moveToMax(float speed) {
 }
 
 bool StrokeEngine::moveToMin(float speed) {
-    motionParameter currentMotion;
 
 #ifdef DEBUG_VERBOSE
     Serial.println("Move to min");
@@ -354,13 +350,11 @@ bool StrokeEngine::moveToMin(float speed) {
         // Stop motion immideately
         stopMotion();
 
-        // Set feedrate for safe move
-        currentMotion.speed = speed * _motor->stepsPerMillimeter;       
-        currentMotion.acceleration = _maxStepAcceleration / 10;
-        currentMotion.position = _minStep;
-
-        // Apply new trapezoidal motion profile to servo
-        _applyMotionProfile(&currentMotion);
+        // Set feedrate for safe move 
+        // Constrain speed between 1 step/sec and _maxStepPerSecond
+        servo->setSpeedInHz(constrain(speed * _motor->stepsPerMillimeter, 1, _maxStepPerSecond));
+        servo->setAcceleration(_maxStepAcceleration / 10);
+        servo->moveTo(_minStep);
 
         // Set state
         _state = SERVO_READY;
