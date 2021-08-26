@@ -233,7 +233,7 @@ class RoboStroke : public Pattern {
             if (sensation >= 0 ) {
               _x = fscale(0.0, 100.0, 1.0/3.0, 0.5, sensation, 0.0);
             } else {
-              _x = fscale(0.0, -100.0, 1.0/3.0, 0.05, sensation, 0.0);
+              _x = fscale(0.0, 100.0, 1.0/3.0, 0.05, -sensation, 0.0);
             }
 #ifdef DEBUG_PATTERN
             Serial.println("Sensation:" + String(sensation,0) + " --> " + String(_x,6));
@@ -373,7 +373,7 @@ class Deeper : public Pattern {
                 _countStrokesForRamp = map(sensation, 0, 100, 11, 32);
             }
 #ifdef DEBUG_PATTERN
-            Serial.println("_countStrokesForrRamp: " + String(_countStrokesForRamp));
+            Serial.println("_countStrokesForRamp: " + String(_countStrokesForRamp));
 #endif
         }
 
@@ -429,7 +429,8 @@ static Pattern *patternTable[] = {
   new SimpleStroke("Simple Stroke"),
   new TeasingPounding("Teasing or Pounding"),
   new RoboStroke("Robo Stroke"),
-  new HalfnHalf("Half'n'Half")
+  new HalfnHalf("Half'n'Half"),
+  new Deeper("Deeper")
   // <-- insert your new pattern class here!
  };
 
