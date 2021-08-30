@@ -110,6 +110,14 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
+          @brief  Get the speed of a stroke. Speed is returned as Strokes per Minute. 
+          @return Strokes per Minute.
+        */
+        /**************************************************************************/
+        float getSpeed();
+
+        /**************************************************************************/
+        /*!
           @brief  Set the depth of a stroke. Settings tale effect with next stroke, 
           or after calling applyNewSettingsNow().
           @param speed Depth in [mm]. Is constrained from 0 to TRAVEL 
@@ -119,12 +127,28 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
+          @brief  Get the depth of a stroke.
+          @return Depth in [mm].
+        */
+        /**************************************************************************/
+        float getDepth();
+
+        /**************************************************************************/
+        /*!
           @brief  Set the stroke length of a stroke. Settings tale effect with next 
           stroke, or after calling applyNewSettingsNow().
           @param speed Stroke length in [mm]. Is constrained from 0 to TRAVEL 
         */
         /**************************************************************************/
         void setStroke(float stroke);
+
+        /**************************************************************************/
+        /*!
+          @brief  Get the stroke length of a stroke.
+          @return Stroke length in [mm].
+        */
+        /**************************************************************************/
+        float getStroke();
 
         /**************************************************************************/
         /*!
@@ -139,6 +163,16 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
+          @brief  Get the sensation of a pattern. Sensation is an additional 
+          parameter a pattern may use to alter its behaviour.
+          @return Sensation in [a.u.]. Is constrained from -100 to 100  
+                        with 0 beeing assumed as neutral.
+        */
+        /**************************************************************************/
+        float getSensation();
+
+        /**************************************************************************/
+        /*!
           @brief  Choose a pattern for the StrokeEngine. Settings take effect with 
           next stroke, or after calling applyNewSettingsNow(). 
           @param patternIndex  Index of a pattern
@@ -147,6 +181,14 @@ class StrokeEngine {
         */
         /**************************************************************************/
         bool setPattern(int patternIndex);
+
+        /**************************************************************************/
+        /*!
+          @brief  Get the pattern index for the StrokeEngine.
+          @return Index of a pattern
+        */
+        /**************************************************************************/
+        int getPattern();
 
         /**************************************************************************/
         /*!

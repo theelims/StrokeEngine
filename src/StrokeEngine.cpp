@@ -61,6 +61,10 @@ void StrokeEngine::setSpeed(float speed) {
 
 }
 
+float StrokeEngine::getSpeed() {
+    return 60.0 / _timeOfStroke;
+}
+
 void StrokeEngine::setDepth(float depth) {
     // Convert depth from mm into steps
     _depth = int(depth * _motor->stepsPerMillimeter);
@@ -74,6 +78,10 @@ void StrokeEngine::setDepth(float depth) {
 #ifdef DEBUG_VERBOSE
     Serial.println("setDepth: " + String(_depth));
 #endif
+}
+
+float StrokeEngine::getDepth() {
+    return _depth / _motor->stepsPerMillimeter;
 }
 
 void StrokeEngine::setStroke(float stroke) {
@@ -91,6 +99,10 @@ void StrokeEngine::setStroke(float stroke) {
 #endif
 }
 
+float StrokeEngine::getStroke() {
+    return _stroke / _motor->stepsPerMillimeter;
+}
+
 void StrokeEngine::setSensation(float sensation) {
     // Constrain sensation between -100 and 100
     _sensation = constrain(sensation, -100, 100); 
@@ -101,6 +113,10 @@ void StrokeEngine::setSensation(float sensation) {
 #ifdef DEBUG_VERBOSE
     Serial.println("setSensation: " + String(_sensation));
 #endif
+}
+
+float StrokeEngine::getSensation() {
+    return _sensation;
 }
 
 bool StrokeEngine::setPattern(int patternIndex) {
@@ -132,6 +148,10 @@ bool StrokeEngine::setPattern(int patternIndex) {
     Serial.println("Failed to set pattern: " + String(_patternIndex));
 #endif
     return false;   
+}
+
+int StrokeEngine::getPattern() {
+    return _patternIndex;
 }
 
 bool StrokeEngine::applyNewSettingsNow() {
