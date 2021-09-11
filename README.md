@@ -6,7 +6,7 @@ Every DIY fucking machine with a linear position drive powered by a stepper or s
 ## Concepts
 StrokeEngine takes full advantage of the freedom a servo / stepper driven stroking or fucking machine can provide over fixed cam-driven designs. To this date there are only few commercial offerings using this advantage. And often so the implementation is rather boring, not utilizing the full possibilities of such a linear position drive. 
 
-Unter the hood it uses the fabulous [FastAccelStepper](https://github.com/gin66/FastAccelStepper) library to interface stepper or servo motors with commonly found STEP / DIR interfaces.
+Under the hood it uses the fabulous [FastAccelStepper](https://github.com/gin66/FastAccelStepper) library to interface stepper or servo motors with commonly found STEP / DIR interfaces.
 
 Understanding the underlying concepts will help you to get up and running with StrokeEngine faster. 
 
@@ -48,6 +48,7 @@ An internal finite state machine handles the different states of the machine. Se
 * __SERVO_READY:__ Homeing defines the position inside the internal coordinate system. Machine is now ready to be used and accepts motion commands.
 * __SERVO_RUNNING:__ The cyclic motion has started and the pattern generator is commanding a sequence of trapezoidal motions until stopped.
 * __SERVO_ERROR:__ If a motor fault is detected the state machine enters this state. This is a dead-end. To clear this fault the power from the drive has to be removed and the EPS32 needs to be resetted. 
+* __SERVO_SETUPDEPTH:__ The servo always follows the depth position. This can be used to setup the optimal stroke depth. 
 
 ## Usage
 StrokeEngine aims to have a simple and straight forward, yet powerful API. The follwoing describes the minimum case to get up and running. All input parameteres need to be specified in real world (metric) units.
@@ -141,6 +142,9 @@ Use `Stroker.startMotion();` and `Stroker.stopMotion();` to start and stop the m
 
 #### Move to the Minimum or Maximum Position
 You can move to either end of the machine for setting up reaches. Call `Stroker.moveToMin();` to move all they way back towards home. With `Stroker.moveToMax();` it moves all the way out. Takes the speed in mm/s as an argument: e.g. `Stroker.moveToMax(10.0);` Speed defaults to 10 mm/s. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state.
+
+#### Setup Optimal Depth Interactively
+In a special setup mode it will always follow the __Depth__ position. By envoking `Stroker.setupDepth();` it will start to follow the depth position whenever `Stroker.setDepth(float);` is updated. Takes the speed in mm/s as an argument: e.g. `Stroker.setupDepth(10.0);` Speed defaults to 10 mm/s. With `float Stroker.getDepth()` one may obtain the current set depth to calculate incremental updates for `Stroker.setDepth(float)`. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state. 
 
 #### Change Parameters
 Parameters can be updated in any state and are stored internally. On `Stroker.startMotion();` they will be used to initialize the pattern. Each one may be called individually. The argument given to the function is constrained to the physical limits of the machine:
