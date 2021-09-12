@@ -78,6 +78,26 @@ void StrokeEngine::setDepth(float depth) {
 #ifdef DEBUG_VERBOSE
     Serial.println("setDepth: " + String(_depth));
 #endif
+
+    // if in state SERVO_SETUPDEPTH then move to new _depth
+    if (_state == SERVO_SETUPDEPTH) {
+        servo->moveTo(_depth);
+#ifdef DEBUG_VERBOSE
+        Serial.println("setup new depth: " + String(_depth));
+#endif
+    }
+
+}
+
+float StrokeEngine::getDepth() {
+    // Convert stroke from mm into steps
+    float depth = float(_depth) / _motor->stepsPerMillimeter;
+
+#ifdef DEBUG_VERBOSE
+    Serial.println("getDepth [mm]: " + String(depth));
+#endif
+
+    return depth;
 }
 
 float StrokeEngine::getDepth() {
@@ -195,60 +215,62 @@ bool StrokeEngine::applyNewSettingsNow() {
 
 bool StrokeEngine::startMotion() {
     // Only valid if state is ready
-    if (_state != SERVO_READY) {
+    if (_state == SERVO_READY || SERVO_SETUPDEPTH) {
+
+        // Stop current move, should one be pending (moveToMax or moveToMin)
+        if (servo->isRunning()) {
+            // Stop servo motor as fast as legaly allowed
+            servo->setAcceleration(_maxStepAcceleration);
+            servo->applySpeedAcceleration();
+            servo->stopMove();
+        }
+
+        // Set state to RUNNING
+        _state = SERVO_RUNNING;
+
+        // Reset Stroke and Motion parameters
+        _index = -1;
+        patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
+        patternTable[_patternIndex]->setDepth(_depth);
+        patternTable[_patternIndex]->setStroke(_stroke);
+        patternTable[_patternIndex]->setSensation(_sensation);
+#ifdef DEBUG_VERBOSE
+        Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
+        Serial.print(" | _depth: " + String(_depth));
+        Serial.print(" | _stroke: " + String(_stroke));
+        Serial.println(" | _sensation: " + String(_sensation));
+#endif
+
+        // Create Stroke Task
+        xTaskCreate(
+            this->_strokingImpl,    // Function that should be called
+            "Stroking",             // Name of the task (for debugging)
+            2048,                   // Stack size (bytes)
+            this,                   // Pass reference to this class instance
+            24,                     // Pretty high task piority
+            &_taskStrokingHandle    // Task handle
+        ); 
 
 #ifdef DEBUG_VERBOSE
-    Serial.println("Failed to start motion");
+        Serial.println("Started motion task");
+        Serial.println("Stroke Engine State: " + verboseState[_state]);
+#endif
+
+        return true;
+
+    } else {
+
+#ifdef DEBUG_VERBOSE
+        Serial.println("Failed to start motion");
 #endif
         return false;
+
     }
-
-    // Stop current move, should one be pending (moveToMax or moveToMin)
-    if (servo->isRunning()) {
-        // Stop servo motor as fast as legaly allowed
-        servo->setAcceleration(_maxStepAcceleration);
-        servo->applySpeedAcceleration();
-        servo->stopMove();
-    }
-
-    // Set state to RUNNING
-    _state = SERVO_RUNNING;
-
-    // Reset Stroke and Motion parameters
-    _index = -1;
-    patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
-    patternTable[_patternIndex]->setDepth(_depth);
-    patternTable[_patternIndex]->setStroke(_stroke);
-    patternTable[_patternIndex]->setSensation(_sensation);
-#ifdef DEBUG_VERBOSE
-    Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
-    Serial.print(" | _depth: " + String(_depth));
-    Serial.print(" | _stroke: " + String(_stroke));
-    Serial.println(" | _sensation: " + String(_sensation));
-#endif
-
-    // Create Stroke Task
-    xTaskCreate(
-        this->_strokingImpl,    // Function that should be called
-        "Stroking",             // Name of the task (for debugging)
-        2048,                   // Stack size (bytes)
-        this,                   // Pass reference to this class instance
-        24,                     // Pretty high task piority
-        &_taskStrokingHandle    // Task handle
-    ); 
-
-#ifdef DEBUG_VERBOSE
-    Serial.println("Started motion task");
-    Serial.println("Stroke Engine State: " + verboseState[_state]);
-#endif
-
-    return true;
-
 }
 
 void StrokeEngine::stopMotion() {
     // only valid when 
-    if (_state == SERVO_RUNNING) {
+    if (_state == SERVO_RUNNING || SERVO_SETUPDEPTH) {
         // Stop servo motor as fast as legaly allowed
         servo->setAcceleration(_maxStepAcceleration);
         servo->applySpeedAcceleration();
@@ -390,6 +412,37 @@ bool StrokeEngine::moveToMin(float speed) {
         // Return failure
         return false;
     }
+}
+
+bool StrokeEngine::setupDepth(float speed) {
+#ifdef DEBUG_VERBOSE
+    Serial.println("Move to Depth");
+#endif
+
+    // returns true on success, and false if in wrong state
+    bool allowed = false;
+
+    // isHomed is only true in states SERVO_READY, SERVO_RUNNING and SERVO_SETUPDEPTH
+    if (_isHomed) {
+        // Stop motion immideately
+        stopMotion();
+
+        // Set feedrate for safe move 
+        // Constrain speed between 1 step/sec and _maxStepPerSecond
+        servo->setSpeedInHz(constrain(speed * _motor->stepsPerMillimeter, 1, _maxStepPerSecond));
+        servo->setAcceleration(_maxStepAcceleration / 10);
+        servo->moveTo(_depth);
+
+        // Set new state
+        _state = SERVO_SETUPDEPTH;
+
+        // set return value to true
+        allowed = true;
+    }
+#ifdef DEBUG_VERBOSE
+    Serial.println("Stroke Engine State: " + verboseState[_state]);
+#endif
+    return allowed;
 }
 
 ServoState StrokeEngine::getState() {

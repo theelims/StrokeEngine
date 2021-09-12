@@ -63,9 +63,9 @@ typedef struct {
 typedef enum {
   SERVO_DISABLED,          //!< No power to the servo. We don't know its position
   SERVO_READY,             //!< Servo is energized and knows it position. Not running.
-  SERVO_ERROR,             //!< Servo is on error state. Needs to be cleared by removing power
-  SERVO_RUNNING,           //!< Stroke Engine is running and servo is moving according to defined pattern
-  SERVO_STREAMING          //!< Stroke Engine is running and is receaiving a stream of position data
+  SERVO_ERROR,             //!< Servo is on error state. Needs to be cleared by removing power.
+  SERVO_RUNNING,           //!< Stroke Engine is running and servo is moving according to defined pattern.
+  SERVO_SETUPDEPTH         //!< Tracks the depth-position whenever depth is updated. 
 } ServoState;
 
 // Verbose strings of states for debugging purposes
@@ -74,7 +74,7 @@ static String verboseState[] = {
   "[1] Servo ready",
   "[2] Servo error",
   "[3] Servo running",
-  "[4] Servo streaming"
+  "[4] Servo setup depth"
 };
 
 /**************************************************************************/
@@ -120,24 +120,24 @@ class StrokeEngine {
         /*!
           @brief  Set the depth of a stroke. Settings tale effect with next stroke, 
           or after calling applyNewSettingsNow().
-          @param speed Depth in [mm]. Is constrained from 0 to TRAVEL 
+          @param depth Depth in [mm]. Is constrained from 0 to TRAVEL 
         */
         /**************************************************************************/
         void setDepth(float depth);
 
         /**************************************************************************/
         /*!
-          @brief  Get the depth of a stroke.
-          @return Depth in [mm].
+          @brief  Returns the depth of a stroke. 
+          @return depth Depth in [mm]. Is constrained from 0 to TRAVEL 
         */
         /**************************************************************************/
         float getDepth();
 
         /**************************************************************************/
         /*!
-          @brief  Set the stroke length of a stroke. Settings tale effect with next 
+          @brief  Set the stroke length of a stroke. Settings take effect with next 
           stroke, or after calling applyNewSettingsNow().
-          @param speed Stroke length in [mm]. Is constrained from 0 to TRAVEL 
+          @param stroke Stroke length in [mm]. Is constrained from 0 to TRAVEL 
         */
         /**************************************************************************/
         void setStroke(float stroke);
@@ -251,9 +251,9 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  In state SERVO_RUNNING and SERVO_READY this moves the endeffector
-          to TRAVEL with SAFE_SPEED. Can be used for adjustments. Stops any running
-          pattern and ends in state SERVO_READY.
+          @brief  In state SERVO_RUNNING, SERVO_SETUPDEPTH and SERVO_READY this 
+          moves the endeffector to TRAVEL. Can be used for adjustments. Stops any 
+          running pattern and ends in state SERVO_READY.
           @param speed  Speed in mm/s used for driving to max. 
                         Defaults to 10.0 mm/s
           @return TRUE on success, FALSE if state does not allow this.
@@ -263,8 +263,8 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  In state SERVO_RUNNING and SERVO_READY this moves the endeffector
-          to 0 with SAFE_SPEED. Can be used for adjustments. Stops any running
+          @brief  In state SERVO_RUNNING, SERVO_SETUPDEPTH and SERVO_READY this 
+          moves the endeffector to 0. Can be used for adjustments. Stops any running
           pattern and ends in state SERVO_READY.
           @param speed  Speed in mm/s used for driving to min. 
                         Defaults to 10.0 mm/s
@@ -272,6 +272,19 @@ class StrokeEngine {
         */
         /**************************************************************************/
         bool moveToMin(float speed = 10.0);
+
+        /**************************************************************************/
+        /*!
+          @brief  In state SERVO_RUNNING and SERVO_READY this moves the endeffector
+          to DEPTH and enters state SERVO_SETUPDEPTH. Follows the DEPTH postion 
+          whenever setDepth() is called. Can be used for adjustments. Stops any running
+          pattern. 
+          @param speed  Speed in mm/s used for driving to min. 
+                        Defaults to 10.0 mm/s
+          @return TRUE on success, FALSE if state does not allow this.
+        */
+        /**************************************************************************/
+        bool setupDepth(float speed = 10.0);
 
         /**************************************************************************/
         /*!
