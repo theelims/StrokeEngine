@@ -128,7 +128,7 @@ class StrokeEngine {
         /**************************************************************************/
         /*!
           @brief  Returns the depth of a stroke. 
-          @return depth Depth in [mm]. Is constrained from 0 to TRAVEL 
+          @return Depth in [mm]. Is constrained from 0 to TRAVEL 
         */
         /**************************************************************************/
         float getDepth();
