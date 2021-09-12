@@ -162,5 +162,17 @@ Stroker.applyNewSettingsNow();
 ```
 directly after changing one or more parameter.
 
+#### Readout Parameters
+Each set-function has a corresponding get-function to read out what parameters are currently set. As each set-function constrains it's input one can read back the truncated value that is actually used by the StrokeEngine. This is usefull for implementing UI's.
+
+```cpp
+float Stroker.getSpeed();          // Speed in Cycles (in & out) per minute, constrained from 0.5 to 6000
+float Stroker.getDepth();          // Depth in mm, constrained to [0, _travel]
+float Stroker.getStroke();         // Stroke length in mm, constrained to [0, _travel]
+float Stroker.getSensation();      // Sensation (arbitrary value a pattern may use to alter its behaviour), 
+                                   // constrained to [-100, 100] with 0 beeing neutral.
+int Stroker.getPattern();          // Pattern, index is [o, Stroker.getNumberOfPattern()[
+```
+
 #### Advanced Functions
 Consult [StrokeEngine.h](./src/StrokeEngine.h) for further functions and a more detailed documentation of each function. Some functions are overloaded and may provide additional useful functionalities.
