@@ -1,191 +1,191 @@
-<!DOCTYPE svg [<!ENTITY nbsp "&#160;">]><svg width="682pt" height="400pt" viewBox="0.00 0.00 681.51 400.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!DOCTYPE svg [<!ENTITY nbsp "&#160;">]><svg width="633pt" height="400pt" viewBox="0.00 0.00 633.02 400.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 396)">
 <title>state transitions</title>
-<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-396 677.5061,-396 677.5061,4 -4,4"></polygon>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-396 629.0173,-396 629.0173,4 -4,4"></polygon>
 <!-- initial -->
 <g id="node1" class="node state initial">
 <title>initial</title>
-<ellipse fill="#000000" stroke="#000000" stroke-width="2" cx="489.2636" cy="-386.5" rx="5.5" ry="5.5"></ellipse>
+<ellipse fill="#000000" stroke="#000000" stroke-width="2" cx="442.7748" cy="-386.5" rx="5.5" ry="5.5"></ellipse>
 </g>
-<!-- SERVO_DISABLED -->
+<!-- UNDEFINED -->
 <g id="node2" class="node state regular">
-<title>SERVO_DISABLED</title>
-<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="554.2636,-353 424.2636,-353 424.2636,-317 554.2636,-317 554.2636,-353"></polygon>
-<text text-anchor="start" x="435.254" y="-331.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_DISABLED</text>
-<path fill="none" stroke="#000000" stroke-width="2" d="M436.597,-318C436.597,-318 541.9303,-318 541.9303,-318 547.597,-318 553.2636,-323.6667 553.2636,-329.3333 553.2636,-329.3333 553.2636,-340.6667 553.2636,-340.6667 553.2636,-346.3333 547.597,-352 541.9303,-352 541.9303,-352 436.597,-352 436.597,-352 430.9303,-352 425.2636,-346.3333 425.2636,-340.6667 425.2636,-340.6667 425.2636,-329.3333 425.2636,-329.3333 425.2636,-323.6667 430.9303,-318 436.597,-318"></path>
+<title>UNDEFINED</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="488.2748,-353 397.2748,-353 397.2748,-317 488.2748,-317 488.2748,-353"></polygon>
+<text text-anchor="start" x="408.2822" y="-331.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">UNDEFINED</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M409.6082,-318C409.6082,-318 475.9415,-318 475.9415,-318 481.6082,-318 487.2748,-323.6667 487.2748,-329.3333 487.2748,-329.3333 487.2748,-340.6667 487.2748,-340.6667 487.2748,-346.3333 481.6082,-352 475.9415,-352 475.9415,-352 409.6082,-352 409.6082,-352 403.9415,-352 398.2748,-346.3333 398.2748,-340.6667 398.2748,-340.6667 398.2748,-329.3333 398.2748,-329.3333 398.2748,-323.6667 403.9415,-318 409.6082,-318"></path>
 </g>
-<!-- initial&#45;&gt;SERVO_DISABLED -->
+<!-- initial&#45;&gt;UNDEFINED -->
 <g id="edge1" class="edge transition">
-<title>initial-&gt;SERVO_DISABLED</title>
-<path fill="none" stroke="#000000" d="M489.2636,-380.9886C489.2636,-376.6293 489.2636,-370.1793 489.2636,-363.4801"></path>
-<polygon fill="#000000" stroke="#000000" points="492.7637,-363.0122 489.2636,-353.0122 485.7637,-363.0122 492.7637,-363.0122"></polygon>
-<text text-anchor="start" x="489.2636" y="-364" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">begin() &nbsp;&nbsp;</text>
+<title>initial-&gt;UNDEFINED</title>
+<path fill="none" stroke="#000000" d="M442.7748,-380.9886C442.7748,-376.6293 442.7748,-370.1793 442.7748,-363.4801"></path>
+<polygon fill="#000000" stroke="#000000" points="446.2749,-363.0122 442.7748,-353.0122 439.2749,-363.0122 446.2749,-363.0122"></polygon>
+<text text-anchor="start" x="442.7748" y="-364" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">begin() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_READY -->
+<!-- READY -->
 <g id="node3" class="node state regular">
-<title>SERVO_READY</title>
-<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="392.2636,-277 280.2636,-277 280.2636,-241 392.2636,-241 392.2636,-277"></polygon>
-<text text-anchor="start" x="291.2582" y="-255.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_READY</text>
-<path fill="none" stroke="#000000" stroke-width="2" d="M292.597,-242C292.597,-242 379.9303,-242 379.9303,-242 385.597,-242 391.2636,-247.6667 391.2636,-253.3333 391.2636,-253.3333 391.2636,-264.6667 391.2636,-264.6667 391.2636,-270.3333 385.597,-276 379.9303,-276 379.9303,-276 292.597,-276 292.597,-276 286.9303,-276 281.2636,-270.3333 281.2636,-264.6667 281.2636,-264.6667 281.2636,-253.3333 281.2636,-253.3333 281.2636,-247.6667 286.9303,-242 292.597,-242"></path>
+<title>READY</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="326.2748,-277 263.2748,-277 263.2748,-241 326.2748,-241 326.2748,-277"></polygon>
+<text text-anchor="start" x="274.6078" y="-255.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">READY</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M275.6082,-242C275.6082,-242 313.9415,-242 313.9415,-242 319.6082,-242 325.2748,-247.6667 325.2748,-253.3333 325.2748,-253.3333 325.2748,-264.6667 325.2748,-264.6667 325.2748,-270.3333 319.6082,-276 313.9415,-276 313.9415,-276 275.6082,-276 275.6082,-276 269.9415,-276 264.2748,-270.3333 264.2748,-264.6667 264.2748,-264.6667 264.2748,-253.3333 264.2748,-253.3333 264.2748,-247.6667 269.9415,-242 275.6082,-242"></path>
 </g>
-<!-- SERVO_DISABLED&#45;&gt;SERVO_READY -->
+<!-- UNDEFINED&#45;&gt;READY -->
 <g id="edge2" class="edge transition">
-<title>SERVO_DISABLED-&gt;SERVO_READY</title>
-<path fill="none" stroke="#000000" d="M423.9401,-331.2815C389.5487,-327.8728 352.1871,-321.3702 340.8016,-309 335.4661,-303.203 333.3326,-295.2661 332.8052,-287.4232"></path>
-<polygon fill="#000000" stroke="#000000" points="336.3056,-287.3885 332.9027,-277.355 329.3059,-287.3206 336.3056,-287.3885"></polygon>
-<text text-anchor="start" x="341.2636" y="-300" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">enableAndHome() &nbsp;&nbsp;</text>
-<text text-anchor="start" x="341.2636" y="-288" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">thisIsHome() &nbsp;&nbsp;</text>
+<title>UNDEFINED-&gt;READY</title>
+<path fill="none" stroke="#000000" d="M397.0224,-333.2538C358.3655,-330.7023 307.273,-324.4271 294.3128,-309 289.2655,-302.992 287.8401,-294.9931 288.1082,-287.1583"></path>
+<polygon fill="#000000" stroke="#000000" points="291.5952,-287.4719 289.2738,-277.1345 284.6421,-286.6632 291.5952,-287.4719"></polygon>
+<text text-anchor="start" x="294.7748" y="-300" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">enableAndHome() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="294.7748" y="-288" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">thisIsHome() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_ERROR -->
+<!-- ERROR -->
 <g id="node6" class="node state regular">
-<title>SERVO_ERROR</title>
-<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="558.2636,-125 444.2636,-125 444.2636,-89 558.2636,-89 558.2636,-125"></polygon>
-<text text-anchor="start" x="455.2622" y="-103.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_ERROR</text>
-<path fill="none" stroke="#000000" stroke-width="2" d="M456.597,-90C456.597,-90 545.9303,-90 545.9303,-90 551.597,-90 557.2636,-95.6667 557.2636,-101.3333 557.2636,-101.3333 557.2636,-112.6667 557.2636,-112.6667 557.2636,-118.3333 551.597,-124 545.9303,-124 545.9303,-124 456.597,-124 456.597,-124 450.9303,-124 445.2636,-118.3333 445.2636,-112.6667 445.2636,-112.6667 445.2636,-101.3333 445.2636,-101.3333 445.2636,-95.6667 450.9303,-90 456.597,-90"></path>
+<title>ERROR</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="485.2748,-125 420.2748,-125 420.2748,-89 485.2748,-89 485.2748,-125"></polygon>
+<text text-anchor="start" x="431.6118" y="-103.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">ERROR</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M432.6082,-90C432.6082,-90 472.9415,-90 472.9415,-90 478.6082,-90 484.2748,-95.6667 484.2748,-101.3333 484.2748,-101.3333 484.2748,-112.6667 484.2748,-112.6667 484.2748,-118.3333 478.6082,-124 472.9415,-124 472.9415,-124 432.6082,-124 432.6082,-124 426.9415,-124 421.2748,-118.3333 421.2748,-112.6667 421.2748,-112.6667 421.2748,-101.3333 421.2748,-101.3333 421.2748,-95.6667 426.9415,-90 432.6082,-90"></path>
 </g>
-<!-- SERVO_DISABLED&#45;&gt;SERVO_ERROR -->
+<!-- UNDEFINED&#45;&gt;ERROR -->
 <g id="edge13" class="edge transition">
-<title>SERVO_DISABLED-&gt;SERVO_ERROR</title>
-<path fill="none" stroke="#000000" d="M525.1672,-316.8818C540.0047,-307.2757 555.5255,-293.9231 563.2636,-277 574.8643,-251.6296 561.7214,-173.0247 551.2636,-153 547.2213,-145.2597 541.3356,-138.1493 535.0106,-131.9518"></path>
-<polygon fill="#000000" stroke="#000000" points="537.2272,-129.2371 527.4681,-125.1127 532.5252,-134.4227 537.2272,-129.2371"></polygon>
-<text text-anchor="start" x="567.2636" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">motorFault() &nbsp;&nbsp;</text>
+<title>UNDEFINED-&gt;ERROR</title>
+<path fill="none" stroke="#000000" d="M472.8448,-316.9527C486.162,-307.0626 500.268,-293.4543 506.7748,-277 514.9012,-256.4503 516.5998,-182.6556 502.7748,-153 499.121,-145.1624 493.4594,-138.0412 487.2395,-131.869"></path>
+<polygon fill="#000000" stroke="#000000" points="489.521,-129.2129 479.7684,-125.0731 484.8108,-134.3911 489.521,-129.2129"></polygon>
+<text text-anchor="start" x="512.7748" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">motorFault() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_READY&#45;&gt;SERVO_DISABLED -->
+<!-- READY&#45;&gt;UNDEFINED -->
 <g id="edge4" class="edge transition">
-<title>SERVO_READY-&gt;SERVO_DISABLED</title>
-<path fill="none" stroke="#000000" d="M392.6067,-269.9946C405.7287,-273.7443 419.34,-278.6508 431.2636,-285 432.198,-285.4976 446.5682,-297.8842 460.7692,-310.2027"></path>
-<polygon fill="#000000" stroke="#000000" points="458.7094,-313.0495 468.5548,-316.9634 463.299,-307.7641 458.7094,-313.0495"></polygon>
-<text text-anchor="start" x="458.2636" y="-294" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">disable() &nbsp;&nbsp;</text>
+<title>READY-&gt;UNDEFINED</title>
+<path fill="none" stroke="#000000" d="M326.5714,-264.4688C344.4592,-268.4358 366.7499,-274.9134 384.7748,-285 398.5929,-292.7324 399.1313,-298.6394 411.1058,-309 411.6707,-309.4887 412.2425,-309.9811 412.8197,-310.476"></path>
+<polygon fill="#000000" stroke="#000000" points="410.6053,-313.187 420.5052,-316.9608 415.1194,-307.837 410.6053,-313.187"></polygon>
+<text text-anchor="start" x="411.7748" y="-294" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">disable() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_READY&#45;&gt;SERVO_READY -->
+<!-- READY&#45;&gt;READY -->
 <g id="edge5" class="edge transition">
-<title>SERVO_READY-&gt;SERVO_READY</title>
-<path fill="none" stroke="#000000" d="M392.3556,-265.951C405.0087,-265.3248 414.2636,-263.0078 414.2636,-259 414.2636,-256.182 409.6882,-254.1999 402.5731,-253.0537"></path>
-<polygon fill="#000000" stroke="#000000" points="402.6501,-249.5445 392.3556,-252.049 401.965,-256.5109 402.6501,-249.5445"></polygon>
-<text text-anchor="start" x="414.2636" y="-262" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
-<text text-anchor="start" x="414.2636" y="-250" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
+<title>READY-&gt;READY</title>
+<path fill="none" stroke="#000000" d="M326.3648,-266.1037C338.3562,-266.3777 348.2748,-264.0098 348.2748,-259 348.2748,-255.5558 343.5867,-253.3603 336.7601,-252.4134"></path>
+<polygon fill="#000000" stroke="#000000" points="336.5264,-248.8976 326.3648,-251.8963 336.1785,-255.8889 336.5264,-248.8976"></polygon>
+<text text-anchor="start" x="348.2748" y="-262" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="348.2748" y="-250" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_RUNNING -->
+<!-- PATTERN -->
 <g id="node4" class="node state regular">
-<title>SERVO_RUNNING</title>
-<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="210.2636,-189 84.2636,-189 84.2636,-153 210.2636,-153 210.2636,-189"></polygon>
-<text text-anchor="start" x="94.9334" y="-167.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_RUNNING</text>
-<path fill="none" stroke="#000000" stroke-width="2" d="M96.597,-154C96.597,-154 197.9303,-154 197.9303,-154 203.597,-154 209.2636,-159.6667 209.2636,-165.3333 209.2636,-165.3333 209.2636,-176.6667 209.2636,-176.6667 209.2636,-182.3333 203.597,-188 197.9303,-188 197.9303,-188 96.597,-188 96.597,-188 90.9303,-188 85.2636,-182.3333 85.2636,-176.6667 85.2636,-176.6667 85.2636,-165.3333 85.2636,-165.3333 85.2636,-159.6667 90.9303,-154 96.597,-154"></path>
+<title>PATTERN</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="161.2748,-189 84.2748,-189 84.2748,-153 161.2748,-153 161.2748,-189"></polygon>
+<text text-anchor="start" x="95.277" y="-167.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">PATTERN</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M96.6082,-154C96.6082,-154 148.9415,-154 148.9415,-154 154.6082,-154 160.2748,-159.6667 160.2748,-165.3333 160.2748,-165.3333 160.2748,-176.6667 160.2748,-176.6667 160.2748,-182.3333 154.6082,-188 148.9415,-188 148.9415,-188 96.6082,-188 96.6082,-188 90.9415,-188 85.2748,-182.3333 85.2748,-176.6667 85.2748,-176.6667 85.2748,-165.3333 85.2748,-165.3333 85.2748,-159.6667 90.9415,-154 96.6082,-154"></path>
 </g>
-<!-- SERVO_READY&#45;&gt;SERVO_RUNNING -->
+<!-- READY&#45;&gt;PATTERN -->
 <g id="edge3" class="edge transition">
-<title>SERVO_READY-&gt;SERVO_RUNNING</title>
-<path fill="none" stroke="#000000" d="M280.0471,-255.6232C222.9401,-251.6055 141.5301,-244.0247 131.8186,-233 123.4294,-223.4763 125.624,-210.0811 130.6178,-198.1774"></path>
-<polygon fill="#000000" stroke="#000000" points="133.8304,-199.5747 135.074,-189.0531 127.5405,-196.5027 133.8304,-199.5747"></polygon>
-<text text-anchor="start" x="132.2636" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">startMotion() &nbsp;&nbsp;</text>
+<title>READY-&gt;PATTERN</title>
+<path fill="none" stroke="#000000" d="M263.2549,-257.1906C209.3453,-253.7716 104.145,-245.5594 93.1008,-233 84.1035,-222.7683 85.6389,-214.424 93.3915,-198.4265"></path>
+<polygon fill="#000000" stroke="#000000" points="96.61,-199.8173 97.9895,-189.3126 90.3603,-196.6642 96.61,-199.8173"></polygon>
+<text text-anchor="start" x="93.7748" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">startPattern() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_SETUPDEPTH -->
+<!-- SETUPDEPTH -->
 <g id="node5" class="node state regular">
-<title>SERVO_SETUPDEPTH</title>
-<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="193.7636,-125 42.7636,-125 42.7636,-89 193.7636,-89 193.7636,-125"></polygon>
-<text text-anchor="start" x="54.0932" y="-103.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SERVO_SETUPDEPTH</text>
-<path fill="none" stroke="#000000" stroke-width="2" d="M55.097,-90C55.097,-90 181.4303,-90 181.4303,-90 187.097,-90 192.7636,-95.6667 192.7636,-101.3333 192.7636,-101.3333 192.7636,-112.6667 192.7636,-112.6667 192.7636,-118.3333 187.097,-124 181.4303,-124 181.4303,-124 55.097,-124 55.097,-124 49.4303,-124 43.7636,-118.3333 43.7636,-112.6667 43.7636,-112.6667 43.7636,-101.3333 43.7636,-101.3333 43.7636,-95.6667 49.4303,-90 55.097,-90"></path>
+<title>SETUPDEPTH</title>
+<polygon fill="#ffffff" fill-opacity="0.003922" stroke="transparent" stroke-width="2" points="142.7748,-125 40.7748,-125 40.7748,-89 142.7748,-89 142.7748,-125"></polygon>
+<text text-anchor="start" x="51.4428" y="-103.2" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#000000">SETUPDEPTH</text>
+<path fill="none" stroke="#000000" stroke-width="2" d="M53.1082,-90C53.1082,-90 130.4415,-90 130.4415,-90 136.1082,-90 141.7748,-95.6667 141.7748,-101.3333 141.7748,-101.3333 141.7748,-112.6667 141.7748,-112.6667 141.7748,-118.3333 136.1082,-124 130.4415,-124 130.4415,-124 53.1082,-124 53.1082,-124 47.4415,-124 41.7748,-118.3333 41.7748,-112.6667 41.7748,-112.6667 41.7748,-101.3333 41.7748,-101.3333 41.7748,-95.6667 47.4415,-90 53.1082,-90"></path>
 </g>
-<!-- SERVO_READY&#45;&gt;SERVO_SETUPDEPTH -->
+<!-- READY&#45;&gt;SETUPDEPTH -->
 <g id="edge6" class="edge transition">
-<title>SERVO_READY-&gt;SERVO_SETUPDEPTH</title>
-<path fill="none" stroke="#000000" d="M280.0549,-255.4275C195.1478,-248.7188 40.5165,-230.9363 7.1376,-189 -2.8265,-176.4814 -1.753,-166.3025 7.1376,-153 13.8453,-142.9638 23.1907,-135.1145 33.6405,-128.9763"></path>
-<polygon fill="#000000" stroke="#000000" points="35.4422,-131.9828 42.6443,-124.2123 32.1684,-125.7955 35.4422,-131.9828"></polygon>
-<text text-anchor="start" x="7.2636" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">setupDepth() &nbsp;&nbsp;</text>
+<title>READY-&gt;SETUPDEPTH</title>
+<path fill="none" stroke="#000000" d="M263.1682,-256.2109C195.0031,-249.4656 37.8031,-229.7363 6.6488,-189 -3.071,-176.2907 -1.0197,-167.0426 6.6488,-153 12.3728,-142.5183 21.4827,-134.3108 31.6565,-127.9226"></path>
+<polygon fill="#000000" stroke="#000000" points="33.4219,-130.9451 40.4017,-122.9744 29.9747,-124.8527 33.4219,-130.9451"></polygon>
+<text text-anchor="start" x="6.7748" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">setupDepth() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_READY&#45;&gt;SERVO_ERROR -->
+<!-- READY&#45;&gt;ERROR -->
 <g id="edge14" class="edge transition">
-<title>SERVO_READY-&gt;SERVO_ERROR</title>
-<path fill="none" stroke="#000000" d="M388.1704,-240.8684C413.7215,-229.552 443.0778,-212.5865 462.2636,-189 475.3618,-172.8974 485.3035,-151.6664 491.8706,-134.8423"></path>
-<polygon fill="#000000" stroke="#000000" points="495.3175,-135.6146 495.5215,-125.0217 488.7562,-133.1753 495.3175,-135.6146"></polygon>
-<text text-anchor="start" x="483.2636" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">motorFault() &nbsp;&nbsp;</text>
+<title>READY-&gt;ERROR</title>
+<path fill="none" stroke="#000000" d="M326.3538,-247.722C353.1432,-236.6417 390.7848,-217.2633 413.7748,-189 426.873,-172.8974 436.8147,-151.6664 443.3818,-134.8423"></path>
+<polygon fill="#000000" stroke="#000000" points="446.8287,-135.6146 447.0327,-125.0217 440.2674,-133.1753 446.8287,-135.6146"></polygon>
+<text text-anchor="start" x="434.7748" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">motorFault() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_RUNNING&#45;&gt;SERVO_DISABLED -->
+<!-- PATTERN&#45;&gt;UNDEFINED -->
 <g id="edge9" class="edge transition">
-<title>SERVO_RUNNING-&gt;SERVO_DISABLED</title>
-<path fill="none" stroke="#000000" d="M210.6177,-175.9873C298.4188,-184.1875 450.7696,-203.4866 490.2636,-241 510.8215,-260.5268 515.7347,-276.2066 506.7734,-307.2974"></path>
-<polygon fill="#000000" stroke="#000000" points="503.3916,-306.3837 503.7157,-316.9736 510.0663,-308.493 503.3916,-306.3837"></polygon>
-<text text-anchor="start" x="511.2636" y="-256" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">disable() &nbsp;&nbsp;</text>
+<title>PATTERN-&gt;UNDEFINED</title>
+<path fill="none" stroke="#000000" d="M161.5023,-173.0694C201.6646,-175.9183 265.9912,-182.4606 319.7748,-197 368.6199,-210.2043 384.6436,-210.183 424.7748,-241 444.376,-256.0519 450.7912,-261.6114 458.7748,-285 461.4938,-292.9654 461.7306,-296.913 458.7386,-307.1152"></path>
+<polygon fill="#000000" stroke="#000000" points="455.3429,-306.2435 455.6326,-316.8344 462.0107,-308.3744 455.3429,-306.2435"></polygon>
+<text text-anchor="start" x="454.7748" y="-256" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">disable() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_RUNNING&#45;&gt;SERVO_READY -->
+<!-- PATTERN&#45;&gt;READY -->
 <g id="edge7" class="edge transition">
-<title>SERVO_RUNNING-&gt;SERVO_READY</title>
-<path fill="none" stroke="#000000" d="M186.2392,-189.1474C215.8953,-202.9555 256.8566,-222.0274 288.4864,-236.7545"></path>
-<polygon fill="#000000" stroke="#000000" points="287.0177,-239.9314 297.5606,-240.9795 289.9724,-233.5856 287.0177,-239.9314"></polygon>
-<text text-anchor="start" x="281.2636" y="-224" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">stopMotion() &nbsp;&nbsp;</text>
-<text text-anchor="start" x="281.2636" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
-<text text-anchor="start" x="281.2636" y="-200" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
+<title>PATTERN-&gt;READY</title>
+<path fill="none" stroke="#000000" d="M157.9739,-189.0088C185.8692,-203.2808 224.8798,-223.2397 254.1079,-238.1937"></path>
+<polygon fill="#000000" stroke="#000000" points="252.7307,-241.4205 263.2274,-242.8594 255.9191,-235.1888 252.7307,-241.4205"></polygon>
+<text text-anchor="start" x="244.7748" y="-224" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">stopMotion() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="244.7748" y="-212" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="244.7748" y="-200" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_RUNNING&#45;&gt;SERVO_RUNNING -->
+<!-- PATTERN&#45;&gt;PATTERN -->
 <g id="edge10" class="edge transition">
-<title>SERVO_RUNNING-&gt;SERVO_RUNNING</title>
-<path fill="none" stroke="#000000" d="M210.2801,-176.7711C223.0904,-176.1425 232.2636,-174.2188 232.2636,-171 232.2636,-168.7368 227.7285,-167.1139 220.5828,-166.1312"></path>
-<polygon fill="#000000" stroke="#000000" points="220.5474,-162.6148 210.2801,-165.2289 219.9366,-169.5881 220.5474,-162.6148"></polygon>
-<text text-anchor="start" x="232.2636" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">applyNewSettingsNow() &nbsp;&nbsp;</text>
+<title>PATTERN-&gt;PATTERN</title>
+<path fill="none" stroke="#000000" d="M161.4693,-176.9967C173.6586,-176.9052 183.2748,-174.9063 183.2748,-171 183.2748,-168.2534 178.5207,-166.4498 171.4608,-165.5891"></path>
+<polygon fill="#000000" stroke="#000000" points="171.6571,-162.0947 161.4693,-165.0033 171.2473,-169.0827 171.6571,-162.0947"></polygon>
+<text text-anchor="start" x="183.2748" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">applyNewSettingsNow() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_RUNNING&#45;&gt;SERVO_SETUPDEPTH -->
+<!-- PATTERN&#45;&gt;SETUPDEPTH -->
 <g id="edge8" class="edge transition">
-<title>SERVO_RUNNING-&gt;SERVO_SETUPDEPTH</title>
-<path fill="none" stroke="#000000" d="M83.9675,-153.7115C77.9865,-150.9972 73.3312,-148.0671 71.1376,-145 68.0979,-140.7496 68.0164,-136.7169 69.8588,-132.9776"></path>
-<polygon fill="#000000" stroke="#000000" points="72.6285,-135.1268 76.5635,-125.2898 67.3529,-130.5258 72.6285,-135.1268"></polygon>
-<text text-anchor="start" x="71.2636" y="-136" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">setupDepth() &nbsp;&nbsp;</text>
+<title>PATTERN-&gt;SETUPDEPTH</title>
+<path fill="none" stroke="#000000" d="M84.2135,-158.6957C64.8492,-152.4276 45.3177,-145.9276 44.6488,-145 41.5924,-140.7616 41.5007,-136.7362 43.3375,-133.0009"></path>
+<polygon fill="#000000" stroke="#000000" points="46.1031,-135.1548 50.0366,-125.3171 40.8268,-130.5546 46.1031,-135.1548"></polygon>
+<text text-anchor="start" x="44.7748" y="-136" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">setupDepth() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_RUNNING&#45;&gt;SERVO_ERROR -->
+<!-- PATTERN&#45;&gt;ERROR -->
 <g id="edge15" class="edge transition">
-<title>SERVO_RUNNING-&gt;SERVO_ERROR</title>
-<path fill="none" stroke="#000000" d="M210.5517,-159.5581C273.5078,-148.1762 369.7478,-130.7769 434.0464,-119.1523"></path>
-<polygon fill="#000000" stroke="#000000" points="434.8639,-122.5613 444.0817,-117.338 433.6185,-115.673 434.8639,-122.5613"></polygon>
-<text text-anchor="start" x="356.2636" y="-136" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">motorFault() &nbsp;&nbsp;</text>
+<title>PATTERN-&gt;ERROR</title>
+<path fill="none" stroke="#000000" d="M161.2759,-163.5331C223.4096,-151.4829 345.3537,-127.8332 410.0717,-115.2818"></path>
+<polygon fill="#000000" stroke="#000000" points="410.7986,-118.7061 419.9493,-113.3662 409.4658,-111.8342 410.7986,-118.7061"></polygon>
+<text text-anchor="start" x="317.7748" y="-136" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">motorFault() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_SETUPDEPTH&#45;&gt;SERVO_READY -->
+<!-- SETUPDEPTH&#45;&gt;READY -->
 <g id="edge11" class="edge transition">
-<title>SERVO_SETUPDEPTH-&gt;SERVO_READY</title>
-<path fill="none" stroke="#000000" d="M193.9815,-109.7262C264.1589,-113.053 359.4673,-119.9292 371.2636,-133 399.4334,-164.213 377.5271,-188.5089 356.2376,-231.7385"></path>
-<polygon fill="#000000" stroke="#000000" points="352.9908,-230.4166 351.8628,-240.9512 359.3141,-233.4193 352.9908,-230.4166"></polygon>
-<text text-anchor="start" x="385.2636" y="-180" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">stopMotion() &nbsp;&nbsp;</text>
-<text text-anchor="start" x="385.2636" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
-<text text-anchor="start" x="385.2636" y="-156" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
+<title>SETUPDEPTH-&gt;READY</title>
+<path fill="none" stroke="#000000" d="M142.9848,-109.2078C207.3827,-112.5194 311.0088,-119.8354 322.7748,-133 336.0855,-147.8929 330.0443,-200.2146 319.0482,-231.256"></path>
+<polygon fill="#000000" stroke="#000000" points="315.6593,-230.2999 315.1499,-240.8825 322.1475,-232.9274 315.6593,-230.2999"></polygon>
+<text text-anchor="start" x="330.7748" y="-180" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">stopMotion() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="330.7748" y="-168" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMin() &nbsp;&nbsp;</text>
+<text text-anchor="start" x="330.7748" y="-156" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">moveToMax() &nbsp;&nbsp;</text>
 </g>
-<!-- SERVO_SETUPDEPTH&#45;&gt;SERVO_RUNNING -->
+<!-- SETUPDEPTH&#45;&gt;PATTERN -->
 <g id="edge12" class="edge transition">
-<title>SERVO_SETUPDEPTH-&gt;SERVO_RUNNING</title>
-<path fill="none" stroke="#000000" d="M133.6993,-125.1234C135.4106,-127.6655 136.9912,-130.326 138.2636,-133 139.7202,-136.061 140.951,-139.3759 141.9889,-142.7287"></path>
-<polygon fill="#000000" stroke="#000000" points="138.67,-143.8755 144.5558,-152.6851 145.4484,-142.1279 138.67,-143.8755"></polygon>
-<text text-anchor="start" x="143.2636" y="-136" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">startMotion() &nbsp;&nbsp;</text>
+<title>SETUPDEPTH-&gt;PATTERN</title>
+<path fill="none" stroke="#000000" d="M107.0859,-125.1846C108.8175,-127.7167 110.437,-130.3581 111.7748,-133 113.3747,-136.1594 114.7763,-139.5877 115.9946,-143.0484"></path>
+<polygon fill="#000000" stroke="#000000" points="112.6742,-144.1588 118.9554,-152.6909 119.3659,-142.1041 112.6742,-144.1588"></polygon>
+<text text-anchor="start" x="116.7748" y="-136" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">startPattern() &nbsp;&nbsp;</text>
 </g>
-<!-- i_note_tr_SERVO_ERROR_final_16 -->
-<!-- SERVO_ERROR&#45;&gt;i_note_tr_SERVO_ERROR_final_16 -->
+<!-- i_note_tr_ERROR_final_16 -->
+<!-- ERROR&#45;&gt;i_note_tr_ERROR_final_16 -->
 <g id="edge16" class="edge">
-<title>SERVO_ERROR-&gt;i_note_tr_SERVO_ERROR_final_16</title>
-<path fill="none" stroke="#000000" d="M501.2636,-88.68C501.2636,-80.7409 501.2636,-73.0275 501.2636,-72.0943"></path>
+<title>ERROR-&gt;i_note_tr_ERROR_final_16</title>
+<path fill="none" stroke="#000000" d="M452.7748,-88.68C452.7748,-80.7409 452.7748,-73.0275 452.7748,-72.0943"></path>
 </g>
 <!-- final -->
 <g id="node7" class="node state final">
 <title>final</title>
-<ellipse fill="#000000" stroke="#000000" stroke-width="2" cx="501.2636" cy="-22" rx="5.5" ry="5.5"></ellipse>
-<ellipse fill="none" stroke="#000000" stroke-width="2" cx="501.2636" cy="-22" rx="9.5" ry="9.5"></ellipse>
+<ellipse fill="#000000" stroke="#000000" stroke-width="2" cx="452.7748" cy="-22" rx="5.5" ry="5.5"></ellipse>
+<ellipse fill="none" stroke="#000000" stroke-width="2" cx="452.7748" cy="-22" rx="9.5" ry="9.5"></ellipse>
 </g>
-<!-- i_note_tr_SERVO_ERROR_final_16&#45;&gt;final -->
+<!-- i_note_tr_ERROR_final_16&#45;&gt;final -->
 <g id="edge17" class="edge">
-<title>i_note_tr_SERVO_ERROR_final_16-&gt;final</title>
-<path fill="none" stroke="#000000" d="M501.2636,-71.8566C501.2636,-70.2277 501.2636,-55.0279 501.2636,-41.8348"></path>
-<polygon fill="#000000" stroke="#000000" points="504.7637,-41.5665 501.2636,-31.5666 497.7637,-41.5666 504.7637,-41.5665"></polygon>
-<text text-anchor="middle" x="502.6531" y="-55" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> </text>
+<title>i_note_tr_ERROR_final_16-&gt;final</title>
+<path fill="none" stroke="#000000" d="M452.7748,-71.8566C452.7748,-70.2277 452.7748,-55.0279 452.7748,-41.8348"></path>
+<polygon fill="#000000" stroke="#000000" points="456.2749,-41.5665 452.7748,-31.5666 449.2749,-41.5666 456.2749,-41.5665"></polygon>
+<text text-anchor="middle" x="454.1643" y="-55" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> </text>
 </g>
-<!-- note_tr_SERVO_ERROR_final_16 -->
+<!-- note_tr_ERROR_final_16 -->
 <g id="node9" class="node">
-<title>note_tr_SERVO_ERROR_final_16</title>
-<polygon fill="#ffffcc" stroke="#000000" points="667.7495,-44 532.7778,-44 532.7778,0 673.7495,0 673.7495,-38 667.7495,-44"></polygon>
-<polyline fill="none" stroke="#000000" points="667.7495,-44 667.7495,-38 "></polyline>
-<polyline fill="none" stroke="#000000" points="673.7495,-38 667.7495,-38 "></polyline>
-<text text-anchor="start" x="541.0211" y="-31" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">SERVO_ERROR can only</text>
-<text text-anchor="start" x="541.0211" y="-19" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">be cleared by removing</text>
-<text text-anchor="start" x="541.0211" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">power and resetting ESP32.</text>
+<title>note_tr_ERROR_final_16</title>
+<polygon fill="#ffffcc" stroke="#000000" points="619.2607,-44 484.289,-44 484.289,0 625.2607,0 625.2607,-38 619.2607,-44"></polygon>
+<polyline fill="none" stroke="#000000" points="619.2607,-44 619.2607,-38 "></polyline>
+<polyline fill="none" stroke="#000000" points="625.2607,-38 619.2607,-38 "></polyline>
+<text text-anchor="start" x="492.5323" y="-31" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">ERROR can only</text>
+<text text-anchor="start" x="492.5323" y="-19" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">be cleared by removing</text>
+<text text-anchor="start" x="492.5323" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">power and resetting ESP32.</text>
 </g>
-<!-- i_note_tr_SERVO_ERROR_final_16&#45;&gt;note_tr_SERVO_ERROR_final_16 -->
+<!-- i_note_tr_ERROR_final_16&#45;&gt;note_tr_ERROR_final_16 -->
 <g id="edge18" class="edge">
-<title>i_note_tr_SERVO_ERROR_final_16-&gt;note_tr_SERVO_ERROR_final_16</title>
-<path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M501.3376,-71.9638C502.9784,-71.1594 531.6421,-57.1086 558.1538,-44.1127"></path>
+<title>i_note_tr_ERROR_final_16-&gt;note_tr_ERROR_final_16</title>
+<path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M452.8488,-71.9638C454.4896,-71.1594 483.1533,-57.1086 509.665,-44.1127"></path>
 </g>
 </g>
 </svg>

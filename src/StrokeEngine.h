@@ -41,9 +41,8 @@ typedef struct {
 */
 /**************************************************************************/
 typedef struct {
-  int stepsPerRevolution;     /*> How many steps per revolution of the motor */
-  int maxRPM;                 /*> What is the maximum RPM of the servo */
-  int maxAcceleration;        /*> Maximum acceleration in mm/s^2 */
+  float maxSpeed;             /*> What is the maximum speed in mm/s */
+  float maxAcceleration;      /*> Maximum acceleration in mm/s^2 */
   float stepsPerMillimeter;   /*> Number of steps per millimeter */
   bool invertDirection;       /*> Set to true to invert the direction signal
                                *  The firmware expects the home switch to be located at the 
@@ -61,11 +60,12 @@ typedef struct {
 */
 /**************************************************************************/
 typedef enum {
-  SERVO_DISABLED,          //!< No power to the servo. We don't know its position
-  SERVO_READY,             //!< Servo is energized and knows it position. Not running.
-  SERVO_ERROR,             //!< Servo is on error state. Needs to be cleared by removing power.
-  SERVO_RUNNING,           //!< Stroke Engine is running and servo is moving according to defined pattern.
-  SERVO_SETUPDEPTH         //!< Tracks the depth-position whenever depth is updated. 
+  UNDEFINED,          //!< No power to the servo. We don't know its position
+  READY,             //!< Servo is energized and knows it position. Not running.
+  ERROR,             //!< Servo is on error state. Needs to be cleared by removing power.
+  PATTERN,           //!< Stroke Engine is running and servo is moving according to defined pattern.
+  SETUPDEPTH,        //!< Interactive adjustment mode to setup depth and stroke
+  STREAMING          //!< Tracks the depth-position whenever depth is updated.
 } ServoState;
 
 // Verbose strings of states for debugging purposes
@@ -73,8 +73,9 @@ static String verboseState[] = {
   "[0] Servo disabled",
   "[1] Servo ready",
   "[2] Servo error",
-  "[3] Servo running",
-  "[4] Servo setup depth"
+  "[3] Servo pattern running",
+  "[4] Servo setup depth",
+  "[5] Servo position streaming"
 };
 
 /**************************************************************************/
@@ -92,7 +93,7 @@ class StrokeEngine {
         /**************************************************************************/
         /*!
           @brief  Initializes FastAccelStepper and configures all pins and outputs
-          accordingly. StrokeEngine is in state SERVO_DISABLED
+          accordingly. StrokeEngine is in state UNDEFINED
         */
         /**************************************************************************/
         void begin(machineGeometry *physics, motorProperties *motor);
@@ -203,17 +204,17 @@ class StrokeEngine {
         /**************************************************************************/
         /*!
           @brief  Creates a FreeRTOS task to run a stroking pattern. Only valid in
-          state SERVO_READY. Pattern is initilized with the values from the set 
-          functions. If the task is running, state is SERVO_RUNNING.
+          state READY. Pattern is initilized with the values from the set 
+          functions. If the task is running, state is PATTERN.
           @return TRUE when task was created and motion starts, FALSE on failure.
         */
         /**************************************************************************/
-        bool startMotion();
+        bool startPattern();
 
         /**************************************************************************/
         /*!
           @brief  Stops the motion with MAX_ACCEL and deletes the stroking task. Is
-          in state SERVO_READY faterwards.
+          in state READY faterwards.
         */
         /**************************************************************************/
         void stopMotion();
@@ -223,8 +224,8 @@ class StrokeEngine {
           @brief  Enable the servo/stepper and do the homing procedure. Drives towards
           the endstop with HOMING_SPEED. Function is non-blocking and backed by a task.
           Optionally a callback can be given to receive feedback if homing succeded 
-          going in state SERVO_READY. If homing switch is not found after traveling 
-          MAX_TRAVEL it times out, disables the servo and goes into SERVO_DISABLED.
+          going in state READY. If homing switch is not found after traveling 
+          MAX_TRAVEL it times out, disables the servo and goes into UNDEFINED.
           @param pin    The pin used by the homeing switch
           @param aciveLow True if the switch id active low (pressed = 0V), 
                         False otherwise.
@@ -251,9 +252,9 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  In state SERVO_RUNNING, SERVO_SETUPDEPTH and SERVO_READY this 
+          @brief  In state PATTERN, SETUPDEPTH and READY this 
           moves the endeffector to TRAVEL. Can be used for adjustments. Stops any 
-          running pattern and ends in state SERVO_READY.
+          running pattern and ends in state READY.
           @param speed  Speed in mm/s used for driving to max. 
                         Defaults to 10.0 mm/s
           @return TRUE on success, FALSE if state does not allow this.
@@ -263,9 +264,9 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  In state SERVO_RUNNING, SERVO_SETUPDEPTH and SERVO_READY this 
+          @brief  In state PATTERN, SETUPDEPTH and READY this 
           moves the endeffector to 0. Can be used for adjustments. Stops any running
-          pattern and ends in state SERVO_READY.
+          pattern and ends in state READY.
           @param speed  Speed in mm/s used for driving to min. 
                         Defaults to 10.0 mm/s
           @return TRUE on success, FALSE if state does not allow this.
@@ -275,16 +276,19 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  In state SERVO_RUNNING and SERVO_READY this moves the endeffector
-          to DEPTH and enters state SERVO_SETUPDEPTH. Follows the DEPTH postion 
+          @brief  In state PATTERN and READY this moves the endeffector
+          to DEPTH and enters state SETUPDEPTH. Follows the DEPTH postion 
           whenever setDepth() is called. Can be used for adjustments. Stops any running
           pattern. 
           @param speed  Speed in mm/s used for driving to min. 
                         Defaults to 10.0 mm/s
+          @param fancy  In fance mode sensation allows to adjust both, depth and 
+                        stroke. +100 adjusts the depth position, -100 adjusts the
+                        stroke position. 0 adjusts the midpoint depth-strok/2.
           @return TRUE on success, FALSE if state does not allow this.
         */
         /**************************************************************************/
-        bool setupDepth(float speed = 10.0);
+        bool setupDepth(float speed = 10.0, bool fancy = false);
 
         /**************************************************************************/
         /*!
@@ -297,7 +301,7 @@ class StrokeEngine {
         /**************************************************************************/
         /*!
           @brief  Disables the servo motor instantly and deletes any motion task. 
-          Sets state machine to SERVO_DISABLED. Must be followed by homing to enable
+          Sets state machine to UNDEFINED. Must be followed by homing to enable
           servo again. 
         */
         /**************************************************************************/
@@ -306,7 +310,7 @@ class StrokeEngine {
         /**************************************************************************/
         /*!
           @brief  This function internally calls disable() and sets the state machine
-          to SERVO_ERROR. Intended to be called from an interrupt if a servo/stepper
+          to ERROR. Intended to be called from an interrupt if a servo/stepper
           fault signal should be monitored. Propably not interrupt safe, but this 
           maybe even doesn't matter.
         */
@@ -335,9 +339,42 @@ class StrokeEngine {
           return patternTableSize; 
         };
 
+        /**************************************************************************/
+        /*!
+          @brief  Updates the maximum speed number of StrokeEngine. This value is 
+          used to keep alle motions in check and as a safeguard. 
+          @param maxSpeed maximum Speed in mm/s
+        */
+        /**************************************************************************/
+        void setMaxSpeed(float maxSpeed);
+
+        /**************************************************************************/
+        /*!
+          @brief  Get the current set maximum speed
+          @return maximum speed in mm/s
+        */
+        /**************************************************************************/
+        float getMaxSpeed();
+
+        /**************************************************************************/
+        /*!
+          @brief   Updates the maximum accleration number of StrokeEngine. This value 
+          is used to keep alle motions in check and as a safeguard.
+          @param maxAcceleration maximum acceleration in mm/s²
+        */
+        /**************************************************************************/
+        void setMaxAcceleration(float maxAcceleration);
+
+        /**************************************************************************/
+        /*!
+          @brief  Get the current set maximum acceleration
+          @return maximum acceleration in mm/s²
+        */
+        /**************************************************************************/
+        float getMaxAcceleration();
 
     protected:
-        ServoState _state = SERVO_DISABLED;
+        ServoState _state = UNDEFINED;
         motorProperties *_motor;
         machineGeometry *_physics;
         float _travel;
@@ -363,5 +400,7 @@ class StrokeEngine {
         int _homeingSpeed;
         int _homeingPin;
         bool _homeingActiveLow;      /*> Polarity of the homing signal*/
+        bool _fancyAdjustment;
+        void _setupDepths();
 };
 

@@ -16,11 +16,11 @@ void StrokeEngine::begin(machineGeometry *physics, motorProperties *motor) {
     _travel = (_physics->physicalTravel - (2 * _physics->keepoutBoundary));
     _minStep = 0;
     _maxStep = int(0.5 + _travel * _motor->stepsPerMillimeter);
-    _maxStepPerSecond = int(0.5 + (_motor->maxRPM * _motor->stepsPerRevolution) / 60);
-    _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerRevolution);
+    _maxStepPerSecond = int(0.5 + _motor->maxSpeed * _motor->stepsPerMillimeter);
+    _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerMillimeter);
           
     // Initialize with default values
-    _state = SERVO_DISABLED;
+    _state = UNDEFINED;
     _isHomed = false;
     _patternIndex = 0;
     _index = 0;
@@ -62,6 +62,7 @@ void StrokeEngine::setSpeed(float speed) {
 }
 
 float StrokeEngine::getSpeed() {
+    // Convert speed into FPMs
     return 60.0 / _timeOfStroke;
 }
 
@@ -79,28 +80,14 @@ void StrokeEngine::setDepth(float depth) {
     Serial.println("setDepth: " + String(_depth));
 #endif
 
-    // if in state SERVO_SETUPDEPTH then move to new _depth
-    if (_state == SERVO_SETUPDEPTH) {
-        servo->moveTo(_depth);
-#ifdef DEBUG_VERBOSE
-        Serial.println("setup new depth: " + String(_depth));
-#endif
+    // if in state SETUPDEPTH then adjust
+    if (_state == SETUPDEPTH) {
+        _setupDepths();
     }
-
 }
 
 float StrokeEngine::getDepth() {
-    // Convert stroke from mm into steps
-    float depth = float(_depth) / _motor->stepsPerMillimeter;
-
-#ifdef DEBUG_VERBOSE
-    Serial.println("getDepth [mm]: " + String(depth));
-#endif
-
-    return depth;
-}
-
-float StrokeEngine::getDepth() {
+    // Convert depth from steps into mm
     return _depth / _motor->stepsPerMillimeter;
 }
 
@@ -117,9 +104,15 @@ void StrokeEngine::setStroke(float stroke) {
 #ifdef DEBUG_VERBOSE
     Serial.println("setStroke: " + String(_stroke));
 #endif
+
+    // if in state SETUPDEPTH then adjust
+    if (_state == SETUPDEPTH) {
+        _setupDepths();
+    }
 }
 
 float StrokeEngine::getStroke() {
+    // Convert stroke from steps into mm
     return _stroke / _motor->stepsPerMillimeter;
 }
 
@@ -133,6 +126,11 @@ void StrokeEngine::setSensation(float sensation) {
 #ifdef DEBUG_VERBOSE
     Serial.println("setSensation: " + String(_sensation));
 #endif
+
+    // if in state SETUPDEPTH then adjust
+    if (_state == SETUPDEPTH) {
+        _setupDepths();
+    }
 }
 
 float StrokeEngine::getSensation() {
@@ -182,7 +180,7 @@ bool StrokeEngine::applyNewSettingsNow() {
 #endif
 
     // Only allowed when in a running state
-    if (_state == SERVO_RUNNING) {
+    if (_state == PATTERN) {
         // Ask pattern for update on motion parameters
         currentMotion = patternTable[_patternIndex]->nextTarget(_index);
 
@@ -213,9 +211,9 @@ bool StrokeEngine::applyNewSettingsNow() {
     return false;
 }
 
-bool StrokeEngine::startMotion() {
+bool StrokeEngine::startPattern() {
     // Only valid if state is ready
-    if (_state == SERVO_READY || SERVO_SETUPDEPTH) {
+    if (_state == READY || SETUPDEPTH) {
 
         // Stop current move, should one be pending (moveToMax or moveToMin)
         if (servo->isRunning()) {
@@ -225,8 +223,8 @@ bool StrokeEngine::startMotion() {
             servo->stopMove();
         }
 
-        // Set state to RUNNING
-        _state = SERVO_RUNNING;
+        // Set state to PATTERN
+        _state = PATTERN;
 
         // Reset Stroke and Motion parameters
         _index = -1;
@@ -270,14 +268,14 @@ bool StrokeEngine::startMotion() {
 
 void StrokeEngine::stopMotion() {
     // only valid when 
-    if (_state == SERVO_RUNNING || SERVO_SETUPDEPTH) {
+    if (_state == PATTERN || SETUPDEPTH) {
         // Stop servo motor as fast as legaly allowed
         servo->setAcceleration(_maxStepAcceleration);
         servo->applySpeedAcceleration();
         servo->stopMove();
 
         // Set state
-        _state = SERVO_READY;
+        _state = READY;
 
 #ifdef DEBUG_VERBOSE
         Serial.println("Motion stopped");
@@ -330,7 +328,7 @@ void StrokeEngine::thisIsHome(float speed) {
     // set homeing speed
     _homeingSpeed = speed * _motor->stepsPerMillimeter;
 
-    if (_state != SERVO_ERROR) {
+    if (_state != ERROR) {
         // Enable Servo
         servo->enableOutputs();
 
@@ -346,7 +344,7 @@ void StrokeEngine::thisIsHome(float speed) {
         
         // Change state
         _isHomed = true;
-        _state = SERVO_READY;
+        _state = READY;
     }
 }
 
@@ -367,7 +365,7 @@ bool StrokeEngine::moveToMax(float speed) {
         servo->moveTo(_maxStep);
 
         // Set state
-        _state = SERVO_READY;
+        _state = READY;
 
 #ifdef DEBUG_VERBOSE
         Serial.println("Stroke Engine State: " + verboseState[_state]);
@@ -399,7 +397,7 @@ bool StrokeEngine::moveToMin(float speed) {
         servo->moveTo(_minStep);
 
         // Set state
-        _state = SERVO_READY;
+        _state = READY;
 
 #ifdef DEBUG_VERBOSE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
@@ -414,15 +412,17 @@ bool StrokeEngine::moveToMin(float speed) {
     }
 }
 
-bool StrokeEngine::setupDepth(float speed) {
+bool StrokeEngine::setupDepth(float speed, bool fancy) {
 #ifdef DEBUG_VERBOSE
     Serial.println("Move to Depth");
 #endif
+    // store fanciness
+    _fancyAdjustment = fancy;
 
     // returns true on success, and false if in wrong state
     bool allowed = false;
 
-    // isHomed is only true in states SERVO_READY, SERVO_RUNNING and SERVO_SETUPDEPTH
+    // isHomed is only true in states READY, PATTERN and SETUPDEPTH
     if (_isHomed) {
         // Stop motion immideately
         stopMotion();
@@ -434,7 +434,7 @@ bool StrokeEngine::setupDepth(float speed) {
         servo->moveTo(_depth);
 
         // Set new state
-        _state = SERVO_SETUPDEPTH;
+        _state = SETUPDEPTH;
 
         // set return value to true
         allowed = true;
@@ -450,7 +450,7 @@ ServoState StrokeEngine::getState() {
 }
 
 void StrokeEngine::disable() {
-    _state = SERVO_DISABLED;
+    _state = UNDEFINED;
     _isHomed = false;
 
     // Disable servo motor
@@ -478,7 +478,6 @@ String StrokeEngine::getPatternName(int index) {
     
 }
 
-
 void StrokeEngine::motorFault() {
 //TODO: propably not interrupt safe. But does it matter?
 
@@ -486,13 +485,29 @@ void StrokeEngine::motorFault() {
     disable();
     
     // Set error state
-    _state = SERVO_ERROR;
+    _state = ERROR;
 
     // Safe State can only be cleared by removing power from Servo and ESP32 a.k.a. reboot
     Serial.println("Servo entered Safe State. Remove power to clear fault.");
 #ifdef DEBUG_VERBOSE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
+}
+
+void StrokeEngine::setMaxSpeed(float maxSpeed){
+    _maxStepPerSecond = int(0.5 + _motor->maxSpeed * _motor->stepsPerMillimeter);
+}
+
+float StrokeEngine::getMaxSpeed() {
+    return float(_maxStepPerSecond) / _motor->stepsPerMillimeter;
+}
+
+void StrokeEngine::setMaxAcceleration(float maxAcceleration) {
+    _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerMillimeter);
+}
+
+float StrokeEngine::getMaxAcceleration() {
+    return float(_maxStepAcceleration) / _motor->stepsPerMillimeter;
 }
 
 void StrokeEngine::_homingProcedure() {
@@ -543,7 +558,7 @@ void StrokeEngine::_homingProcedure() {
     // disable Servo if homing has not found the homing switch
     if (!_isHomed) {
         servo->disableOutputs();
-        _state = SERVO_DISABLED;
+        _state = UNDEFINED;
 
 #ifdef DEBUG_VERBOSE
         Serial.println("Homing failed");
@@ -551,7 +566,7 @@ void StrokeEngine::_homingProcedure() {
 
     } else {
         // Set state to ready
-        _state = SERVO_READY;
+        _state = READY;
 
 #ifdef DEBUG_VERBOSE
         Serial.println("Homing succeded");
@@ -577,8 +592,8 @@ void StrokeEngine::_stroking() {
 
     while(1) { // infinite loop
 
-        // Delete task, if not in RUNNING state
-        if (_state != SERVO_RUNNING) {
+        // Delete task, if not in PATTERN state
+        if (_state != PATTERN) {
             _taskStrokingHandle = NULL;
             vTaskDelete(NULL);
         }
@@ -623,4 +638,27 @@ void StrokeEngine::_applyMotionProfile(motionParameter* motion) {
 
 }
 
+void StrokeEngine::_setupDepths() {
+    // set depth to _depth
+    int depth = _depth;
 
+    // in fancy mode we need to calculate exact position based on sensation, stroke & depth
+    if (_fancyAdjustment == true) {
+        // map sensation into the interval [depth-stroke, depth]
+        depth = map(_sensation, -100, 100, _depth - _stroke, _depth);
+
+#ifdef DEBUG_VERBOSE
+        Serial.println("map sensation " + String(_sensation)
+            + " to interval [" + String(_depth - _stroke)
+            + ", " + String(_depth) 
+            + "] = " + String(depth));
+#endif
+    } 
+
+    // move servo to desired position
+    servo->moveTo(depth);
+
+#ifdef DEBUG_VERBOSE
+    Serial.println("setup new depth: " + String(depth));
+#endif
+}

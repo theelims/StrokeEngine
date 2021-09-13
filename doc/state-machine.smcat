@@ -1,26 +1,26 @@
-initial => "SERVO_DISABLED": begin();
+initial => "UNDEFINED": begin();
 
-"SERVO_DISABLED" => "SERVO_READY" :enableAndHome()
-                                   thisIsHome();
-"SERVO_READY" => "SERVO_RUNNING" :startMotion();
-"SERVO_READY" => "SERVO_DISABLED" : disable();
-"SERVO_READY" => "SERVO_READY" :moveToMin()
-                                moveToMax();
-"SERVO_READY" => "SERVO_SETUPDEPTH" : setupDepth();
-"SERVO_RUNNING" => "SERVO_READY" :stopMotion()
-                                  moveToMin()
-                                  moveToMax();
-"SERVO_RUNNING" => "SERVO_SETUPDEPTH" : setupDepth();
-"SERVO_RUNNING" => "SERVO_DISABLED" :disable();
-"SERVO_RUNNING" => "SERVO_RUNNING" :applyNewSettingsNow();
-"SERVO_SETUPDEPTH" => "SERVO_READY" :stopMotion()
-                                  moveToMin()
-                                  moveToMax();
-"SERVO_SETUPDEPTH" => "SERVO_RUNNING" :startMotion();
-"SERVO_DISABLED" => "SERVO_ERROR" :motorFault();
-"SERVO_READY" => "SERVO_ERROR" :motorFault();
-"SERVO_RUNNING" => "SERVO_ERROR" :motorFault();
-#SERVO_ERROR can only 
+"UNDEFINED" => "READY"     : enableAndHome()
+                             thisIsHome();
+"READY" => "PATTERN"       : startPattern();
+"READY" => "UNDEFINED"     : disable();
+"READY" => "READY"         : moveToMin()
+                             moveToMax();
+"READY" => "SETUPDEPTH"    : setupDepth();
+"PATTERN" => "READY"       : stopMotion()
+                             moveToMin()
+                             moveToMax();
+"PATTERN" => "SETUPDEPTH"  : setupDepth();
+"PATTERN" => "UNDEFINED"   : disable();
+"PATTERN" => "PATTERN"     : applyNewSettingsNow();
+"SETUPDEPTH" => "READY"    : stopMotion()
+                             moveToMin()
+                             moveToMax();
+"SETUPDEPTH" => "PATTERN"  : startPattern();
+"UNDEFINED" => "ERROR"     : motorFault();
+"READY" => "ERROR"         : motorFault();
+"PATTERN" => "ERROR"       : motorFault();
+#ERROR can only 
 #be cleared by removing 
 #power and resetting ESP32.
-"SERVO_ERROR" => final;
+"ERROR" => final;
