@@ -44,11 +44,11 @@ It is possible to update any parameter like depth, stroke, speed and pattern mid
 An internal finite state machine handles the different states of the machine. See the below graph with all functions relating to the state machine and how to cause transitions:
 
 ![State Machine](./doc/state-machine.svg)
-* __SERVO_DISABLED:__ The initial state prior to homeing. Stepper / Servo are disabled and the position is undefined.
-* __SERVO_READY:__ Homeing defines the position inside the internal coordinate system. Machine is now ready to be used and accepts motion commands.
-* __SERVO_RUNNING:__ The cyclic motion has started and the pattern generator is commanding a sequence of trapezoidal motions until stopped.
-* __SERVO_SETUPDEPTH:__ The servo always follows the depth position. This can be used to setup the optimal stroke depth. 
-* __SERVO_ERROR:__ If a motor fault is detected the state machine enters this state. This is a dead-end. To clear this fault the power from the drive has to be removed and the EPS32 needs to be resetted. 
+* __UNDEFINED:__ The initial state prior to homeing. Stepper / Servo are disabled and the position is undefined.
+* __READY:__ Homeing defines the position inside the internal coordinate system. Machine is now ready to be used and accepts motion commands.
+* __PATTERN:__ The cyclic motion has started and the pattern generator is commanding a sequence of trapezoidal motions until stopped.
+* __SETUPDEPTH:__ The servo always follows the depth position. This can be used to setup the optimal stroke depth. 
+* __ERROR:__ If a motor fault is detected the state machine enters this state. This is a dead-end. To clear this fault the power from the drive has to be removed and the EPS32 needs to be resetted. 
 
 ## Usage
 StrokeEngine aims to have a simple and straight forward, yet powerful API. The follwoing describes the minimum case to get up and running. All input parameteres need to be specified in real world (metric) units.
@@ -61,21 +61,22 @@ First all parameteres of the machine and the servo need to be set. Including the
 #define SERVO_PULSE       4
 #define SERVO_DIR         16
 #define SERVO_ENABLE      17
-#define SERVO_ENDSTOP     25          // Optional: Only needed if you have a homeing switch
+#define SERVO_ENDSTOP     25        // Optional: Only needed if you have a homeing switch
 
-// Step per mm calculation helper:
-#define STEP_PER_REV      3200        // How many steps per revolution has the motor
-#define PULLEY_TEETH      20          // How many teeth has the pulley
-#define BELT_PITCH        2           // What is the timing belt pitch in mm
+// Calculation Aid:
+#define STEP_PER_REV      3200      // How many steps per revolution of the motor (S1 on)
+#define PULLEY_TEETH      20        // How many teeth has the pulley
+#define BELT_PITCH        2         // What is the timing belt pitch in mm
+#define MAX_RPM           2900.0    // Maximum RPM of motor
 #define STEP_PER_MM       STEP_PER_REV / (PULLEY_TEETH * BELT_PITCH)
+#define MAX_SPEED         (MAX_RPM / 60.0) * PULLEY_TEETH * BELT_PITCH
 
 static motorProperties servoMotor {
-  .stepsPerRevolution = STEP_PER_REV, // How many steps per revolution has the motor    
-  .maxRPM = 2900,                     // Maximum RPM your motor can / should go
-  .maxAcceleration = 300000,          // Maximum linear acceleration in mm/s²
+  .maxSpeed = MAX_SPEED,              // Maximum speed the system can go in mm/s
+  .maxAcceleration = 10000,           // Maximum linear acceleration in mm/s²
   .stepsPerMillimeter = STEP_PER_MM,  // Steps per millimeter 
-  .invertDirection = true,            // One of many ways to change the direction should 
-                                      // things move the wrong way
+  .invertDirection = true,            // One of many ways to change the direction,  
+                                      // should things move the wrong way
   .enableActiveLow = true,            // Polarity of the enable signal      
   .stepPin = SERVO_PULSE,             // Pin of the STEP signal
   .directionPin = SERVO_DIR,          // Pin of the DIR signal
@@ -101,7 +102,7 @@ void setup()
   // other initialisation code
   
   // wait for homeing to complete
-  while (Stroker.getState() != SERVO_READY) {
+  while (Stroker.getState() != READY) {
     delay(100);
   }
 }
@@ -138,13 +139,16 @@ String getPatternJSON() {
 
 ### Running
 #### Start & Stop the Stroking Action
-Use `Stroker.startMotion();` and `Stroker.stopMotion();` to start and stop the motion. Stop is immideate and with the highest possible acceleration.
+Use `Stroker.startPattern();` and `Stroker.stopMotion();` to start and stop the motion. Stop is immideate and with the highest possible acceleration.
 
 #### Move to the Minimum or Maximum Position
 You can move to either end of the machine for setting up reaches. Call `Stroker.moveToMin();` to move all they way back towards home. With `Stroker.moveToMax();` it moves all the way out. Takes the speed in mm/s as an argument: e.g. `Stroker.moveToMax(10.0);` Speed defaults to 10 mm/s. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state.
 
 #### Setup Optimal Depth Interactively
 In a special setup mode it will always follow the __Depth__ position. By envoking `Stroker.setupDepth();` it will start to follow the depth position whenever `Stroker.setDepth(float);` is updated. Takes the speed in mm/s as an argument: e.g. `Stroker.setupDepth(10.0);` Speed defaults to 10 mm/s. With `float Stroker.getDepth()` one may obtain the current set depth to calculate incremental updates for `Stroker.setDepth(float)`. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state. 
+
+##### Fancy Mode
+To setup the optimal depth and reach of the machine `Stroker.setupDepth(10.0, true)` envokes a special fancy adjustment mode. This allows not only to interactively adjust `depth`, but also `stroke` by using the sensation slider. `sensation` gets mapped into the interval `[depth-stroke, depth]`: `sensation = 100` adjusts `depth`-position, whereas `sensation = -100` adjusts the `stroke`-position. `sensation = 0` yields the midpoint of the stroke.
 
 #### Change Parameters
 Parameters can be updated in any state and are stored internally. On `Stroker.startMotion();` they will be used to initialize the pattern. Each one may be called individually. The argument given to the function is constrained to the physical limits of the machine:
