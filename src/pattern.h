@@ -56,7 +56,7 @@ class Pattern {
         /*!
           @param str Sring containing the name of a pattern 
         */
-        Pattern(char *str) { strcpy(_name, str); }
+        Pattern(const char *str) { strcpy(_name, str); }
 
         //! Set the time a normal stroke should take to complete
         /*! 
@@ -111,7 +111,7 @@ class Pattern {
 /**************************************************************************/
 class SimpleStroke : public Pattern {
     public:
-        SimpleStroke(char *str) : Pattern(str) {}
+        SimpleStroke(const char *str) : Pattern(str) {}
 
         void setTimeOfStroke(float speed = 0) { 
              // In & Out have same time, so we need to devide by 2
@@ -150,7 +150,7 @@ class SimpleStroke : public Pattern {
 /**************************************************************************/
 class TeasingPounding : public Pattern {
     public:
-        TeasingPounding(char *str) : Pattern(str) {}
+        TeasingPounding(const char *str) : Pattern(str) {}
         void setSensation(float sensation) { 
             _sensation = sensation;
             _updateStrokeTiming();
@@ -213,7 +213,7 @@ class TeasingPounding : public Pattern {
 /**************************************************************************/ 
 class RoboStroke : public Pattern {
     public:
-        RoboStroke(char *str) : Pattern(str) {}
+        RoboStroke(const char *str) : Pattern(str) {}
 
         void setTimeOfStroke(float speed = 0) { 
              // In & Out have same time, so we need to devide by 2
@@ -269,7 +269,7 @@ class RoboStroke : public Pattern {
 /**************************************************************************/
 class HalfnHalf : public Pattern {
     public:
-        HalfnHalf(char *str) : Pattern(str) {}
+        HalfnHalf(const char *str) : Pattern(str) {}
         void setSensation(float sensation) { 
             _sensation = sensation;
             _updateStrokeTiming();
@@ -346,7 +346,7 @@ class HalfnHalf : public Pattern {
 /**************************************************************************/
 class Deeper : public Pattern {
     public:
-        Deeper(char *str) : Pattern(str) {}
+        Deeper(const char *str) : Pattern(str) {}
 
         void setTimeOfStroke(float speed = 0) { 
              // In & Out have same time, so we need to devide by 2
