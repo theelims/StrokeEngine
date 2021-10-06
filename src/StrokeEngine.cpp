@@ -239,15 +239,20 @@ bool StrokeEngine::startPattern() {
         Serial.println(" | _sensation: " + String(_sensation));
 #endif
 
-        // Create Stroke Task
-        xTaskCreate(
-            this->_strokingImpl,    // Function that should be called
-            "Stroking",             // Name of the task (for debugging)
-            2048,                   // Stack size (bytes)
-            this,                   // Pass reference to this class instance
-            24,                     // Pretty high task piority
-            &_taskStrokingHandle    // Task handle
-        ); 
+        if (_taskStrokingHandle == NULL) {
+            // Create Stroke Task
+            xTaskCreate(
+                this->_strokingImpl,    // Function that should be called
+                "Stroking",             // Name of the task (for debugging)
+                2048,                   // Stack size (bytes)
+                this,                   // Pass reference to this class instance
+                24,                     // Pretty high task piority
+                &_taskStrokingHandle    // Task handle
+            ); 
+        } else {
+            // Resume task, if it already exists
+            vTaskResume(_taskStrokingHandle);
+        }
 
 #ifdef DEBUG_VERBOSE
         Serial.println("Started motion task");
@@ -288,20 +293,27 @@ void StrokeEngine::stopMotion() {
 #endif
 }
 
-void StrokeEngine::enableAndHome(int pin, bool activeLow, void(*callBackHoming)(bool), float speed) {
+void StrokeEngine::enableAndHome(endstopProperties *endstop, void(*callBackHoming)(bool), float speed) {
     // Store callback
     _callBackHomeing = callBackHoming;
 
     // enable and home
-    enableAndHome(pin, activeLow, speed);
+    enableAndHome(endstop, speed);
 }
 
-void StrokeEngine::enableAndHome(int pin, bool activeLow, float speed) {
+void StrokeEngine::enableAndHome(endstopProperties *endstop, float speed) {
     // set homing pin as input
-    _homeingPin = pin;
-    pinMode(_homeingPin, INPUT);
-    _homeingActiveLow = activeLow;
+    _homeingPin = endstop->endstopPin;
+    pinMode(_homeingPin, endstop->pinMode);
+    _homeingActiveLow = endstop->activeLow;
     _homeingSpeed = speed * _motor->stepsPerMillimeter;
+
+    // set homing direction so sign can be multiplied
+    if (endstop->homeToBack == true) {
+        _homeingToBack = 1;
+    } else {
+        _homeingToBack = -1;
+    }
 
     // first stop current motion and delete stroke task
     stopMotion();
@@ -340,7 +352,7 @@ void StrokeEngine::thisIsHome(float speed) {
         servo->setAcceleration(_maxStepAcceleration / 10);
 
         // drive free of switch and set axis to 0
-        servo->moveTo(0);
+        servo->moveTo(_minStep);
         
         // Change state
         _isHomed = true;
@@ -518,7 +530,7 @@ void StrokeEngine::_homingProcedure() {
     // Check if we are aleady at the homing switch
     if (digitalRead(_homeingPin) == !_homeingActiveLow) {
         //back off 5 mm from switch
-        servo->move(_motor->stepsPerMillimeter * 2 * _physics->keepoutBoundary);
+        servo->move(_motor->stepsPerMillimeter * 2 * _physics->keepoutBoundary * _homeingToBack);
 
         // wait for move to complete
         while (servo->isRunning()) {
@@ -527,21 +539,33 @@ void StrokeEngine::_homingProcedure() {
         }
 
         // move back towards endstop
-        servo->move(-_motor->stepsPerMillimeter * 4 * _physics->keepoutBoundary);
+        servo->move(-_motor->stepsPerMillimeter * 4 * _physics->keepoutBoundary * _homeingToBack);
 
     } else {
         // Move MAX_TRAVEL towards the homing switch
-        servo->move(-_motor->stepsPerMillimeter * _physics->physicalTravel);
+        servo->move(-_motor->stepsPerMillimeter * _physics->physicalTravel * _homeingToBack);
     }
 
     // Poll homing switch
     while (servo->isRunning()) {
 
         // Switch is active low
-        if (digitalRead(_homeingPin) == LOW) {
+        if (digitalRead(_homeingPin) == !_homeingActiveLow) {
 
-            //Switch is at -KEEPOUT_BOUNDARY
-            servo->forceStopAndNewPosition(-_motor->stepsPerMillimeter * _physics->keepoutBoundary);
+            // Set home position
+            if (_homeingToBack == 1) {
+                //Switch is at -KEEPOUT_BOUNDARY
+                servo->forceStopAndNewPosition(-_motor->stepsPerMillimeter * _physics->keepoutBoundary);
+
+                // drive free of switch and set axis to lower end
+                servo->moveTo(_minStep);
+
+            } else {
+                servo->forceStopAndNewPosition(_motor->stepsPerMillimeter * (_physics->physicalTravel - _physics->keepoutBoundary));
+
+                // drive free of switch and set axis to front end
+                servo->moveTo(_maxStep);
+            }
             _isHomed = true;
 
             // drive free of switch and set axis to 0
@@ -592,10 +616,9 @@ void StrokeEngine::_stroking() {
 
     while(1) { // infinite loop
 
-        // Delete task, if not in PATTERN state
+        // Suspend task, if not in PATTERN state
         if (_state != PATTERN) {
-            _taskStrokingHandle = NULL;
-            vTaskDelete(NULL);
+            vTaskSuspend(_taskStrokingHandle);
         }
 
         // If motor has stopped issue moveTo command to next position
@@ -619,7 +642,24 @@ void StrokeEngine::_stroking() {
     }
 }
 
+void StrokeEngine::_streaming() {
+
+    while(1) { // infinite loop
+
+        // Suspend task, if not in STREAMING state
+        if (_state != STREAMING) {
+            vTaskSuspend(_taskStreamingHandle);
+        }
+        
+        // Delay 10ms 
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+}
+
 void StrokeEngine::_applyMotionProfile(motionParameter* motion) {
+
+    
+
     // Apply new trapezoidal motion profile to servo
     // Constrain speed between 1 step/sec and _maxStepPerSecond
     servo->setSpeedInHz(constrain(motion->speed, 1, _maxStepPerSecond));

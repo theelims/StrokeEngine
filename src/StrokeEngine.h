@@ -17,7 +17,8 @@
 // Debug Levels
 #define DEBUG_VERBOSE               // Show debug messages from the StrokeEngine on Serial
 #define DEBUG_STROKE                // Show debug messaged for each individual stroke on Serial
-#define DEBUG_PATTERN               // Show debug messages from inside pattern generator on Serial
+#define DEBUG_CLIPPING              // Show debug messages when motions violating the machine 
+                                    // physics are commanded
 
 
 /**************************************************************************/
@@ -53,6 +54,20 @@ typedef struct {
   int directionPin;           /*> Pin connected to the DIR input */
   int enablePin;              /*> Pin connected to the ENA input */
 } motorProperties;
+
+/**************************************************************************/
+/*!
+  @brief  Struct defining the endstop properties like pin, pinmode, polarity 
+  and homgin direction.
+*/
+/**************************************************************************/
+typedef struct {
+  bool homeToBack;            /*> Set to true to home to the back of the machine
+                               *  Set to false to home to the front of the machine */
+  bool activeLow;             /*> Polarity of the homing signal. True for active low. */
+  int endstopPin;             /*> Pin connected to home switch */
+  uint8_t pinMode;            /*> Pinmode of the switch INPUT, INPUT_PULLUP, INPUT_PULLDOWN */
+} endstopProperties;
 
 /**************************************************************************/
 /*!
@@ -225,10 +240,10 @@ class StrokeEngine {
           the endstop with HOMING_SPEED. Function is non-blocking and backed by a task.
           Optionally a callback can be given to receive feedback if homing succeded 
           going in state READY. If homing switch is not found after traveling 
-          MAX_TRAVEL it times out, disables the servo and goes into UNDEFINED.
-          @param pin    The pin used by the homeing switch
-          @param aciveLow True if the switch id active low (pressed = 0V), 
-                        False otherwise.
+          MAX_TRAVEL it times out, disables the servo and goes into UNDEFINED. 
+          @param endstop Pointer to a endstopProperties struct defining all relevant 
+                        properties like pin, pinmode, homing direction & signal  
+                        polarity.
           @param speed  Speed in mm/s used for finding the homing switch. 
                         Defaults to 5.0 mm/s
           @param callBackHoming Callback function is called after homing is done. 
@@ -236,8 +251,8 @@ class StrokeEngine {
                         or failure (FALSE) of homing.
         */
         /**************************************************************************/
-        void enableAndHome(int pin, bool activeLow, float speed = 5.0);
-        void enableAndHome(int pin, bool activeLow, void(*callBackHoming)(bool), float speed = 5.0);
+        void enableAndHome(endstopProperties *endstop, float speed = 5.0);
+        void enableAndHome(endstopProperties *endstop, void(*callBackHoming)(bool), float speed = 5.0);
 
         /**************************************************************************/
         /*!
@@ -393,12 +408,16 @@ class StrokeEngine {
         void _homingProcedure();
         static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
         void _stroking();
+        static void _streamingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_streaming(); }
+        void _streaming();
         TaskHandle_t _taskStrokingHandle = NULL;
         TaskHandle_t _taskHomingHandle = NULL;
+        TaskHandle_t _taskStreamingHandle = NULL;
         void _applyMotionProfile(motionParameter* motion);
         void(*_callBackHomeing)(bool);
         int _homeingSpeed;
         int _homeingPin;
+        int _homeingToBack;
         bool _homeingActiveLow;      /*> Polarity of the homing signal*/
         bool _fancyAdjustment;
         void _setupDepths();

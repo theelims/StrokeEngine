@@ -21,7 +21,7 @@ The machine spans it's own internal cooridnate system. It takes the real world (
   _travel = physicalTravel - (2 * keepoutBoundary)
   ``` 
   This gives a safety margin to avoid crashes into a hard endstop.
-* The __Home__-position is expected to be at `-keepoutBoundary`.
+* The __Home__-position is expected to be at `-keepoutBoundary`. Albeit not recommended for safety reasons, it is possible to mount the home switch in the front at `physicalTravel` as well.
 * Zero __MIN = 0__ is `keepoutBoundary` away from the home position.
 * Pattern make use of __Depth__ and __Stroke__. These values are dynamic parameter and may be adjusted during runtime:
   * __Depth__ is the furthest point the machine can extract at any given time. This is usefull to find a sweet spot in positioning the body relative to the machine.
@@ -88,6 +88,14 @@ static machineGeometry strokingMachine = {
   .keepoutBoundary = 5.0              // Safe distance the motion is constrained to avoiding crashes
 };
 
+// Configure Homeing Procedure
+static endstopProperties endstop = {
+  .homeToBack = true,                 // Endstop sits at the rear of the machine
+  .activeLow = true,                  // switch is wired active low
+  .endstopPin = SERVO_ENDSTOP,        // Pin number
+  .pinMode = INPUT                    // pinmode INPUT with external pull-up resistor
+};
+
 StrokeEngine Stroker;
 ```
 Inside `void setup()` call the follwing functions to initialize the StrokeEngine:
@@ -96,8 +104,7 @@ void setup()
 {
   // Setup Stroke Engine
   Stroker.begin(&strokingMachine, &servoMotor);
-  Stroker.enableAndHome(SERVO_ENDSTOP, true);   // Pin and polarity (active low = true) of the
-                                                // homeing switch
+  Stroker.enableAndHome(&endstop);    // pointer to the homeing config struct
   
   // other initialisation code
   
@@ -109,7 +116,7 @@ void setup()
 ```
 
 #### Alternate Manual Homeing Procedure __[Dangerous]__
-Some machines may not have a homeing switch mounted. For these you may use a manual homeing procedure instead of `Stroker.enableAndHome(SERVO_ENDSTOP, true);`. Manually move back until the physical endstop and then call:
+Some machines may not have a homeing switch mounted. For these you may use a manual homeing procedure instead of `Stroker.enableAndHome(&endstop);`. Manually move back until the physical endstop and then call:
 ```cpp
 Stroker.thisIsHome();
 ```
