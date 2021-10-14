@@ -213,7 +213,7 @@ bool StrokeEngine::applyNewSettingsNow() {
 
 bool StrokeEngine::startPattern() {
     // Only valid if state is ready
-    if (_state == READY || SETUPDEPTH) {
+    if (_state == READY || _state == SETUPDEPTH) {
 
         // Stop current move, should one be pending (moveToMax or moveToMin)
         if (servo->isRunning()) {
@@ -268,7 +268,7 @@ bool StrokeEngine::startPattern() {
 
 void StrokeEngine::stopMotion() {
     // only valid when 
-    if (_state == PATTERN || SETUPDEPTH) {
+    if (_state == PATTERN || _state == SETUPDEPTH) {
         // Stop servo motor as fast as legaly allowed
         servo->setAcceleration(_maxStepAcceleration);
         servo->applySpeedAcceleration();
