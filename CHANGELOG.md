@@ -1,5 +1,6 @@
-# Upcomming Release 0.1.1
+# Release 0.1.1
 - Constructor of Pattern-class changed to type `const char*` to get rid of compiler warning.
+- Fixed homing-Bug.
 
 # Release 0.1.0
 - First "official" release
