@@ -29,7 +29,7 @@
 */
 /**************************************************************************/
 typedef struct {
-    int position;       //!< Absolute target position of a move in steps 
+    int stroke;         //!< Relative target position of a move in steps 
     int speed;          //!< Speed of a move in Hz 
     int acceleration;   //!< Acceleration to get to speed or halt 
 } motionParameter;
@@ -64,12 +64,6 @@ class Pattern {
         */
         virtual void setTimeOfStroke(float speed) { _timeOfStroke = speed; }
 
-        //! Set the depth of a stroke. Depth is the furthest position a stroke ever reaches
-        /*! 
-          @param depth depth in Steps 
-        */
-        virtual void setDepth(int depth) { _depth = depth; }
-
         //! Set the maximum stroke a pattern may have
         /*! 
           @param stroke stroke distance in Steps 
@@ -99,7 +93,6 @@ class Pattern {
         } 
 
     protected:
-        int _depth;
         int _stroke;
         float _timeOfStroke;
         float _sensation = 0.0;
@@ -134,11 +127,11 @@ class SimpleStroke : public Pattern {
 
             // odd stroke is moving out    
             if (index % 2) {
-                _nextMove.position = _depth - _stroke;
+                _nextMove.stroke = 0;
             
             // even stroke is moving in
             } else {
-                _nextMove.position = _depth;
+                _nextMove.stroke = _stroke;
             }
 
             _index = index;
@@ -173,14 +166,14 @@ class TeasingPounding : public Pattern {
                 _nextMove.speed = int(1.5 * _stroke/_timeOfOutStroke);  
                 // acceleration to meet the profile                  
                 _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfOutStroke);    
-                _nextMove.position = _depth - _stroke;
+                _nextMove.stroke = 0;
             // even stroke is moving in
             } else {
                 // maximum speed of the trapezoidal motion
                 _nextMove.speed = int(1.5 * _stroke/_timeOfInStroke);        
                 // acceleration to meet the profile            
                 _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfInStroke);    
-                _nextMove.position = _depth;
+                _nextMove.stroke = _stroke;
             }
             _index = index;
             return _nextMove;
@@ -250,11 +243,11 @@ class RoboStroke : public Pattern {
 
             // odd stroke is moving out    
             if (index % 2) {
-                _nextMove.position = _depth - _stroke;
+                _nextMove.stroke = 0;
             
             // even stroke is moving in
             } else {
-                _nextMove.position = _depth;
+                _nextMove.stroke = _stroke;
             }
 
             _index = index;
@@ -294,12 +287,9 @@ class HalfnHalf : public Pattern {
 
             // set-up the stroke length
             int stroke = _stroke;
-            int insert = _depth;
             if (_half == true) {
                 // half the stroke length
                 stroke = _stroke / 2;
-                // stroke only extends half the insertion depth
-                insert = _depth - stroke;
             } 
 
             // odd stroke is moving out
@@ -308,7 +298,7 @@ class HalfnHalf : public Pattern {
                 _nextMove.speed = int(1.5 * stroke/_timeOfOutStroke);  
                 // acceleration to meet the profile                  
                 _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfOutStroke);    
-                _nextMove.position = _depth - _stroke;
+                _nextMove.stroke = 0;
                 // every second move is half
                 _half = !_half;
             // even stroke is moving in
@@ -317,7 +307,7 @@ class HalfnHalf : public Pattern {
                 _nextMove.speed = int(1.5 * stroke/_timeOfInStroke);        
                 // acceleration to meet the profile            
                 _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfInStroke);    
-                _nextMove.position = insert;  
+                _nextMove.stroke = stroke;  
             }
             _index = index;
             return _nextMove;
@@ -404,11 +394,11 @@ class Deeper : public Pattern {
 
             // odd stroke is moving out    
             if (index % 2) {
-                _nextMove.position = _depth - _stroke;
+                _nextMove.stroke = 0;
             
             // even stroke is moving in
             } else {
-                _nextMove.position = _depth - _stroke + amplitude;
+                _nextMove.stroke = amplitude;
             }
 
             _index = index;

@@ -64,10 +64,10 @@ First all parameteres of the machine and the servo need to be set. Including the
 #define SERVO_ENDSTOP     25        // Optional: Only needed if you have a homeing switch
 
 // Calculation Aid:
-#define STEP_PER_REV      3200      // How many steps per revolution of the motor (S1 on)
+#define STEP_PER_REV      2000      // How many steps per revolution of the motor (S1 off, S2 on, S3 on, S4 off)
 #define PULLEY_TEETH      20        // How many teeth has the pulley
 #define BELT_PITCH        2         // What is the timing belt pitch in mm
-#define MAX_RPM           2900.0    // Maximum RPM of motor
+#define MAX_RPM           3000.0    // Maximum RPM of motor
 #define STEP_PER_MM       STEP_PER_REV / (PULLEY_TEETH * BELT_PITCH)
 #define MAX_SPEED         (MAX_RPM / 60.0) * PULLEY_TEETH * BELT_PITCH
 

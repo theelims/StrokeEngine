@@ -73,9 +73,6 @@ void StrokeEngine::setDepth(float depth) {
     // Constrain depth between minStep and maxStep
     _depth = constrain(_depth, _minStep, _maxStep); 
 
-    // Update pattern with new speed, will be used with the next stroke or on update request
-    patternTable[_patternIndex]->setDepth(_depth);
-
 #ifdef DEBUG_VERBOSE
     Serial.println("setDepth: " + String(_depth));
 #endif
@@ -144,7 +141,6 @@ bool StrokeEngine::setPattern(int patternIndex) {
 
         // Inject current motion parameters into new pattern
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
-        patternTable[_patternIndex]->setDepth(_depth);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
 
@@ -213,7 +209,7 @@ bool StrokeEngine::applyNewSettingsNow() {
 
 bool StrokeEngine::startPattern() {
     // Only valid if state is ready
-    if (_state == READY || SETUPDEPTH) {
+    if (_state == READY || _state == SETUPDEPTH) {
 
         // Stop current move, should one be pending (moveToMax or moveToMin)
         if (servo->isRunning()) {
@@ -229,7 +225,6 @@ bool StrokeEngine::startPattern() {
         // Reset Stroke and Motion parameters
         _index = -1;
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
-        patternTable[_patternIndex]->setDepth(_depth);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
 #ifdef DEBUG_VERBOSE
@@ -273,7 +268,7 @@ bool StrokeEngine::startPattern() {
 
 void StrokeEngine::stopMotion() {
     // only valid when 
-    if (_state == PATTERN || SETUPDEPTH) {
+    if (_state == PATTERN || _state == SETUPDEPTH) {
         // Stop servo motor as fast as legaly allowed
         servo->setAcceleration(_maxStepAcceleration);
         servo->applySpeedAcceleration();
@@ -511,7 +506,7 @@ void StrokeEngine::setMaxSpeed(float maxSpeed){
 }
 
 float StrokeEngine::getMaxSpeed() {
-    return float(_maxStepPerSecond) / _motor->stepsPerMillimeter;
+    return float(_maxStepPerSecond / _motor->stepsPerMillimeter);
 }
 
 void StrokeEngine::setMaxAcceleration(float maxAcceleration) {
@@ -519,7 +514,7 @@ void StrokeEngine::setMaxAcceleration(float maxAcceleration) {
 }
 
 float StrokeEngine::getMaxAcceleration() {
-    return float(_maxStepAcceleration) / _motor->stepsPerMillimeter;
+    return float(_maxStepAcceleration / _motor->stepsPerMillimeter);
 }
 
 void StrokeEngine::_homingProcedure() {
@@ -657,23 +652,40 @@ void StrokeEngine::_streaming() {
 }
 
 void StrokeEngine::_applyMotionProfile(motionParameter* motion) {
-
     
-
     // Apply new trapezoidal motion profile to servo
-    // Constrain speed between 1 step/sec and _maxStepPerSecond
-    servo->setSpeedInHz(constrain(motion->speed, 1, _maxStepPerSecond));
-
+    // Constrain speed to below _maxStepPerSecond
+    if (motion->speed > _maxStepPerSecond) {
+#ifdef DEBUG_CLIPPING
+        Serial.println("Max Speed Exceeded: " + String(float(motion->speed / _motor->stepsPerMillimeter), 2)
+                + "mm/s --> Limit: " + String(float(_maxStepPerSecond / _motor->stepsPerMillimeter), 2) + "mm/s");
+#endif
+        servo->setSpeedInHz(_maxStepPerSecond);
+    } else {
+        servo->setSpeedInHz(motion->speed);
+    }
+    
     // Constrain acceleration between 1 step/sec^2 and _maxStepAcceleration
-    servo->setAcceleration(constrain(motion->acceleration, 1, _maxStepAcceleration));
+    if (motion->acceleration > _maxStepAcceleration) {
+#ifdef DEBUG_CLIPPING
+        Serial.println("Max Acceleration Exceeded: " + String(float(motion->acceleration / _motor->stepsPerMillimeter), 2)
+                + "mm/s² --> Limit: " + String(float(_maxStepAcceleration / _motor->stepsPerMillimeter), 2) + "mm/s²");
+#endif
+        servo->setAcceleration(_maxStepAcceleration);
+    } else  {
+        servo->setAcceleration(motion->acceleration);
+    }
 
-    // Constrain position between max(0, (_depth - _stroke)) and _depth
-    servo->moveTo(constrain(motion->position, max(0, (_depth - _stroke)), _depth));
+    // Constrain stroke between max(0, _stroke)
+    int stroke = constrain(motion->stroke, 0, _stroke);
+
+    // Apply _depth - _stroke as position offset and constrain to servo range in case _stroke > _depth
+    servo->moveTo(constrain(((_depth - _stroke) + stroke), _minStep, _maxStep));
 
 #ifdef DEBUG_STROKE
-    Serial.println("motion.position: " + String(motion->position));
-    Serial.println("motion.speed: " + String(motion->speed));
-    Serial.println("motion.acceleration: " + String(motion->acceleration));
+    Serial.println("motion.stroke: " + String(float(motion->stroke / _motor->stepsPerMillimeter), 2) + "mm");
+    Serial.println("motion.speed: " + String(float(motion->speed / _motor->stepsPerMillimeter), 2) + "mm/s");
+    Serial.println("motion.acceleration: " + String(float(motion->acceleration / _motor->stepsPerMillimeter), 2) + "mm/s²");
 #endif
 
 }

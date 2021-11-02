@@ -47,11 +47,11 @@ Reimplement the core function `motionParameter nextTarget(unsigned int index)`. 
 
             // odd stroke is moving out    
             if (index % 2) {
-                _nextMove.position = _depth - _stroke;
+                _nextMove.stroke = 0;
             
             // even stroke is moving in
             } else {
-                _nextMove.position = _depth;
+                _nextMove.stroke = _stroke;
             }
 
             _index = index;
@@ -78,8 +78,7 @@ static Pattern *patternTable[] = {
 ```
 ### Expected Behaviour
 #### Adhere to Depth & Stroke at All Times
-Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no violation against stroke, depth and the machines physics were returned. Positions outside the interval [depth - stroke, depth] will be truncated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries.
-Your position may be anywhere in the interval [depth - stroke, depth]. This sets the envelope the pattern may use. Similar for speed a.k.a. timeOfStroke. 
+Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no violation against the machines physics were returned. Pattern only return a stroke information which is offsetted by depth in the StrokeEndinge. Your return value may be anywhere in the interval [0, stroke]. Positions outside the interval [depth - stroke, depth] will be truncated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries. This sets the envelope the pattern may use. Similar for speed a.k.a. timeOfStroke. 
 
 #### Use `index` Properly 
 `index` provides further information then just the stroke count:
