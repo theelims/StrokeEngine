@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 # Upcomming Release 0.2.0
 - Stroking-task uses suspend and resume instead of deleting and recreation to prevent heap fragmentation.
 - Refined homeing procedure. Fully configurable via a struct including front or back homeing switch and internal pull-up or pull-down resistors. 
@@ -32,7 +30,6 @@ static endstopProperties endstop = {
 Stroker.enableAndHome(&endstop);
 ```
 
->>>>>>> Stashed changes
 # Release 0.1.1
 - Constructor of Pattern-class changed to type `const char*` to get rid of compiler warning.
 - Fixed homing-Bug.
