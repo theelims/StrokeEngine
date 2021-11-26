@@ -25,7 +25,7 @@ To create a new pattern just subclass from `class Pattern`. Have a look at `clas
 ```cpp
 class SimpleStroke : public Pattern {
     public:
-        SimpleStroke(char *str) : Pattern(str) {} 
+        SimpleStroke(const char *str) : Pattern(str) {} 
 ```
 Add the constructor to store the patterns name string.
 
