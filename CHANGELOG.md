@@ -1,4 +1,4 @@
-# Upcomming Release 0.2.0
+# Release 0.2.0
 - Stroking-task uses suspend and resume instead of deleting and recreation to prevent heap fragmentation.
 - Refined homeing procedure. Fully configurable via a struct including front or back homeing switch and internal pull-up or pull-down resistors. 
 - Added a delay-function for patterns: `void patternDelay(int milliseconds)`
