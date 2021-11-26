@@ -20,6 +20,8 @@
 #define DEBUG_CLIPPING              // Show debug messages when motions violating the machine 
                                     // physics are commanded
 
+#define STREAMING_QUEUE_LENGHT 5    // Length of the streaming queue
+
 
 /**************************************************************************/
 /*!
@@ -66,7 +68,7 @@ typedef struct {
                                *  Set to false to home to the front of the machine */
   bool activeLow;             /*> Polarity of the homing signal. True for active low. */
   int endstopPin;             /*> Pin connected to home switch */
-  uint8_t pinMode;            /*> Pinmode of the switch INPUT, INPUT_PULLUP, INPUT_PULLDOWN */
+  uint8_t pinMode;            /*> Pinmode of the switch: INPUT, INPUT_PULLUP, INPUT_PULLDOWN */
 } endstopProperties;
 
 /**************************************************************************/
@@ -75,7 +77,7 @@ typedef struct {
 */
 /**************************************************************************/
 typedef enum {
-  UNDEFINED,          //!< No power to the servo. We don't know its position
+  UNDEFINED,         //!< No power to the servo. We don't know its position
   READY,             //!< Servo is energized and knows it position. Not running.
   ERROR,             //!< Servo is on error state. Needs to be cleared by removing power.
   PATTERN,           //!< Stroke Engine is running and servo is moving according to defined pattern.
@@ -92,6 +94,18 @@ static String verboseState[] = {
   "[4] Servo setup depth",
   "[5] Servo position streaming"
 };
+
+/**************************************************************************/
+/*!
+  @brief  Struct defining the properties of a streaming segment
+*/
+/**************************************************************************/
+typedef struct {
+  int targetPos;      /*> Relative target position of this segment 
+                       *  Must be in the interval [0, 4096] */
+  int timeToTarget;   /*> Time that it takes to reach that target from the 
+                       *  starting from the last target position */
+} streamingSegment;
 
 /**************************************************************************/
 /*!
@@ -225,6 +239,16 @@ class StrokeEngine {
         */
         /**************************************************************************/
         bool startPattern();
+
+        /**************************************************************************/
+        /*!
+          @brief  Creates a FreeRTOS task to consume from the streaming queue. 
+          Only valid in state READY. Queue needs to be pre-filled prior to calling  
+          this function. If the task is running, state is STREAMING.
+          @return TRUE when task was created and motion starts, FALSE on failure.
+        */
+        /**************************************************************************/
+        bool startStreaming();
 
         /**************************************************************************/
         /*!
@@ -388,6 +412,24 @@ class StrokeEngine {
         /**************************************************************************/
         float getMaxAcceleration();
 
+        /**************************************************************************/
+        /*!
+          @brief Send a position and time tuple to the streaming queue
+          @param targetPosition relative target position in intervall [0,4096]
+          @param timeInMS time in ms to reach that target position from the last position
+          @return true if enqueued correctly, false if queue is full
+        */
+        /**************************************************************************/
+        bool sendPositionToQueue(int targetPosition, int timeInMS);
+
+        /**************************************************************************/
+        /*!
+          @brief  Get the current set maximum acceleration
+          @return maximum acceleration in mm/s²
+        */
+        /**************************************************************************/
+        void emptyStreamingQueue();
+
     protected:
         ServoState _state = UNDEFINED;
         motorProperties *_motor;
@@ -413,6 +455,7 @@ class StrokeEngine {
         TaskHandle_t _taskStrokingHandle = NULL;
         TaskHandle_t _taskHomingHandle = NULL;
         TaskHandle_t _taskStreamingHandle = NULL;
+        QueueHandle_t _queueStreamingHandle = NULL;
         void _applyMotionProfile(motionParameter* motion);
         void(*_callBackHomeing)(bool);
         int _homeingSpeed;
@@ -423,3 +466,5 @@ class StrokeEngine {
         void _setupDepths();
 };
 
+// conjuring a sign()-function out of thin air
+#define sgn(x) ({ __typeof__(x) _x = (x); _x < 0 ? -1 : _x ? 1 : 0; })

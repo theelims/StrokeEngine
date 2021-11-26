@@ -7,10 +7,11 @@
 - Several changes how pattern feed their information back:
   - Removed `setDepth()`, as this information is not needed inside a pattern.
   - Pattern return relative stroke and not absolute coordinates.
-  - Depth-offset is calculated and properly constrained inside StrokeEgine.
+  - Depth-offset is calculated and properly constrained inside StrokeEngine.
   - All pattern updated accordingly. 
   - Also fixed the erratic move bug. When depth changes the necessary transfer motion is carried out at the same speed as the overall motion.
 - Some minor default parameter changes in the example code snippets.
+- Added set & get function to alter speed and acceleration limits during runtime.
 
 ## Update Notes
 ### Homeing Procedure
