@@ -48,7 +48,6 @@ An internal finite state machine handles the different states of the machine. Se
 * __READY:__ Homeing defines the position inside the internal coordinate system. Machine is now ready to be used and accepts motion commands.
 * __PATTERN:__ The cyclic motion has started and the pattern generator is commanding a sequence of trapezoidal motions until stopped.
 * __SETUPDEPTH:__ The servo always follows the depth position. This can be used to setup the optimal stroke depth. 
-* __ERROR:__ If a motor fault is detected the state machine enters this state. This is a dead-end. To clear this fault the power from the drive has to be removed and the EPS32 needs to be resetted. 
 
 ## Usage
 StrokeEngine aims to have a simple and straight forward, yet powerful API. The follwoing describes the minimum case to get up and running. All input parameteres need to be specified in real world (metric) units.

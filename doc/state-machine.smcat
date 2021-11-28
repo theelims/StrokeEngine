@@ -7,6 +7,7 @@ initial => "UNDEFINED": begin();
 "READY" => "READY"         : moveToMin()
                              moveToMax();
 "READY" => "SETUPDEPTH"    : setupDepth();
+"SETUPDEPTH" => "UNDEFINED": disable();
 "PATTERN" => "READY"       : stopMotion()
                              moveToMin()
                              moveToMax();
@@ -17,10 +18,3 @@ initial => "UNDEFINED": begin();
                              moveToMin()
                              moveToMax();
 "SETUPDEPTH" => "PATTERN"  : startPattern();
-"UNDEFINED" => "ERROR"     : motorFault();
-"READY" => "ERROR"         : motorFault();
-"PATTERN" => "ERROR"       : motorFault();
-#ERROR can only 
-#be cleared by removing 
-#power and resetting ESP32.
-"ERROR" => final;

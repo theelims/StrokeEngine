@@ -1,3 +1,16 @@
+# Upcomming Release 0.2.1
+- set and get functions for maximum speed and maximum acceleration. Allows to change these limits uring runtime.
+- Renamed `#define DEBUG_VERBOSE` to `#define DEBUG_TALKATIVE` to make StrokeEngine play nice with WifiManager.
+- Removed state `ERROR` from state machine. After tests with the servo this has become pointless. `disable()` and homing will clear any error state. 
+
+## Planned Features
+- New Pattern:
+  - Stop'n'Go
+  - Insist
+  - Closing Gap
+  - Stroke Nibble
+  - Jack Hammer
+
 # Release 0.2.0
 - Stroking-task uses suspend and resume instead of deleting and recreation to prevent heap fragmentation.
 - Refined homeing procedure. Fully configurable via a struct including front or back homeing switch and internal pull-up or pull-down resistors. 

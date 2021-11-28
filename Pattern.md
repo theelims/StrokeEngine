@@ -25,7 +25,7 @@ To create a new pattern just subclass from `class Pattern`. Have a look at `clas
 ```cpp
 class SimpleStroke : public Pattern {
     public:
-        SimpleStroke(char *str) : Pattern(str) {} 
+        SimpleStroke(const char *str) : Pattern(str) {} 
 ```
 Add the constructor to store the patterns name string.
 
@@ -78,7 +78,7 @@ static Pattern *patternTable[] = {
 ```
 ### Expected Behaviour
 #### Adhere to Depth & Stroke at All Times
-Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no violation against the machines physics were returned. Pattern only return a stroke information which is offsetted by depth in the StrokeEndinge. Your return value may be anywhere in the interval [0, stroke]. Positions outside the interval [depth - stroke, depth] will be truncated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries. This sets the envelope the pattern may use. Similar for speed a.k.a. timeOfStroke. 
+Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no violation against the machines physics were returned. Pattern only return a stroke information which is offsetted by depth in the StrokeEngine. Your return value may be anywhere in the interval [0, stroke]. Positions outside the interval [depth - stroke, depth] will be truncated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries. This sets the envelope the pattern may use. Similar for speed a.k.a. timeOfStroke. 
 
 #### Use `index` Properly 
 `index` provides further information then just the stroke count:

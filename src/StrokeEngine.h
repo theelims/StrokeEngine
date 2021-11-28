@@ -15,7 +15,7 @@
 #include <pattern.h>
 
 // Debug Levels
-#define DEBUG_VERBOSE               // Show debug messages from the StrokeEngine on Serial
+#define DEBUG_TALKATIVE             // Show debug messages from the StrokeEngine on Serial
 #define DEBUG_STROKE                // Show debug messaged for each individual stroke on Serial
 #define DEBUG_CLIPPING              // Show debug messages when motions violating the machine 
                                     // physics are commanded
@@ -77,7 +77,6 @@ typedef struct {
 typedef enum {
   UNDEFINED,          //!< No power to the servo. We don't know its position
   READY,             //!< Servo is energized and knows it position. Not running.
-  ERROR,             //!< Servo is on error state. Needs to be cleared by removing power.
   PATTERN,           //!< Stroke Engine is running and servo is moving according to defined pattern.
   SETUPDEPTH,        //!< Interactive adjustment mode to setup depth and stroke
   STREAMING          //!< Tracks the depth-position whenever depth is updated.
@@ -87,10 +86,9 @@ typedef enum {
 static String verboseState[] = {
   "[0] Servo disabled",
   "[1] Servo ready",
-  "[2] Servo error",
-  "[3] Servo pattern running",
-  "[4] Servo setup depth",
-  "[5] Servo position streaming"
+  "[2] Servo pattern running",
+  "[3] Servo setup depth",
+  "[4] Servo position streaming"
 };
 
 /**************************************************************************/
@@ -321,16 +319,6 @@ class StrokeEngine {
         */
         /**************************************************************************/
         void disable();
-
-        /**************************************************************************/
-        /*!
-          @brief  This function internally calls disable() and sets the state machine
-          to ERROR. Intended to be called from an interrupt if a servo/stepper
-          fault signal should be monitored. Propably not interrupt safe, but this 
-          maybe even doesn't matter.
-        */
-        /**************************************************************************/
-        void motorFault();
 
         /**************************************************************************/
         /*!

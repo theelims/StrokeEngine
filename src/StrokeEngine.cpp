@@ -40,7 +40,7 @@ void StrokeEngine::begin(machineGeometry *physics, motorProperties *motor) {
     }
     Serial.println("Servo initialized");
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
 }
@@ -55,7 +55,7 @@ void StrokeEngine::setSpeed(float speed) {
     // Update pattern with new speed, will be used with the next stroke or on update request
     patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("setTimeOfStroke: " + String(_timeOfStroke, 2));
 #endif
 
@@ -73,7 +73,7 @@ void StrokeEngine::setDepth(float depth) {
     // Constrain depth between minStep and maxStep
     _depth = constrain(_depth, _minStep, _maxStep); 
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("setDepth: " + String(_depth));
 #endif
 
@@ -98,7 +98,7 @@ void StrokeEngine::setStroke(float stroke) {
     // Update pattern with new speed, will be used with the next stroke or on update request
     patternTable[_patternIndex]->setStroke(_stroke);
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("setStroke: " + String(_stroke));
 #endif
 
@@ -120,7 +120,7 @@ void StrokeEngine::setSensation(float sensation) {
     // Update pattern with new speed, will be used with the next stroke or on update request
     patternTable[_patternIndex]->setSensation(_sensation);
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("setSensation: " + String(_sensation));
 #endif
 
@@ -147,7 +147,7 @@ bool StrokeEngine::setPattern(int patternIndex) {
         // Reset index counter
         _index = 0; 
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("setPattern: [" + String(_patternIndex) + "] " + patternTable[_patternIndex]->getName());
     Serial.println("setTimeOfStroke: " + String(_timeOfStroke, 2));
     Serial.println("setDepth: " + String(_depth));
@@ -158,7 +158,7 @@ bool StrokeEngine::setPattern(int patternIndex) {
     }
 
     // Return false on no match
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Failed to set pattern: " + String(_patternIndex));
 #endif
     return false;   
@@ -171,7 +171,7 @@ int StrokeEngine::getPattern() {
 bool StrokeEngine::applyNewSettingsNow() {
     motionParameter currentMotion;
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
 
@@ -182,7 +182,7 @@ bool StrokeEngine::applyNewSettingsNow() {
 
         // Increase deceleration if required to avoid crash
         if (servo->getAcceleration() > currentMotion.acceleration) {
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
             Serial.print("Crash avoidance! Set Acceleration from " + String(currentMotion.acceleration));
             Serial.println(" to " + String(servo->getAcceleration()));
 #endif
@@ -192,14 +192,14 @@ bool StrokeEngine::applyNewSettingsNow() {
         // Apply new trapezoidal motion profile to servo
         _applyMotionProfile(&currentMotion);
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Apply New Settings Now");
 #endif
         // Success
         return true;
     }
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Failed to apply settings");
 #endif
 
@@ -227,7 +227,7 @@ bool StrokeEngine::startPattern() {
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
         Serial.print(" | _depth: " + String(_depth));
         Serial.print(" | _stroke: " + String(_stroke));
@@ -249,7 +249,7 @@ bool StrokeEngine::startPattern() {
             vTaskResume(_taskStrokingHandle);
         }
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.println("Started motion task");
         Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
@@ -258,7 +258,7 @@ bool StrokeEngine::startPattern() {
 
     } else {
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.println("Failed to start motion");
 #endif
         return false;
@@ -277,13 +277,13 @@ void StrokeEngine::stopMotion() {
         // Set state
         _state = READY;
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.println("Motion stopped");
 #endif
 
     }
     
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
 }
@@ -325,7 +325,7 @@ void StrokeEngine::enableAndHome(endstopProperties *endstop, float speed) {
         20,                             // Pretty high task piority
         &_taskHomingHandle              // Task handle
     ); 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Homing task started");
 #endif
 
@@ -335,7 +335,7 @@ void StrokeEngine::thisIsHome(float speed) {
     // set homeing speed
     _homeingSpeed = speed * _motor->stepsPerMillimeter;
 
-    if (_state != ERROR) {
+    if (_state == UNDEFINED) {
         // Enable Servo
         servo->enableOutputs();
 
@@ -352,12 +352,23 @@ void StrokeEngine::thisIsHome(float speed) {
         // Change state
         _isHomed = true;
         _state = READY;
+
+#ifdef DEBUG_TALKATIVE
+        Serial.println("This is Home now");
+#endif
+
+        return;
     }
+
+#ifdef DEBUG_TALKATIVE
+    Serial.println("Manual homing failed. Not in state UNDEFINED");
+#endif
+
 }
 
 bool StrokeEngine::moveToMax(float speed) {
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Move to max");
 #endif
 
@@ -374,7 +385,7 @@ bool StrokeEngine::moveToMax(float speed) {
         // Set state
         _state = READY;
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
 
@@ -389,7 +400,7 @@ bool StrokeEngine::moveToMax(float speed) {
 
 bool StrokeEngine::moveToMin(float speed) {
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Move to min");
 #endif
 
@@ -406,7 +417,7 @@ bool StrokeEngine::moveToMin(float speed) {
         // Set state
         _state = READY;
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
 
@@ -420,7 +431,7 @@ bool StrokeEngine::moveToMin(float speed) {
 }
 
 bool StrokeEngine::setupDepth(float speed, bool fancy) {
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Move to Depth");
 #endif
     // store fanciness
@@ -446,7 +457,7 @@ bool StrokeEngine::setupDepth(float speed, bool fancy) {
         // set return value to true
         allowed = true;
     }
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
     return allowed;
@@ -469,7 +480,7 @@ void StrokeEngine::disable() {
         _taskHomingHandle = NULL;
     }
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Servo disabled. Call home to continue.");
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
@@ -483,22 +494,6 @@ String StrokeEngine::getPatternName(int index) {
         return String("Invalid");
     }
     
-}
-
-void StrokeEngine::motorFault() {
-//TODO: propably not interrupt safe. But does it matter?
-
-    // call disable
-    disable();
-    
-    // Set error state
-    _state = ERROR;
-
-    // Safe State can only be cleared by removing power from Servo and ESP32 a.k.a. reboot
-    Serial.println("Servo entered Safe State. Remove power to clear fault.");
-#ifdef DEBUG_VERBOSE
-    Serial.println("Stroke Engine State: " + verboseState[_state]);
-#endif
 }
 
 void StrokeEngine::setMaxSpeed(float maxSpeed){
@@ -579,7 +574,7 @@ void StrokeEngine::_homingProcedure() {
         servo->disableOutputs();
         _state = UNDEFINED;
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.println("Homing failed");
 #endif
 
@@ -587,7 +582,7 @@ void StrokeEngine::_homingProcedure() {
         // Set state to ready
         _state = READY;
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.println("Homing succeded");
 #endif
     }
@@ -597,7 +592,7 @@ void StrokeEngine::_homingProcedure() {
         _callBackHomeing(_isHomed);
     }
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("Stroke Engine State: " + verboseState[_state]);
 #endif
 
@@ -699,7 +694,7 @@ void StrokeEngine::_setupDepths() {
         // map sensation into the interval [depth-stroke, depth]
         depth = map(_sensation, -100, 100, _depth - _stroke, _depth);
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
         Serial.println("map sensation " + String(_sensation)
             + " to interval [" + String(_depth - _stroke)
             + ", " + String(_depth) 
@@ -710,7 +705,7 @@ void StrokeEngine::_setupDepths() {
     // move servo to desired position
     servo->moveTo(depth);
 
-#ifdef DEBUG_VERBOSE
+#ifdef DEBUG_TALKATIVE
     Serial.println("setup new depth: " + String(depth));
 #endif
 }
