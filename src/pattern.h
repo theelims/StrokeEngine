@@ -93,6 +93,13 @@ class Pattern {
             return _nextMove;
         } 
 
+        //! Communicates the maximum possible speed and acceleration limits of the machine to a pattern.
+        /*! 
+          @param maxSpeed maximum speed which is possible. Higher speeds get truncated inside StrokeEngine anyway.
+          @param maxAcceleration maximum possible acceleration. Get also truncated, if impossible.
+        */
+        void setSpeedLimit(unsigned int maxSpeed, unsigned int maxAcceleration) { _maxSpeed = maxSpeed; _maxAcceleration = maxAcceleration; } 
+
     protected:
         int _stroke;
         float _timeOfStroke;
@@ -102,6 +109,8 @@ class Pattern {
         motionParameter _nextMove = {0, 0, 0, false};
         int _startDelayMillis = 0;
         int _delayInMillis = 0;
+        unsigned int _maxSpeed = 0;
+        unsigned int _maxAcceleration = 0;
 
         /*!
           @brief Start a delay timer which can be polled by calling _isStillDelayed(). 
@@ -441,14 +450,14 @@ class Deeper : public Pattern {
 
 /**************************************************************************/
 /*!
-  @brief  Closing Gap Stroke Pattern. Pauses between a series of strokes. 
-  The number of strokes changes from 1 stroke to 5 strokes and back. Sensation 
+  @brief  Pauses between a series of strokes. 
+  The number of strokes ramps from 1 stroke to 5 strokes and back. Sensation 
   changes the length of the pauses between stroke series.
 */
 /**************************************************************************/
-class ClosingGap : public Pattern {
+class StopNGo : public Pattern {
     public:
-        ClosingGap(const char *str) : Pattern(str) {}
+        StopNGo(const char *str) : Pattern(str) {}
 
         void setTimeOfStroke(float speed = 0) { 
              // In & Out have same time, so we need to divide by 2
@@ -526,7 +535,90 @@ class ClosingGap : public Pattern {
 
 };
 
+/**************************************************************************/
+/*!
+  @brief  Sensation reduces the effective stroke length while keeping the
+  stroke speed constant to the full stroke. This creates interesting 
+  vibrational pattern at higher sensation values. With positive sensation the
+  strokes will wander towards the front, with negative values towards the back.
+*/
+/**************************************************************************/
+class Insist : public Pattern {
+    public:
+        Insist(const char *str) : Pattern(str) {}   
 
+        void setSensation(float sensation) { 
+            _sensation = sensation;
+
+            // make invert sensation and make into a fraction of the stroke distance
+            _strokeFraction = (100 - abs(sensation))/100.0f;
+
+            _strokeInFront = (sensation > 0) ? true : false;
+
+            _updateStrokeTiming();
+        }
+
+        void setTimeOfStroke(float speed = 0) { 
+             // In & Out have same time, so we need to divide by 2
+            _timeOfStroke = 0.5 * speed;
+            _updateStrokeTiming();
+        }   
+
+        void setStroke(int stroke) {
+            _stroke = stroke;
+            _updateStrokeTiming();
+        }
+
+        motionParameter nextTarget(unsigned int index) {
+
+            // acceleration & speed to meet the profile
+            _nextMove.acceleration = _acceleration;
+            _nextMove.speed = _speed;
+
+            if (_strokeInFront) {
+                // odd stroke is moving out
+                if (index % 2) {
+                    _nextMove.stroke = _stroke - _realStroke;
+
+                // even stroke is moving in
+                } else {
+                    _nextMove.stroke = _stroke;  
+                }
+
+            } else {
+                // odd stroke is moving out    
+                if (index % 2) {
+                    _nextMove.stroke = 0;
+                    
+                // even stroke is moving in
+                } else {
+                    _nextMove.stroke = 0 + _realStroke;                
+                }
+            }
+
+            _index = index;
+            
+            return _nextMove;
+        }
+
+    protected:
+        int _speed = 0;
+        int _acceleration = 0;
+        int _realStroke = 0;
+        float _strokeFraction = 1.0;
+        bool _strokeInFront = false;
+        void _updateStrokeTiming() {
+            // maximum speed of the longest trapezoidal motion (full stroke)
+            _speed = int(1.5 * _stroke/_timeOfStroke);
+
+            // Acceleration to hold 1/3 profile with fractional strokes
+            _acceleration = int(3.0 * _nextMove.speed/(_timeOfStroke * _strokeFraction));
+
+            // Calculate fractional stroke length
+            _realStroke = int((float)_stroke * _strokeFraction);
+        }
+
+};
 
 /**************************************************************************/
 /*
@@ -539,7 +631,8 @@ static Pattern *patternTable[] = {
   new RoboStroke("Robo Stroke"),
   new HalfnHalf("Half'n'Half"),
   new Deeper("Deeper"),
-  new ClosingGap("Closing Gap")
+  new StopNGo("Stop'n'Go"),
+  new Insist("Insist")
   // <-- insert your new pattern class here!
  };
 

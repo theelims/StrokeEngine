@@ -143,6 +143,7 @@ bool StrokeEngine::setPattern(int patternIndex) {
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
+        patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
 
         // Reset index counter
         _index = 0; 
@@ -213,7 +214,7 @@ bool StrokeEngine::startPattern() {
 
         // Stop current move, should one be pending (moveToMax or moveToMin)
         if (servo->isRunning()) {
-            // Stop servo motor as fast as legaly allowed
+            // Stop servo motor as fast as legally allowed
             servo->setAcceleration(_maxStepAcceleration);
             servo->applySpeedAcceleration();
             servo->stopMove();
@@ -227,6 +228,7 @@ bool StrokeEngine::startPattern() {
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
+        patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
 #ifdef DEBUG_TALKATIVE
         Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
         Serial.print(" | _depth: " + String(_depth));
@@ -241,7 +243,7 @@ bool StrokeEngine::startPattern() {
                 "Stroking",             // Name of the task (for debugging)
                 2048,                   // Stack size (bytes)
                 this,                   // Pass reference to this class instance
-                24,                     // Pretty high task piority
+                24,                     // Pretty high task priority
                 &_taskStrokingHandle    // Task handle
             ); 
         } else {
@@ -498,6 +500,8 @@ String StrokeEngine::getPatternName(int index) {
 
 void StrokeEngine::setMaxSpeed(float maxSpeed){
     _maxStepPerSecond = int(0.5 + _motor->maxSpeed * _motor->stepsPerMillimeter);
+    patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
+    
 }
 
 float StrokeEngine::getMaxSpeed() {
@@ -506,6 +510,8 @@ float StrokeEngine::getMaxSpeed() {
 
 void StrokeEngine::setMaxAcceleration(float maxAcceleration) {
     _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerMillimeter);
+    patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
+    
 }
 
 float StrokeEngine::getMaxAcceleration() {
@@ -517,7 +523,7 @@ void StrokeEngine::_homingProcedure() {
     servo->setSpeedInHz(_homeingSpeed);       
     servo->setAcceleration(_maxStepAcceleration / 10);    
 
-    // Check if we are aleady at the homing switch
+    // Check if we are already at the homing switch
     if (digitalRead(_homeingPin) == !_homeingActiveLow) {
         //back off 5 mm from switch
         servo->move(_motor->stepsPerMillimeter * 2 * _physics->keepoutBoundary * _homeingToBack);

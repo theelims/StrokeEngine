@@ -3,11 +3,17 @@
 - Renamed `#define DEBUG_VERBOSE` to `#define DEBUG_TALKATIVE` to make StrokeEngine play nice with WifiManager.
 - Removed state `ERROR` from state machine. After tests with the servo this has become pointless. `disable()` and homing will clear any error state. 
 - Fixed bug with missing implementation of inverted direction signal: https://github.com/theelims/StrokeEngine/issues/3
+- Added an improved pause handling mechanism to pattern:
+  - removed `void patternDelay(int milliseconds)` function as unfit for the purpose
+  - Pattern-Class has 3 private functions `void _startDelay()`, `void _updateDelay(int delayInMillis)` and `bool _isStillDelayed()` to add an internal delay function based on comparing `millis()`.
+  - A pattern can request StrokeEngine to skip the current motion command by returning `_nextMove.skip = true;`. 
+- Speed and acceleration limits are available inside pattern, now. 
+- New pattern available:
+  - Stop'n'Go
+  - Insist
 
 ## Planned Features
 - New Pattern:
-  - Stop'n'Go
-  - Insist
   - Closing Gap
   - Stroke Nibble
   - Jack Hammer

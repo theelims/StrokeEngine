@@ -17,6 +17,12 @@ Similar to Teasing or Pounding, but every second stroke is only half the depth. 
 ### Deeper
 The insertion depth ramps up gradually with each stroke until it reaches its maximum. It then resets and restarts. Sensations controls how many strokes there are in a ramp.
 
+### Stop'n'Go
+Pauses between a series of strokes. The number of strokes ramps from 1 stroke to 5 strokes and back. Sensation changes the length of the pauses between stroke series.
+
+### Insist
+Sensation reduces the effective stroke length while keeping the stroke speed constant to the full stroke. This creates interesting vibrational pattern at higher sensation values. With positive sensation the strokes will wander towards the front, with negative values towards the back.
+
 ## Contribute a Pattern
 Making your own pattern is not that hard. They can be found in the header only [pattern.h](./src/pattern.h) and easily extended.
 
@@ -68,6 +74,9 @@ For debugging and verifying the math it can be handy to have something on the Se
             Serial.println("TimeOfOutStroke: " + String(_timeOfOutStroke));
 #endif
 ```
+
+It is possible for a pattern to insert pauses between strokes. The main stroking-thread of StrokeEngine will poll a new set of motion commands every few milliseconds once the target position of the last stroke is reached. If a pattern returns the motion parameter `_nextMove.skip = true;` inside the costume implementation of the `nextTarget()`-function no new motion is started. Instead it is polled again later. This allows to compare `millis()` inside a pattern. To make this more convenient the `Pattern` base class implements 3 private functions: `void _startDelay()`, `void _updateDelay(int delayInMillis)` and `bool _isStillDelayed()`. `_startDelay()` will start the delay and `_updateDelay(int delayInMillis)` will set the desired pause in milliseconds. `_updateDelay()` can be updated any time with a new value. If a strokes becomes overdue it is executed immediately. `bool _isStillDelayed()` is just a wrapper for comparing the current time with the scheduled time. Can be used inside the `nextTarget()`-function to indicate whether StrokeEngine should be advised to skip this step be returning `_nextMove.skip = true;`. See the pattern Stop'n'Go for an example on how ti use this mechanism.
+
 Don't forget to add an instance of your new pattern class at the very bottom of the file to the `*patternTable[]`-Array.
 ```cpp
 static Pattern *patternTable[] = { 
