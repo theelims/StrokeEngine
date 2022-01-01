@@ -137,13 +137,4 @@ inline float mapSensationToFactor(float maximumFactor, float inputValue, float c
     
 }
 
-/**************************************************************************/
-/*!
-  @brief  Create a pause in between individual strokes. Can be used 
-  instead of the arduino delay() function. 
-  @param milliseconds   delay in milliseconds
-*/
-/**************************************************************************/
-inline void patternDelay(int milliseconds) {
-  vTaskDelay(milliseconds / portTICK_PERIOD_MS);
-}
+

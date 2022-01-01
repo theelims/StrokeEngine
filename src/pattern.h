@@ -19,7 +19,7 @@
 #define DEBUG_PATTERN                 // Print some debug informations over Serial
 
 #ifndef STRING_LEN
-  #define STRING_LEN           64     // Bytes used to initalize char array. No path, topic, name, etc. should exceed this value
+  #define STRING_LEN           64     // Bytes used to initialize char array. No path, topic, name, etc. should exceed this value
 #endif
 
 /**************************************************************************/
@@ -32,6 +32,7 @@ typedef struct {
     int stroke;         //!< Relative target position of a move in steps 
     int speed;          //!< Speed of a move in Hz 
     int acceleration;   //!< Acceleration to get to speed or halt 
+    bool skip;          //!< no valid stroke, skip this set an query for the next --> allows pauses between strokes
 } motionParameter;
 
 
@@ -54,7 +55,7 @@ class Pattern {
     public:
         //! Constructor
         /*!
-          @param str Sring containing the name of a pattern 
+          @param str String containing the name of a pattern 
         */
         Pattern(const char *str) { strcpy(_name, str); }
 
@@ -72,7 +73,7 @@ class Pattern {
 
         //! Sensation is an additional parameter a pattern can take to alter its behaviour
         /*! 
-          @param sesation Arbitrary value from -100 to 100, with 0 beeing neutral 
+          @param sensation Arbitrary value from -100 to 100, with 0 beeing neutral 
         */
         virtual void setSensation(float sensation) { _sensation = sensation; } 
 
@@ -98,7 +99,35 @@ class Pattern {
         float _sensation = 0.0;
         unsigned int _index;
         char _name[STRING_LEN]; 
-        motionParameter _nextMove = {0, 0, 0};
+        motionParameter _nextMove = {0, 0, 0, false};
+        int _startDelayMillis = 0;
+        int _delayInMillis = 0;
+
+        /*!
+          @brief Start a delay timer which can be polled by calling _isStillDelayed(). 
+          Uses internally the millis()-function.
+        */
+        void _startDelay() {
+            _startDelayMillis = millis();
+        } 
+
+        /*! 
+          @brief Update a delay timer which can be polled by calling _isStillDelayed(). 
+          Uses internally the millis()-function.
+          @param delayInMillis delay in milliseconds 
+        */
+        void _updateDelay(int delayInMillis) {
+            _delayInMillis = delayInMillis;
+        } 
+
+        /*! 
+          @brief Poll the state of a internal timer to create pauses between strokes. 
+          Uses internally the millis()-function.
+          @return True, if the timer is running, false if it is expired.
+        */
+        bool _isStillDelayed() {
+            return (millis() > (_startDelayMillis + _delayInMillis)) ? false : true; 
+        }
 
 };
 
@@ -114,7 +143,7 @@ class SimpleStroke : public Pattern {
         SimpleStroke(const char *str) : Pattern(str) {}
 
         void setTimeOfStroke(float speed = 0) { 
-             // In & Out have same time, so we need to devide by 2
+             // In & Out have same time, so we need to divide by 2
             _timeOfStroke = 0.5 * speed; 
         }   
 
@@ -216,7 +245,7 @@ class RoboStroke : public Pattern {
         RoboStroke(const char *str) : Pattern(str) {}
 
         void setTimeOfStroke(float speed = 0) { 
-             // In & Out have same time, so we need to devide by 2
+             // In & Out have same time, so we need to divide by 2
             _timeOfStroke = 0.5 * speed; 
         }
 
@@ -349,7 +378,7 @@ class Deeper : public Pattern {
         Deeper(const char *str) : Pattern(str) {}
 
         void setTimeOfStroke(float speed = 0) { 
-             // In & Out have same time, so we need to devide by 2
+             // In & Out have same time, so we need to divide by 2
             _timeOfStroke = 0.5 * speed; 
         }   
 
@@ -373,7 +402,7 @@ class Deeper : public Pattern {
 
             // The pattern recycles so we use modulo to get a cycling index.
             // Factor 2 because index increments with each full stroke twice
-            // add 1 because modulor = 0 is index = 1
+            // add 1 because modulo = 0 is index = 1
             int cycleIndex = (index / 2) % _countStrokesForRamp + 1;
 
             // This might be not smooth, as the insertion depth may jump when 
@@ -411,6 +440,95 @@ class Deeper : public Pattern {
 };
 
 /**************************************************************************/
+/*!
+  @brief  Closing Gap Stroke Pattern. Pauses between a series of strokes. 
+  The number of strokes changes from 1 stroke to 5 strokes and back. Sensation 
+  changes the length of the pauses between stroke series.
+*/
+/**************************************************************************/
+class ClosingGap : public Pattern {
+    public:
+        ClosingGap(const char *str) : Pattern(str) {}
+
+        void setTimeOfStroke(float speed = 0) { 
+             // In & Out have same time, so we need to divide by 2
+            _timeOfStroke = 0.5 * speed; 
+        }   
+
+        void setSensation(float sensation) { 
+            _sensation = sensation;
+
+            // maps sensation to a delay from 100ms to 10 sec
+            _updateDelay(map(sensation, -100, 100, 100, 10000));
+        }
+
+        motionParameter nextTarget(unsigned int index) {
+            // maximum speed of the trapezoidal motion 
+            _nextMove.speed = int(1.5 * _stroke/_timeOfStroke);  
+
+            // acceleration to meet the profile
+            _nextMove.acceleration = int(3.0 * _nextMove.speed/_timeOfStroke);
+
+            // adds a delay between each stroke
+            if (_isStillDelayed() == false) {
+
+                // odd stroke is moving out    
+                if (index % 2) {
+                    _nextMove.stroke = 0;
+
+                    if (_strokeIndex >= _strokeSeriesIndex) {
+                        // Reset stroke index to 1
+                        _strokeIndex = 0;
+
+                        // change count direction once we reached the maximum number of strokes
+                        if (_strokeSeriesIndex >= _numberOfStrokes) {
+                            _countStrokesUp = false;
+                        }
+
+                        // change count direction once we reached one stroke counting down
+                        if (_strokeSeriesIndex <= 1) {
+                            _countStrokesUp = true;
+                        }
+
+                        // increment or decrement strokes counter
+                        if (_countStrokesUp == true) {
+                            _strokeSeriesIndex++;
+                        } else {
+                            _strokeSeriesIndex--;
+                        }
+
+                        // start delay after having moved out
+                        _startDelay();
+                    }
+                    
+
+                // even stroke is moving in
+                } else {
+                    _nextMove.stroke = _stroke;
+                    // Increment stroke index by one
+                    _strokeIndex++;
+                }
+                _nextMove.skip = false;
+            } else {
+                _nextMove.skip = true;
+            }
+
+            _index = index;
+            
+            return _nextMove;
+        }
+
+    protected:
+        int _numberOfStrokes = 5;
+        int _strokeSeriesIndex = 1;
+        int _strokeIndex = 0;
+        bool _countStrokesUp = true;
+
+};
+
+
+
+/**************************************************************************/
 /*
   Array holding all different patterns. Please include any custom pattern here.
 */
@@ -420,7 +538,8 @@ static Pattern *patternTable[] = {
   new TeasingPounding("Teasing or Pounding"),
   new RoboStroke("Robo Stroke"),
   new HalfnHalf("Half'n'Half"),
-  new Deeper("Deeper")
+  new Deeper("Deeper"),
+  new ClosingGap("Closing Gap")
   // <-- insert your new pattern class here!
  };
 

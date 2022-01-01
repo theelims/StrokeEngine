@@ -32,7 +32,7 @@ Add the constructor to store the patterns name string.
 Reimplement set-functions if you need them to do some math:
 ```cpp
         void setTimeOfStroke(float speed = 0) { 
-             // In & Out have same time, so we need to devide by 2
+             // In & Out have same time, so we need to divide by 2
             _timeOfStroke = 0.5 * speed; 
         }   
 ```
@@ -76,15 +76,15 @@ static Pattern *patternTable[] = {
   // <-- insert your new pattern class here!
  };
 ```
-### Expected Behaviour
+### Expected Behavior
 #### Adhere to Depth & Stroke at All Times
-Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no violation against the machines physics were returned. Pattern only return a stroke information which is offsetted by depth in the StrokeEngine. Your return value may be anywhere in the interval [0, stroke]. Positions outside the interval [depth - stroke, depth] will be truncated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries. This sets the envelope the pattern may use. Similar for speed a.k.a. timeOfStroke. 
+Depth and Stroke set in StrokeEngine are axiomatic. StrokeEngine closely monitors the returned `motionParameter` and ensures no violation against the machines physics were returned. Pattern only return a stroke information which is offset by depth in the StrokeEngine. Your return value may be anywhere in the interval [0, stroke]. Positions outside the interval [depth - stroke, depth] will be truncated, leading to a distortion of your intended stroke profile. This is an integral safety feature to prevent injuries. This sets the envelope the pattern may use. Similar for speed a.k.a. timeOfStroke. 
 
 #### Use `index` Properly 
 `index` provides further information then just the stroke count:
 * It always starts at `0` if a pattern is called the first time. It resets with every call of `StrokeEngine.setPattern(int)` or `StrokeEngine.startMotion()`.
-* It increments after each succesfully executed move.
-* Store the last index in `_index` bevor returning. By comparing `index == _index` you can determine that this time it is not a new stroke, but rather an update of a current stroke. This information can be handy in pattern variying over time.
+* It increments after each successfully executed move.
+* Store the last index in `_index` before returning. By comparing `index == _index` you can determine that this time it is not a new stroke, but rather an update of a current stroke. This information can be handy in pattern varying over time.
 
 ### Pull Request
-Make a pull request for your new [pattern.h](./src/pattern.h) after you thouroughly tested it. 
+Make a pull request for your new [pattern.h](./src/pattern.h) after you thoroughly tested it. 

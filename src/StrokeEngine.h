@@ -361,7 +361,7 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief   Updates the maximum accleration number of StrokeEngine. This value 
+          @brief   Updates the maximum acceleration number of StrokeEngine. This value 
           is used to keep alle motions in check and as a safeguard.
           @param maxAcceleration maximum acceleration in mm/s²
         */

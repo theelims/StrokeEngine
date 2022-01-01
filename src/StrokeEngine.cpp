@@ -33,7 +33,7 @@ void StrokeEngine::begin(machineGeometry *physics, motorProperties *motor) {
     engine.init();
     servo = engine.stepperConnectToPin(_motor->stepPin);
     if (servo) {
-        servo->setDirectionPin(_motor->directionPin, _motor->directionPin);
+        servo->setDirectionPin(_motor->directionPin, _motor->invertDirection);
         servo->setEnablePin(_motor->enablePin, _motor->enableActiveLow);
         servo->setAutoEnable(false);
         servo->disableOutputs(); 
@@ -616,15 +616,21 @@ void StrokeEngine::_stroking() {
             // Increment index for pattern
             _index++;
 
-#ifdef DEBUG_STROKE
-            Serial.println("Stroking Index: " + String(_index));
-#endif
-
             // Ask pattern for update on motion parameters
             currentMotion = patternTable[_patternIndex]->nextTarget(_index);
 
-            // Apply new trapezoidal motion profile to servo
-            _applyMotionProfile(&currentMotion);
+            // Pattern may introduce pauses between strokes
+            if (currentMotion.skip == false) {
+
+#ifdef DEBUG_STROKE
+            Serial.println("Stroking Index: " + String(_index));
+#endif
+                // Apply new trapezoidal motion profile to servo
+                _applyMotionProfile(&currentMotion);
+            } else {
+                // decrement _index so that it stays the same until the next valid stroke parameters are delivered
+                _index--;
+            }
         }
         
         // Delay 10ms 
@@ -647,42 +653,44 @@ void StrokeEngine::_streaming() {
 }
 
 void StrokeEngine::_applyMotionProfile(motionParameter* motion) {
-    
-    // Apply new trapezoidal motion profile to servo
-    // Constrain speed to below _maxStepPerSecond
-    if (motion->speed > _maxStepPerSecond) {
+
+    // Apply new trapezoidal motion profile to servo if pattern does not skip
+    if (motion->skip == false) {
+
+        // Constrain speed to below _maxStepPerSecond
+        if (motion->speed > _maxStepPerSecond) {
 #ifdef DEBUG_CLIPPING
         Serial.println("Max Speed Exceeded: " + String(float(motion->speed / _motor->stepsPerMillimeter), 2)
                 + "mm/s --> Limit: " + String(float(_maxStepPerSecond / _motor->stepsPerMillimeter), 2) + "mm/s");
 #endif
-        servo->setSpeedInHz(_maxStepPerSecond);
-    } else {
-        servo->setSpeedInHz(motion->speed);
-    }
-    
-    // Constrain acceleration between 1 step/sec^2 and _maxStepAcceleration
-    if (motion->acceleration > _maxStepAcceleration) {
+            servo->setSpeedInHz(_maxStepPerSecond);
+        } else {
+            servo->setSpeedInHz(motion->speed);
+        }
+        
+        // Constrain acceleration between 1 step/sec^2 and _maxStepAcceleration
+        if (motion->acceleration > _maxStepAcceleration) {
 #ifdef DEBUG_CLIPPING
         Serial.println("Max Acceleration Exceeded: " + String(float(motion->acceleration / _motor->stepsPerMillimeter), 2)
                 + "mm/s² --> Limit: " + String(float(_maxStepAcceleration / _motor->stepsPerMillimeter), 2) + "mm/s²");
 #endif
-        servo->setAcceleration(_maxStepAcceleration);
-    } else  {
-        servo->setAcceleration(motion->acceleration);
-    }
+            servo->setAcceleration(_maxStepAcceleration);
+        } else  {
+            servo->setAcceleration(motion->acceleration);
+        }
 
-    // Constrain stroke between max(0, _stroke)
-    int stroke = constrain(motion->stroke, 0, _stroke);
+        // Constrain stroke between max(0, _stroke)
+        int stroke = constrain(motion->stroke, 0, _stroke);
 
-    // Apply _depth - _stroke as position offset and constrain to servo range in case _stroke > _depth
-    servo->moveTo(constrain(((_depth - _stroke) + stroke), _minStep, _maxStep));
+        // Apply _depth - _stroke as position offset and constrain to servo range in case _stroke > _depth
+        servo->moveTo(constrain(((_depth - _stroke) + stroke), _minStep, _maxStep));
 
 #ifdef DEBUG_STROKE
     Serial.println("motion.stroke: " + String(float(motion->stroke / _motor->stepsPerMillimeter), 2) + "mm");
     Serial.println("motion.speed: " + String(float(motion->speed / _motor->stepsPerMillimeter), 2) + "mm/s");
     Serial.println("motion.acceleration: " + String(float(motion->acceleration / _motor->stepsPerMillimeter), 2) + "mm/s²");
 #endif
-
+    }
 }
 
 void StrokeEngine::_setupDepths() {
