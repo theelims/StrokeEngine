@@ -140,10 +140,10 @@ bool StrokeEngine::setPattern(int patternIndex) {
         _patternIndex = patternIndex;
 
         // Inject current motion parameters into new pattern
+        patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration, _motor->stepsPerMillimeter);
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
-        patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
 
         // Reset index counter
         _index = 0; 
@@ -225,10 +225,11 @@ bool StrokeEngine::startPattern() {
 
         // Reset Stroke and Motion parameters
         _index = -1;
+        patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration, _motor->stepsPerMillimeter);
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
-        patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
+        
 #ifdef DEBUG_TALKATIVE
         Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
         Serial.print(" | _depth: " + String(_depth));
@@ -271,7 +272,7 @@ bool StrokeEngine::startPattern() {
 void StrokeEngine::stopMotion() {
     // only valid when 
     if (_state == PATTERN || _state == SETUPDEPTH) {
-        // Stop servo motor as fast as legaly allowed
+        // Stop servo motor as fast as legally allowed
         servo->setAcceleration(_maxStepAcceleration);
         servo->applySpeedAcceleration();
         servo->stopMove();
@@ -500,7 +501,7 @@ String StrokeEngine::getPatternName(int index) {
 
 void StrokeEngine::setMaxSpeed(float maxSpeed){
     _maxStepPerSecond = int(0.5 + _motor->maxSpeed * _motor->stepsPerMillimeter);
-    patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
+    patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration, _motor->stepsPerMillimeter);
     
 }
 
@@ -510,7 +511,7 @@ float StrokeEngine::getMaxSpeed() {
 
 void StrokeEngine::setMaxAcceleration(float maxAcceleration) {
     _maxStepAcceleration = int(0.5 + _motor->maxAcceleration * _motor->stepsPerMillimeter);
-    patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration);
+    patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration, _motor->stepsPerMillimeter);
     
 }
 

@@ -11,10 +11,10 @@
   so that it can be made to favor either the end of the output. 
   (Logarithmic mapping) Source: https://playground.arduino.cc/Main/Fscale/
   @param originalMin the minimum value of the original range 
-                     this MUST be less than origninalMax
+                     this MUST be less than originalMax
   @param originalMax the maximum value of the original range 
-                     this MUST be greater than orginalMin
-  @param newBegin    the end of the new range which maps to orginalMin 
+                     this MUST be greater than originalMin
+  @param newBegin    the end of the new range which maps to originalMin 
                      it can be smaller, or larger, than newEnd, to 
                      facilitate inverting the ranges
   @param newEnd      the end of the new range which maps to originalMax
@@ -46,8 +46,8 @@ newEnd, float inputValue, float curve){
   if (curve > 10) curve = 10;
   if (curve < -10) curve = -10;
 
-  curve = (curve * -.1) ; // - invert and scale - this seems more intuitive - postive numbers give more weight to high end on output
-  curve = pow(10, curve); // convert linear scale into lograthimic exponent for other pow function
+  curve = (curve * -.1) ; // - invert and scale - this seems more intuitive - positive numbers give more weight to high end on output
+  curve = pow(10, curve); // convert linear scale into logarithmic exponent for other pow function
 
   // Check for out of range inputValues
   if (inputValue < originalMin) {
@@ -57,7 +57,7 @@ newEnd, float inputValue, float curve){
     inputValue = originalMax;
   }
 
-  // Zero Refference the values
+  // Zero Reference the values
   OriginalRange = originalMax - originalMin;
 
   if (newEnd > newBegin){

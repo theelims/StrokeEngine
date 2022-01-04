@@ -7,16 +7,17 @@
   - removed `void patternDelay(int milliseconds)` function as unfit for the purpose
   - Pattern-Class has 3 private functions `void _startDelay()`, `void _updateDelay(int delayInMillis)` and `bool _isStillDelayed()` to add an internal delay function based on comparing `millis()`.
   - A pattern can request StrokeEngine to skip the current motion command by returning `_nextMove.skip = true;`. 
-- Speed and acceleration limits are available inside pattern, now. 
+- Steps per mm, speed and acceleration limits are available inside pattern, now. 
 - New pattern available:
   - Stop'n'Go
   - Insist
+  - Jack Hammer
 
 ## Planned Features
 - New Pattern:
   - Closing Gap
   - Stroke Nibble
-  - Jack Hammer
+
 
 # Release 0.2.0
 - Stroking-task uses suspend and resume instead of deleting and recreation to prevent heap fragmentation.

@@ -23,6 +23,9 @@ Pauses between a series of strokes. The number of strokes ramps from 1 stroke to
 ### Insist
 Sensation reduces the effective stroke length while keeping the stroke speed constant to the full stroke. This creates interesting vibrational pattern at higher sensation values. With positive sensation the strokes will wander towards the front, with negative values towards the back.
 
+### Jack Hammer
+Vibrational pattern that works like a jack hammer. Vibrates on the way in and pulls out smoothly in one go. Sensation sets the vibration amplitude.
+
 ## Contribute a Pattern
 Making your own pattern is not that hard. They can be found in the header only [pattern.h](./src/pattern.h) and easily extended.
 
@@ -42,7 +45,7 @@ Reimplement set-functions if you need them to do some math:
             _timeOfStroke = 0.5 * speed; 
         }   
 ```
-Reimplement the core function `motionParameter nextTarget(unsigned int index)`. This is mandatory, as the StrokeEngine will call this fuction after each stroke to get the next set of `motionParameter`. Each time this function is called the `index` increments by 1. If the pattern is called the very first time this always starts as 0. This can be used to create pattern that vary over time:
+Reimplement the core function `motionParameter nextTarget(unsigned int index)`. This is mandatory, as the StrokeEngine will call this function after each stroke to get the next set of `motionParameter`. Each time this function is called the `index` increments by 1. If the pattern is called the very first time this always starts as 0. This can be used to create pattern that vary over time:
 ```cpp
         motionParameter nextTarget(unsigned int index) {
             // maximum speed of the trapezoidal motion 
@@ -75,7 +78,7 @@ For debugging and verifying the math it can be handy to have something on the Se
 #endif
 ```
 
-It is possible for a pattern to insert pauses between strokes. The main stroking-thread of StrokeEngine will poll a new set of motion commands every few milliseconds once the target position of the last stroke is reached. If a pattern returns the motion parameter `_nextMove.skip = true;` inside the costume implementation of the `nextTarget()`-function no new motion is started. Instead it is polled again later. This allows to compare `millis()` inside a pattern. To make this more convenient the `Pattern` base class implements 3 private functions: `void _startDelay()`, `void _updateDelay(int delayInMillis)` and `bool _isStillDelayed()`. `_startDelay()` will start the delay and `_updateDelay(int delayInMillis)` will set the desired pause in milliseconds. `_updateDelay()` can be updated any time with a new value. If a strokes becomes overdue it is executed immediately. `bool _isStillDelayed()` is just a wrapper for comparing the current time with the scheduled time. Can be used inside the `nextTarget()`-function to indicate whether StrokeEngine should be advised to skip this step be returning `_nextMove.skip = true;`. See the pattern Stop'n'Go for an example on how ti use this mechanism.
+It is possible for a pattern to insert pauses between strokes. The main stroking-thread of StrokeEngine will poll a new set of motion commands every few milliseconds once the target position of the last stroke is reached. If a pattern returns the motion parameter `_nextMove.skip = true;` inside the costume implementation of the `nextTarget()`-function no new motion is started. Instead it is polled again later. This allows to compare `millis()` inside a pattern. To make this more convenient the `Pattern` base class implements 3 private functions: `void _startDelay()`, `void _updateDelay(int delayInMillis)` and `bool _isStillDelayed()`. `_startDelay()` will start the delay and `_updateDelay(int delayInMillis)` will set the desired pause in milliseconds. `_updateDelay()` can be updated any time with a new value. If a stroke becomes overdue it is executed immediately. `bool _isStillDelayed()` is just a wrapper for comparing the current time with the scheduled time. Can be used inside the `nextTarget()`-function to indicate whether StrokeEngine should be advised to skip this step by returning `_nextMove.skip = true;`. See the pattern Stop'n'Go for an example on how to use this mechanism.
 
 Don't forget to add an instance of your new pattern class at the very bottom of the file to the `*patternTable[]`-Array.
 ```cpp

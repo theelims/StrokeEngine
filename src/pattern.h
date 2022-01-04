@@ -97,8 +97,9 @@ class Pattern {
         /*! 
           @param maxSpeed maximum speed which is possible. Higher speeds get truncated inside StrokeEngine anyway.
           @param maxAcceleration maximum possible acceleration. Get also truncated, if impossible.
+          @param stepsPerMM 
         */
-        void setSpeedLimit(unsigned int maxSpeed, unsigned int maxAcceleration) { _maxSpeed = maxSpeed; _maxAcceleration = maxAcceleration; } 
+        void setSpeedLimit(unsigned int maxSpeed, unsigned int maxAcceleration, unsigned int stepsPerMM) { _maxSpeed = maxSpeed; _maxAcceleration = maxAcceleration; _stepsPerMM = stepsPerMM; } 
 
     protected:
         int _stroke;
@@ -111,6 +112,7 @@ class Pattern {
         int _delayInMillis = 0;
         unsigned int _maxSpeed = 0;
         unsigned int _maxAcceleration = 0;
+        unsigned int _stepsPerMM = 0;
 
         /*!
           @brief Start a delay timer which can be polled by calling _isStillDelayed(). 
@@ -621,6 +623,168 @@ class Insist : public Pattern {
 };
 
 /**************************************************************************/
+/*!
+  @brief  Vibrational pattern that works like a jack hammer. Vibrates on the 
+  way in and pulls out smoothly in one go. Sensation sets the vibration 
+  amplitude.
+*/
+/**************************************************************************/
+class JackHammer : public Pattern {
+    public:
+        JackHammer(const char *str) : Pattern(str) {}
+        void setSensation(float sensation) { 
+            _sensation = sensation;
+            _updateVibrationParameters();
+        }
+        void setTimeOfStroke(float speed = 0) {
+            _timeOfStroke = 0.5 * speed;
+            _strokeInSpeed = int(0.5 *  _stroke/_timeOfStroke);
+            _updateVibrationParameters();
+        }
+        motionParameter nextTarget(unsigned int index) {
+
+            if (_returnStroke == true) {
+
+                // Return strokes goes at regular speed without vibration back to 0
+
+                // maximum speed of the trapezoidal motion
+                _nextMove.speed = int(1.5 * _stroke/_timeOfStroke);  
+                // acceleration to meet the profile                  
+                _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfStroke);  
+                // all they way out to start
+                _nextMove.stroke = 0;
+                // clear return flag
+                _returnStroke = false;
+                // we are done
+                return _nextMove;
+
+            } else {
+                
+                // Vibration happens at maximum speed and acceleration of the machine
+                _nextMove.speed = _maxSpeed;
+                _nextMove.acceleration = _maxAcceleration;
+
+                // odd stroke is shaking out
+                if (index % 2) {  
+                    _nextMove.stroke = _nextMove.stroke - _outVibrationDistance;
+                // even stroke is shaking in
+                } else {
+                    _nextMove.stroke = _nextMove.stroke + _inVibrationDistance;
+
+                    // check if we have reached the depth target of the stroke and trigger return move
+                    if (_nextMove.stroke >= _stroke) {
+                        _returnStroke = true;
+                    }
+                }
+            }
+            _index = index;
+            return _nextMove;
+        }
+    protected:
+        bool _returnStroke = false;
+        int _inVibrationDistance = 0;
+        int _outVibrationDistance = 0;
+        int _strokeInSpeed = 0;
+        void _updateVibrationParameters() {
+            // Scale vibration amplitude from 1mm to 15mm with sensation
+            _inVibrationDistance = (int)fscale(-100.0, 100.0, (float)(3.0*_stepsPerMM), (float)(25.0*_stepsPerMM), _sensation, 0.0);
+
+            /* Calculate _outVibrationDistance to match with stroking speed
+               d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
+               Formula neglects acceleration. Real timing will be slower due to finite acceleration & deceleration
+            */
+           _outVibrationDistance = _inVibrationDistance * (_maxSpeed - _strokeInSpeed) / (_maxSpeed + _strokeInSpeed);
+
+#ifdef DEBUG_PATTERN
+            Serial.println("_maxSpeed: " + String(_maxSpeed) + " _strokeInSpeed: " + String(_strokeInSpeed)  + " _strokeOutSpeed: " + String(int(1.5 * _stroke/_timeOfStroke)));
+            Serial.println("inDist: " + String(_inVibrationDistance) + " outDist: " + String(_outVibrationDistance));
+#endif
+            
+        }
+};
+
+/**************************************************************************/
+/*!
+  @brief  Vibrational pattern that works like a jack hammer. Vibrates on the 
+  way in and pulls out smoothly in one go. Sensation sets the vibration 
+  amplitude.
+*/
+/**************************************************************************/
+class JackHammer : public Pattern {
+    public:
+        JackHammer(const char *str) : Pattern(str) {}
+        void setSensation(float sensation) { 
+            _sensation = sensation;
+            _updateVibrationParameters();
+        }
+        void setTimeOfStroke(float speed = 0) {
+            _timeOfStroke = 0.5 * speed;
+            _strokeInSpeed = int(0.5 *  _stroke/_timeOfStroke);
+            _updateVibrationParameters();
+        }
+        motionParameter nextTarget(unsigned int index) {
+
+            if (_returnStroke == true) {
+
+                // Return strokes goes at regular speed without vibration back to 0
+
+                // maximum speed of the trapezoidal motion
+                _nextMove.speed = int(1.5 * _stroke/_timeOfStroke);  
+                // acceleration to meet the profile                  
+                _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfStroke);  
+                // all they way out to start
+                _nextMove.stroke = 0;
+                // clear return flag
+                _returnStroke = false;
+                // we are done
+                return _nextMove;
+
+            } else {
+                
+                // Vibration happens at maximum speed and acceleration of the machine
+                _nextMove.speed = _maxSpeed;
+                _nextMove.acceleration = _maxAcceleration;
+
+                // odd stroke is shaking out
+                if (index % 2) {  
+                    _nextMove.stroke = _nextMove.stroke - _outVibrationDistance;
+                // even stroke is shaking in
+                } else {
+                    _nextMove.stroke = _nextMove.stroke + _inVibrationDistance;
+
+                    // check if we have reached the depth target of the stroke and trigger return move
+                    if (_nextMove.stroke >= _stroke) {
+                        _returnStroke = true;
+                    }
+                }
+            }
+            _index = index;
+            return _nextMove;
+        }
+    protected:
+        bool _returnStroke = false;
+        int _inVibrationDistance = 0;
+        int _outVibrationDistance = 0;
+        int _strokeInSpeed = 0;
+        void _updateVibrationParameters() {
+            // Scale vibration amplitude from 3mm to 25mm with sensation
+            _inVibrationDistance = (int)fscale(-100.0, 100.0, (float)(3.0*_stepsPerMM), (float)(25.0*_stepsPerMM), _sensation, 0.0);
+
+            /* Calculate _outVibrationDistance to match with stroking speed
+               d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
+               Formula neglects acceleration. Real timing will be slower due to finite acceleration & deceleration
+            */
+           _outVibrationDistance = _inVibrationDistance * (_maxSpeed - _strokeInSpeed) / (_maxSpeed + _strokeInSpeed);
+
+#ifdef DEBUG_PATTERN
+            Serial.println("_maxSpeed: " + String(_maxSpeed) + " _strokeInSpeed: " + String(_strokeInSpeed)  + " _strokeOutSpeed: " + String(int(1.5 * _stroke/_timeOfStroke)));
+            Serial.println("inDist: " + String(_inVibrationDistance) + " outDist: " + String(_outVibrationDistance));
+#endif
+            
+        }
+};
+
+/**************************************************************************/
 /*
   Array holding all different patterns. Please include any custom pattern here.
 */
@@ -632,7 +796,8 @@ static Pattern *patternTable[] = {
   new HalfnHalf("Half'n'Half"),
   new Deeper("Deeper"),
   new StopNGo("Stop'n'Go"),
-  new Insist("Insist")
+  new Insist("Insist"),
+  new JackHammer("Jack Hammer")
   // <-- insert your new pattern class here!
  };
 
