@@ -267,7 +267,7 @@ bool StrokeEngine::startPattern() {
             patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration, _motor->stepsPerMillimeter);
             patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
             patternTable[_patternIndex]->setStroke(_stroke);
-            patternTable[_patternIndex]->setDepth(_stroke);
+            patternTable[_patternIndex]->setDepth(_depth);
             patternTable[_patternIndex]->setSensation(_sensation);            
             xSemaphoreGive(_patternMutex);
         }
