@@ -42,8 +42,21 @@ It is possible to update any parameter like depth, stroke, speed and pattern mid
 
 ### State Machine
 An internal finite state machine handles the different states of the machine. See the below graph with all functions relating to the state machine and how to cause transitions:
-
-![State Machine](./doc/state-machine.svg)
+```mermaid
+stateDiagram-v2
+    [*] --> UNDEFINED: begin()
+    UNDEFINED --> READY     : thisIsHome()<br>enableAndHome()
+    READY --> PATTERN       : startPattern()
+    READY --> UNDEFINED     : disable()
+    READY --> READY         : moveToMin()<br>moveToMax()
+    READY --> SETUPDEPTH    : setupDepth()
+    SETUPDEPTH --> UNDEFINED: disable()
+    PATTERN --> READY       : stopMotion()<br>moveToMin()<br>moveToMax()
+    PATTERN --> SETUPDEPTH  : setupDepth()
+    PATTERN --> UNDEFINED   : disable()
+    SETUPDEPTH --> PATTERN  : startPattern()
+    SETUPDEPTH --> READY    : stopMotion()<br>moveToMin()<br>moveToMax()
+```
 * __UNDEFINED:__ The initial state prior to homing. Stepper / Servo are disabled and the position is undefined.
 * __READY:__ Homing defines the position inside the internal coordinate system. Machine is now ready to be used and accepts motion commands.
 * __PATTERN:__ The cyclic motion has started and the pattern generator is commanding a sequence of trapezoidal motions until stopped.
