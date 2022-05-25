@@ -12,13 +12,13 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
   this->maxDepth = abs(bounds.end - bounds.start);
   this->depth = this->maxDepth; 
   this->stroke = this->maxDepth / 3;
-  this->timeOfStroke = 1.0;
+  this->strokeRate = 1.0;
   this->sensation = 0.0;
 
   ESP_LOGD("StrokeEngine", "Stroke Parameter Max Depth = %f", this->maxDepth);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Depth = %f", this->depth);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke = %f", this->stroke);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Time of Stroke = %f", this->timeOfStroke);
+  ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke Rate = %f", this->strokeRate);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Sensation = %f", this->sensation);
 
   ESP_LOGI("StrokeEngine", "Attached Motor succesfully to Stroke Engine!");
@@ -33,47 +33,36 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
   float debugValue;
 
   switch (parameter) {
+    // TODO - Add SPEED
     case StrokeParameter::RATE:
-      name = "Rate";
-      debugValue = this->timeOfStroke = constrain(60.0 / value, 0.01, 120.0);
-      patternTable[_patternIndex]->setTimeOfStroke(this->timeOfStroke);
+      name = "Stroke Rate";
+      debugValue = this->strokeRate = constrain(value, 1, 60 * 4);
       break;
     
     case StrokeParameter::DEPTH:
       name = "Depth";
       debugValue = this->depth = constrain(int(value), 0, this->maxDepth); 
-      patternTable[_patternIndex]->setDepth(depth);
       break;
 
     case StrokeParameter::STROKE:
       name = "Stroke";
-      debugValue = this->stroke = constrain(int(value), 0, this->depth); 
-      patternTable[_patternIndex]->setStroke(this->stroke);
+      debugValue = this->stroke = constrain(int(value), 0, this->maxDepth); 
       break;
 
     case StrokeParameter::SENSATION:
       name = "Sensation";
       debugValue = this->sensation = constrain(sensation, -100, 100); 
-      patternTable[_patternIndex]->setSensation(this->sensation);
       break;
 
     case StrokeParameter::PATTERN:
       name = "Pattern";
       debugValue = this->_patternIndex = value;
-      patternTable[_patternIndex]->setSpeedLimit(
-        this->motor->getMaxSpeed(), 
-        this->motor->getMaxAcceleration(),
-        1
-      );
-      patternTable[_patternIndex]->setTimeOfStroke(this->timeOfStroke);
-      patternTable[_patternIndex]->setStroke(this->stroke);
-      patternTable[_patternIndex]->setDepth(this->depth);
-      patternTable[_patternIndex]->setSensation(this->sensation);
       this->_index = 0;
       break;
   }
   
-  // TODO - Need to specify parameter name
+  this->sendParameters(this->_patternIndex);
+  
   ESP_LOGD("StrokeEngine", "Stroke Parameter %s - %f", name, debugValue);
   
   // When running a pattern and immediate update requested: 
@@ -85,10 +74,30 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
   xSemaphoreGive(_patternMutex);
 }
 
+// TODO - Better naming?
+void StrokeEngine::sendParameters(int patternIndex) {
+  // Stroke is dynamically constrainted based on depth.
+  // This allows depth to change, and allow stroke to fill the available space, 
+  // rather than having to set the parameter again
+
+  patternTable[patternIndex]->setSpeedLimit(
+    this->motor->getMaxSpeed(), 
+    this->motor->getMaxAcceleration(),
+    1
+  );
+
+  // TODO - Handle RATE and SPEED here
+  patternTable[patternIndex]->setTimeOfStroke(constrain(60.0 / this->strokeRate, 0.01, 120.0));
+  patternTable[patternIndex]->setStroke(constrain(int(this->stroke), 0, this->depth));
+  patternTable[patternIndex]->setDepth(this->depth);
+  patternTable[patternIndex]->setSensation(this->sensation);
+}
+
 float StrokeEngine::getParameter(StrokeParameter parameter) {
   switch (parameter) {
+    // TODO - Add SPEED
     case StrokeParameter::RATE:
-      return 60.0 / this->timeOfStroke;
+      return this->strokeRate;
     case StrokeParameter::DEPTH:
       return this->depth;
     case StrokeParameter::STROKE:
@@ -118,15 +127,7 @@ bool StrokeEngine::startPattern() {
   // Reset Stroke and Motion parameters
   _index = -1;
   if (xSemaphoreTake(_patternMutex, portMAX_DELAY) == pdTRUE) {
-    pattern->setSpeedLimit(
-      this->motor->getMaxSpeed(), 
-      this->motor->getMaxAcceleration(),
-      1
-    );
-    pattern->setTimeOfStroke(this->timeOfStroke);
-    pattern->setStroke(this->stroke);
-    pattern->setDepth(this->depth);
-    pattern->setSensation(this->sensation);         
+    this->sendParameters(this->_patternIndex);        
     xSemaphoreGive(_patternMutex);
   }
 

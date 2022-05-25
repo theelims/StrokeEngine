@@ -149,10 +149,13 @@ class StrokeEngine {
       float maxDepth;
       float depth;
       float stroke;
-      float timeOfStroke;
+      float strokeSpeed;
+      float strokeRate;
       float sensation;
 
       bool applyUpdate = false;
+
+      void sendParameters(int patternIndex);
 
       static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
       void _stroking();
