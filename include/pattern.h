@@ -167,8 +167,6 @@ class SimpleStroke : public Pattern {
         }   
 
         motionParameter nextTarget(unsigned int index) {
-            ESP_LOGI("SimpleStroke", "%f %f %f %f", _stroke, _timeOfStroke, _depth, _stroke);
-
             // maximum speed of the trapezoidal motion 
             _nextMove.speed = 1.5 * _stroke/_timeOfStroke;
 

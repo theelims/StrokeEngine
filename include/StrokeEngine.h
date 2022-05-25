@@ -22,20 +22,6 @@
 #define DEBUG_CLIPPING              // Show debug messages when motions violating the machine 
                                     // physics are commanded
 
-/**************************************************************************/
-/*!
-  @brief  Enum containing the states of the state machine
-*/
-/**************************************************************************/
-// TODO - Change to EngineState
-enum class ServoState {
-  UNDEFINED,          //!< No power to the servo. We don't know its position
-  READY,             //!< Servo is energized and knows it position. Not running.
-  PATTERN,           //!< Stroke Engine is running and servo is moving according to defined pattern.
-  SETUPDEPTH,        //!< Interactive adjustment mode to setup depth and stroke
-  STREAMING          //!< Tracks the depth-position whenever depth is updated.
-};
-
 enum class StrokeParameter {
   // RATE & SPEED are mutually exclusive. Only one can be specified at a time!
   // RATE - Range 0.5 to 6000 Strokes / Min
@@ -89,7 +75,6 @@ class StrokeEngine {
         */
         /**************************************************************************/
         void attachMotor(MotorInterface *motor);
-        void ready() { this->_state = ServoState::READY; };
 
         /**************************************************************************/
         /*!
@@ -118,39 +103,6 @@ class StrokeEngine {
         */
         /**************************************************************************/
         void stopPattern();
-
-        /**************************************************************************/
-        /*!
-          @brief  In state PATTERN and READY this moves the endeffector
-          to DEPTH and enters state SETUPDEPTH. Follows the DEPTH postion 
-          whenever setDepth() is called. Can be used for adjustments. Stops any running
-          pattern. 
-          @param speed  Speed in mm/s used for driving to min. 
-                        Defaults to 10.0 mm/s
-          @param fancy  In fancy mode sensation allows to adjust both, depth and 
-                        stroke. +100 adjusts the depth position, -100 adjusts the
-                        stroke position. 0 adjusts the midpoint depth-stroke/2.
-          @return TRUE on success, FALSE if state does not allow this.
-        */
-        /**************************************************************************/
-        bool setupDepth(float speed = 10.0, bool fancy = false);
-
-        /**************************************************************************/
-        /*!
-          @brief  Retrieves the current servo state from the internal state machine.
-          @return Current state of the state machine
-        */
-        /**************************************************************************/
-        ServoState getState();
-
-        /**************************************************************************/
-        /*!
-          @brief  Disables the servo motor instantly and deletes any motion task. 
-          Sets state machine to UNDEFINED. Must be followed by homing to enable
-          servo again. 
-        */
-        /**************************************************************************/
-        void disable();
 
         /**************************************************************************/
         /*!
@@ -186,34 +138,35 @@ class StrokeEngine {
         /**************************************************************************/
         void registerTelemetryCallback(void(*callbackTelemetry)(float, float, bool));
 
+        bool isActive() { return this->active; }
     protected:
-        ServoState _state = ServoState::UNDEFINED;
-        MotorInterface *motor;
-        int _patternIndex = 0;
+      bool active = false;
+      MotorInterface *motor;
 
-        int _index = 0;
+      int _patternIndex = 0;
+      int _index = 0;
 
-        float maxDepth;
-        float depth;
-        float stroke;
-        float timeOfStroke;
-        float sensation;
+      float maxDepth;
+      float depth;
+      float stroke;
+      float timeOfStroke;
+      float sensation;
 
-        bool applyUpdate = false;
+      bool applyUpdate = false;
 
-        static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
-        void _stroking();
-        static void _streamingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_streaming(); }
-        void _streaming();
-        TaskHandle_t _taskStrokingHandle = NULL;
-        TaskHandle_t _taskStreamingHandle = NULL;
+      static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
+      void _stroking();
+      static void _streamingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_streaming(); }
+      void _streaming();
+      TaskHandle_t _taskStrokingHandle = NULL;
+      TaskHandle_t _taskStreamingHandle = NULL;
 
-        SemaphoreHandle_t _patternMutex = xSemaphoreCreateMutex();
-        void _applyMotionProfile(motionParameter* motion);
-        void(*_callbackTelemetry)(float, float, bool) = NULL;
+      SemaphoreHandle_t _patternMutex = xSemaphoreCreateMutex();
+      void _applyMotionProfile(motionParameter* motion);
+      void(*_callbackTelemetry)(float, float, bool) = NULL;
 
-        bool _fancyAdjustment;
-        void _setupDepths();
+      bool _fancyAdjustment;
+      void _setupDepths();
 };
 
 #endif

@@ -9,9 +9,6 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
   // Initialize with default values
   motionBounds bounds = motor->getBounds();
 
-  // TODO - Create new Motor Attached but not Ready state
-  _state = ServoState::UNDEFINED;
-
   this->maxDepth = abs(bounds.end - bounds.start);
   this->depth = this->maxDepth; 
   this->stroke = this->maxDepth / 3;
@@ -80,14 +77,9 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
   ESP_LOGD("StrokeEngine", "Stroke Parameter %s - %f", name, debugValue);
   
   // When running a pattern and immediate update requested: 
-  if ((_state == ServoState::PATTERN) && (applyNow == true)) {
+  if (applyNow == true) {
     this->applyUpdate = true;
     ESP_LOGD("StrokeEngine", "Setting Apply Update Flag!");
-  }
-  
-  // if in state SETUPDEPTH then adjust
-  if (_state == ServoState::SETUPDEPTH) {
-      _setupDepths();
   }
 
   xSemaphoreGive(_patternMutex);
@@ -110,31 +102,31 @@ float StrokeEngine::getParameter(StrokeParameter parameter) {
 
 bool StrokeEngine::startPattern() {
   // Only valid if state is ready
-  if (_state != ServoState::READY && _state != ServoState::SETUPDEPTH) {
-    ESP_LOGE("StrokeEngine", "Failed to start motion! Incorrect State!");
+  if (!this->motor->isInState(MotorState::ACTIVE)) {
+    ESP_LOGE("StrokeEngine", "Failed to start pattern! Motor is not active!");
     return false;
   }
+
+  Pattern* pattern = patternTable[_patternIndex];
+  ESP_LOGE("StrokeEngine", "Starting pattern %s", pattern->getName());
 
   // Stop current move, should one be pending (moveToMax or moveToMin)
   if (this->motor->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE)) {
     this->motor->stopMotion();
   }
 
-  // Set state to PATTERN
-  _state = ServoState::PATTERN;
-
   // Reset Stroke and Motion parameters
   _index = -1;
   if (xSemaphoreTake(_patternMutex, portMAX_DELAY) == pdTRUE) {
-    patternTable[_patternIndex]->setSpeedLimit(
+    pattern->setSpeedLimit(
       this->motor->getMaxSpeed(), 
       this->motor->getMaxAcceleration(),
       1
     );
-    patternTable[_patternIndex]->setTimeOfStroke(this->timeOfStroke);
-    patternTable[_patternIndex]->setStroke(this->stroke);
-    patternTable[_patternIndex]->setDepth(this->depth);
-    patternTable[_patternIndex]->setSensation(this->sensation);         
+    pattern->setTimeOfStroke(this->timeOfStroke);
+    pattern->setStroke(this->stroke);
+    pattern->setDepth(this->depth);
+    pattern->setSensation(this->sensation);         
     xSemaphoreGive(_patternMutex);
   }
 
@@ -160,6 +152,7 @@ bool StrokeEngine::startPattern() {
     // Resume task, if it already exists
     vTaskResume(_taskStrokingHandle);
   }
+  this->active = true;
 
   #ifdef DEBUG_TALKATIVE
     Serial.println("Started motion task");
@@ -170,69 +163,13 @@ bool StrokeEngine::startPattern() {
 }
 
 void StrokeEngine::stopPattern() {
-    // only valid when 
-    if (_state == ServoState::PATTERN || _state == ServoState::SETUPDEPTH) {
-        // Set state
-        _state = ServoState::READY;
-        this->motor->stopMotion();
+  ESP_LOGI("StrokeEngine", "Suspending Pattern!");
 
-#ifdef DEBUG_TALKATIVE
-        Serial.println("Motion stopped");
-#endif
-
-        // Send telemetry data - TODO
-        //if (_callbackTelemetry != NULL) {
-        //    _callbackTelemetry(float(servo->getCurrentPosition() / _motor->stepsPerMillimeter), 0.0, false);
-        //}
-    }
-    
-#ifdef DEBUG_TALKATIVE
-    Serial.println("Stroke Engine State: " + verboseState[_state]);
-#endif
-}
-
-bool StrokeEngine::setupDepth(float speed, bool fancy) {
-#ifdef DEBUG_TALKATIVE
-    Serial.println("Move to Depth");
-#endif
-    // store fanciness
-    _fancyAdjustment = fancy;
-
-    // returns true on success, and false if in wrong state
-    bool allowed = false;
-
-    // isHomed is only true in states READY, PATTERN and SETUPDEPTH
-    if (this->motor->hasStatusFlag(MOTOR_FLAG_HOMED)) {
-        // Stop motion immediately
-        this->motor->stopMotion();
-
-        // Set new state
-        _state = ServoState::SETUPDEPTH;
-
-        // move to current depth position
-        _setupDepths();
-
-        // set return value to true
-        allowed = true;
-    }
-#ifdef DEBUG_TALKATIVE
-    Serial.println("Stroke Engine State: " + verboseState[_state]);
-#endif
-    return allowed;
-}
-
-ServoState StrokeEngine::getState() {
-    return _state;
-}
-
-void StrokeEngine::disable() {
-    _state = ServoState::UNDEFINED;
-
-#ifdef DEBUG_TALKATIVE
-    Serial.println("Servo disabled. Call home to continue.");
-    Serial.println("Stroke Engine State: " + verboseState[_state]);
-#endif
-
+  if (_taskStrokingHandle != NULL) {
+    vTaskSuspend(_taskStrokingHandle);
+  }
+  this->active = false;
+  this->motor->stopMotion();
 }
 
 String StrokeEngine::getPatternName(int index) {
@@ -253,9 +190,11 @@ void StrokeEngine::_stroking() {
 
     while(1) { // infinite loop
 
-        // Suspend task, if not in PATTERN state
-        if (_state != ServoState::PATTERN) {
-            vTaskSuspend(_taskStrokingHandle);
+        // Suspend task, if motor is not active
+        // TODO - This doesn't look quite right
+        if (!this->motor->isInState(MotorState::ACTIVE)) {
+          ESP_LOGI("StrokeEngine", "Motor is no longer active! Attempting to suspend pattern.");
+          this->stopPattern();
         }
 
         // Take mutex to ensure no interference / race condition with communication threat on other core
@@ -287,7 +226,7 @@ void StrokeEngine::_stroking() {
 
                 // Pattern may introduce pauses between strokes
                 if (currentMotion.skip == false) {
-                    ESP_LOGI("StrokeEngine", "Stroking Index (AT_TARGET): %d @ %f %f %f", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
+                    //ESP_LOGI("StrokeEngine", "Stroking Index (AT_TARGET): %d @ %d %d %d", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
 
                     this->motor->goToPos(
                       currentMotion.stroke,
@@ -306,24 +245,12 @@ void StrokeEngine::_stroking() {
         }
         
         // Delay 10ms 
-        vTaskDelay(250 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
-void StrokeEngine::_streaming() {
-
-    while(1) { // infinite loop
-
-        // Suspend task, if not in STREAMING state
-        if (_state != ServoState::STREAMING) {
-            vTaskSuspend(_taskStreamingHandle);
-        }
-        
-        // Delay 10ms 
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-}
-
+// TODO - Move to a Depth Pattern
+/*
 void StrokeEngine::_setupDepths() {
     // set depth to _depth
     int depth = this->depth;
@@ -358,3 +285,4 @@ void StrokeEngine::_setupDepths() {
     Serial.println("setup new depth: " + String(depth));
 #endif
 }
+*/
