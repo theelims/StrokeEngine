@@ -34,9 +34,10 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
 
   switch (parameter) {
     // TODO - Add SPEED
+    // TODO - When rate is set to 1 it bugs out and stops all motion
     case StrokeParameter::RATE:
       name = "Stroke Rate";
-      debugValue = this->strokeRate = constrain(value, 1, 60 * 4);
+      debugValue = this->strokeRate = constrain(value, 1, 60 * 6);
       break;
     
     case StrokeParameter::DEPTH:
