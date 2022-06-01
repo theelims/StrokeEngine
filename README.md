@@ -15,18 +15,14 @@ Motors in StrokeEngine are abstracted away, to allow the end-user to provide a c
 So if your motor uses a new communication protocol, like EtherCAT or Ethernet/IP, the work needed to integrate StrokeEngine is kept minimal.
 
 Homing can be handled in two different ways.
-- Sensor-less - Home will be determined by moving in a specific direction until a current, and thus torqe/force threshold has been reached. This threshold indicates the machine has reached it's start of motion point.
+- Sensor-less - Home will be determined by moving in a specific direction until a desired current, and thus torqe/force threshold has been reached. This threshold indicates the machine has reached it's start of motion point.
 - Sensored - Home will be determined by moving in a specific direction until a physical switch has been activated
-
-There are examples for implementations of these motors in StrokeEngine/examples/motors
 
 ### LinMot Linear Motors (CANOpen)
 The current LinMot implementation is tied to [CANFuck](https://github.com/zylos146/CANFuck), which acts similar to OSSM providing a unified controller for the hardware.
 
 ### Stepper Motors (Step/Dir Pulses)
 Under the hood it uses the fabulous [FastAccelStepper](https://github.com/gin66/FastAccelStepper) library to interface stepper or servo motors with commonly found STEP / DIR interfaces.
-
-Understanding the underlying concepts will help you to get up and running with StrokeEngine faster. 
 
 ### Coordinate System
 The machine uses an internal metric (mm, m/s, m/s<sup>2</sup>) coordinate system for all motion planning. This offers an advantage, that this is independent of a specific implementation and works with all machine sizes and regardless of the motor chosen.
