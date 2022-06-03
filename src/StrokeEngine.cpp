@@ -25,7 +25,7 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
 }
 
 void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow) {
-  if (xSemaphoreTake(_patternMutex, portMAX_DELAY) != pdTRUE) {
+  if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) != pdTRUE) {
     return;
   }
 
@@ -33,7 +33,6 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
   float debugValue;
 
   switch (parameter) {
-    // TODO - Add SPEED
     // TODO - When rate is set to 1 it bugs out and stops all motion
     case StrokeParameter::RATE:
       name = "Stroke Rate";
@@ -72,10 +71,10 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
     ESP_LOGD("StrokeEngine", "Setting Apply Update Flag!");
   }
 
-  xSemaphoreGive(_patternMutex);
+  xSemaphoreGive(_parameterMutex);
 }
 
-// TODO - Better naming?
+// WARNING: This function must be called only within the scope of a Taken _parameterMutex
 void StrokeEngine::sendParameters(int patternIndex) {
   // Stroke is dynamically constrainted based on depth.
   // This allows depth to change, and allow stroke to fill the available space, 
@@ -87,7 +86,6 @@ void StrokeEngine::sendParameters(int patternIndex) {
     1
   );
 
-  // TODO - Handle RATE and SPEED here
   patternTable[patternIndex]->setTimeOfStroke(constrain(60.0 / this->strokeRate, 0.01, 120.0));
   patternTable[patternIndex]->setStroke(constrain(int(this->stroke), 0, this->depth));
   patternTable[patternIndex]->setDepth(this->depth);
@@ -96,7 +94,6 @@ void StrokeEngine::sendParameters(int patternIndex) {
 
 float StrokeEngine::getParameter(StrokeParameter parameter) {
   switch (parameter) {
-    // TODO - Add SPEED
     case StrokeParameter::RATE:
       return this->strokeRate;
     case StrokeParameter::DEPTH:
@@ -127,17 +124,10 @@ bool StrokeEngine::startPattern() {
 
   // Reset Stroke and Motion parameters
   _index = -1;
-  if (xSemaphoreTake(_patternMutex, portMAX_DELAY) == pdTRUE) {
+  if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {
     this->sendParameters(this->_patternIndex);        
-    xSemaphoreGive(_patternMutex);
+    xSemaphoreGive(_parameterMutex);
   }
-
-  #ifdef DEBUG_TALKATIVE
-    Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
-    Serial.print(" | _depth: " + String(_depth));
-    Serial.print(" | _stroke: " + String(_stroke));
-    Serial.println(" | _sensation: " + String(_sensation));
-  #endif
 
   if (_taskStrokingHandle == NULL) {
     // Create Stroke Task
@@ -155,11 +145,6 @@ bool StrokeEngine::startPattern() {
     vTaskResume(_taskStrokingHandle);
   }
   this->active = true;
-
-  #ifdef DEBUG_TALKATIVE
-    Serial.println("Started motion task");
-    Serial.println("Stroke Engine State: " + verboseState[_state]);
-  #endif
 
   return true;
 }
@@ -183,10 +168,6 @@ String StrokeEngine::getPatternName(int index) {
     
 }
 
-void StrokeEngine::registerTelemetryCallback(void(*callbackTelemetry)(float, float, bool)) {
-    _callbackTelemetry = callbackTelemetry;
-}
-
 void StrokeEngine::_stroking() {
     motionParameter currentMotion;
 
@@ -200,7 +181,7 @@ void StrokeEngine::_stroking() {
         }
 
         // Take mutex to ensure no interference / race condition with communication threat on other core
-        if (xSemaphoreTake(_patternMutex, 0) == pdTRUE) {
+        if (xSemaphoreTake(_parameterMutex, 0) == pdTRUE) {
 
             if (this->applyUpdate == true) {
                 // Ask pattern for update on motion parameters
@@ -243,7 +224,7 @@ void StrokeEngine::_stroking() {
             }
 
             // give back mutex
-            xSemaphoreGive(_patternMutex);
+            xSemaphoreGive(_parameterMutex);
         }
         
         // Delay 10ms 
