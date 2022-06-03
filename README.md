@@ -7,22 +7,21 @@ Every DIY fucking machine with a linear position drive powered by a stepper or s
 StrokeEngine takes full advantage of the freedom a servo / stepper driven stroking or fucking machine can provide over fixed cam-driven designs. To this date there are only few commercial offerings using this advantage. And often so the implementation is rather boring, not utilizing the full possibilities of such a linear position drive.
 
 ## Supported Hardware
-By default two Motor types are supported
-- LinMot Linear Motors (CANOpen)
-- Stepper Motors (Step/Dir Pulses)
-
 Motors in StrokeEngine are abstracted away, to allow the end-user to provide a compatible motor implementation.
 So if your motor uses a new communication protocol, like EtherCAT or Ethernet/IP, the work needed to integrate StrokeEngine is kept minimal.
 
+StrokeEngine only offers a `MotorInterface` which must be satisfied by an external driver.
+
+See [CANFuck](https://github.com/zylos146/CANFuck) for a repository of Pre-built Drivers for
+- LinMot
+- TB6600 Drives
+- iHSV57 Servos
+- Generic Steppers
+
+### Homing
 Homing can be handled in two different ways.
 - Sensor-less - Home will be determined by moving in a specific direction until a desired current, and thus torqe/force threshold has been reached. This threshold indicates the machine has reached it's start of motion point.
 - Sensored - Home will be determined by moving in a specific direction until a physical switch has been activated
-
-### LinMot Linear Motors (CANOpen)
-The current LinMot implementation is tied to [CANFuck](https://github.com/zylos146/CANFuck), which acts similar to OSSM providing a unified controller for the hardware.
-
-### Stepper Motors (Step/Dir Pulses)
-Under the hood it uses the fabulous [FastAccelStepper](https://github.com/gin66/FastAccelStepper) library to interface stepper or servo motors with commonly found STEP / DIR interfaces.
 
 ### Coordinate System
 The machine uses an internal metric (mm, m/s, m/s<sup>2</sup>) coordinate system for all motion planning. This offers an advantage, that this is independent of a specific implementation and works with all machine sizes and regardless of the motor chosen.
@@ -59,37 +58,15 @@ It is possible to update any parameter like depth, stroke, speed and pattern mid
 ## Usage
 StrokeEngine aims to have a simple and straight forward, yet powerful API. The following describes the minimum case to get up and running. All input parameters need to be specified in real world (metric) units.
 
+The below example is assuming you have provided your own driver for `motors/stepper.hpp` that meets the `MotorInterface`, or you are using an external driver like CANFuck.
+
 ### > Initialize
 First all parameters of the machine and the servo need to be set. Including the pins for interacting with the driver and an (optionally) homing switch.
 ```cpp
-#include "motor_stepper.hpp"
 #include "esp_log.h"
 
-#include "config.h"
+#include "motors/stepper.hpp"
 #include "StrokeEngine.h"
-#include "Wire.h"
-
-#define WIFI_SSID "****"
-#define WIFI_PASS "****"
-
-#define BLYNK_TEMPLATE_ID           "****"
-#define BLYNK_DEVICE_NAME           "****"
-#define BLYNK_AUTH_TOKEN            "****"
-
-#define BLYNK_DEPTH 6
-#define BLYNK_STROKE 7
-#define BLYNK_SPEED 8
-#define BLYNK_SENSATION 9
-
-#define NO_GLOBAL_BLYNK
-
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <BlynkSimpleEsp32.h>
-
-static WiFiClient _blynkWifiClient;
-static BlynkEsp32Client _blynkTransport(_blynkWifiClient);
-BlynkWifi Blynk(_blynkTransport);
 
 // Pin Definitions
 #define SERVO_PULSE       4
@@ -103,60 +80,10 @@ BlynkWifi Blynk(_blynkTransport);
 #define BELT_PITCH        2         // What is the timing belt pitch in mm
 #define MAX_RPM           3000.0    // Maximum RPM of motor
 #define STEP_PER_MM       STEP_PER_REV / (PULLEY_TEETH * BELT_PITCH)
-#define MAX_SPEED         (MAX_RPM / 60.0) * PULLEY_TEETH * BELT_PITCH
+#define MAX_SPEED         (MAX_RPM / 60.0) * PULLEY_TEETH * BELT_PITCH // Max Speed in mm/s
 
-MotorInterface* motor;
+StepperMotor* motor;
 StrokeEngine* engine;
-Controller* controller;
-
-
-void loop() {
-  Blynk.run();
-}
-
-
-BLYNK_WRITE(BLYNK_SPEED) {
-  engine->setParameter(StrokeParameter::RATE, param.asFloat());
-}
-
-BLYNK_WRITE(BLYNK_DEPTH) {
-  engine->setParameter(StrokeParameter::DEPTH, param.asFloat());
-}
-
-BLYNK_WRITE(BLYNK_STROKE) {
-  engine->setParameter(StrokeParameter::STROKE, param.asFloat());
-}
-
-BLYNK_WRITE(BLYNK_SENSATION) {
-  engine->setParameter(StrokeParameter::SENSATION, param.asFloat());
-}
-
-
-static motorProperties servoMotor {
-  .maxSpeed = MAX_SPEED,              // Maximum speed the system can go in mm/s
-  .maxAcceleration = 10000,           // Maximum linear acceleration in mm/s²
-  .stepsPerMillimeter = STEP_PER_MM,  // Steps per millimeter 
-  .invertDirection = true,            // One of many ways to change the direction,  
-                                      // should things move the wrong way
-  .enableActiveLow = true,            // Polarity of the enable signal      
-  .stepPin = SERVO_PULSE,             // Pin of the STEP signal
-  .directionPin = SERVO_DIR,          // Pin of the DIR signal
-  .enablePin = SERVO_ENABLE           // Pin of the enable signal
-};
-
-static machineGeometry strokingMachine = {
-  .physicalTravel = 160.0,            // Real physical travel from one hard endstop to the other
-  .keepoutBoundary = 5.0              // Safe distance the motion is constrained to avoiding crashes
-};
-
-// Configure Homing Procedure
-static endstopProperties endstop = {
-  .homeToBack = true,                 // Endstop sits at the rear of the machine
-  .activeLow = true,                  // switch is wired active low
-  .endstopPin = SERVO_ENDSTOP,        // Pin number
-  .pinMode = INPUT                    // pinmode INPUT with external pull-up resistor
-};
-
 ```
 Inside `void setup()` call the following functions to initialize the StrokeEngine:
 ```cpp
@@ -172,25 +99,25 @@ void app_motion(void *pvParameter) {
   }
 }
 
+void loop() {}
 void setup() {
   Serial.begin(115200);
-  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-
-  ESP_LOGI("main", "Starting Blynk");
-  Blynk.begin(BLYNK_AUTH_TOKEN, WIFI_SSID, WIFI_PASS);
 
   ESP_LOGI("main", "Configuring Motor");
   motor = new StepperMotor();
 
   motionBounds bounds = {
-    .start = 160, // mm
+    .start = 100, // mm
     .end = 0, // mm
     .keepout = 5 // mm
   };
-  motor->setMaxSpeed(5000); // 5 m/s
+  motor->setMaxSpeed(MAX_SPEED); // 5 m/s
   motor->setMaxAcceleration(25000); // 25 m/s^2
   motor->setBounds(bounds);
-  // TODO - Set Stepper Parameters here
+  motor->setStepsPerMm(STEP_PER_MM);
+  motor->setMovementPin(SERVO_PULSE, SERVO_DIR);
+  motor->setEnablePin(SERVO_ENABLE, true);
+  motor->setSensoredHoming(SERVO_ENDSTOP, INPUT_PULLUP, false);
 
   ESP_LOGI("main", "Configuring Stroke Engine");
   engine = new StrokeEngine();
@@ -201,16 +128,12 @@ void setup() {
   engine->setParameter(StrokeParameter::STROKE, 50);
   engine->setParameter(StrokeParameter::SENSATION, 0);
 
-  ESP_LOGI("main", "Registering Tasks (Motor)");
-  motor->registerTasks();
-
   ESP_LOGI("main", "Homing Motor");
   motor->enable();
   motor->goToHome();
   
   ESP_LOGI("main", "Starting Motion Task!");
   xTaskCreate(&app_motion, "app_motion", 4096, NULL, 5, NULL);
-  //xTaskCreate(&app_blynk, "app_blynk", 4096, NULL, 5, NULL);
 }
 ```
 
@@ -223,7 +146,7 @@ String getPatternJSON() {
         JSON += String( engine->getPatternName(i));
         JSON += "\": ";
         JSON += String(i, DEC);
-        if (i < Stroker.getNumberOfPattern() - 1) {
+        if (i < engine->getNumberOfPattern() - 1) {
             JSON += "},{\"";
         } else {
             JSON += "}]";
@@ -254,10 +177,6 @@ enum class StrokeParameter {
   // Can allow better control typically than just SPEED, as other machines use
   RATE,
 
-  // SPEED - Range 1 to 5000 mm / Sec
-  // Standard Speed Control
-  SPEED,
-
   // DEPTH - Range is constrainted by motionBounds from MotorInterface
   // Is the point at which the stroke ends
   DEPTH, 
@@ -275,7 +194,6 @@ enum class StrokeParameter {
 
 void setParameter(StrokeParameter parameter, float value, bool applyNow = false);
 float getParameter(StrokeParameter parameter);
-
 ```
 Parameters can be updated in any state and are stored internally. On `engine->startPattern();` they will be used to initialize the pattern. Each one may be get/set individually. The argument given to the function is constrained to the physical limits of the machine (depth/stroke within `[0, maxTravel]`)
 ```cpp
@@ -288,8 +206,6 @@ engine->setParameter(StrokeParameter::SENSATION, 0); // Sensation (arbitrary val
 Normally a parameter change is only executed after the current stroke has finished. However, sometimes it is desired to have the changes take effect immediately, even mid-stroke. In that case set the argument `bool applyNow` to `true`. 
 
 #### > Get Parameters
-
-
 ```cpp
 float value = engine->getParameter(StrokeParameter::PATTERN); // Pattern, index must be < Stroker.getNumberOfPattern()
 float value = engine->setParameter(StrokeParameter::RATE); // Speed in Cycles (in & out) per minute
