@@ -37,7 +37,7 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
     // TODO - When rate is set to 1 it bugs out and stops all motion
     case StrokeParameter::RATE:
       name = "Stroke Rate";
-      debugValue = this->strokeRate = constrain(value, 1, 60 * 6);
+      debugValue = this->strokeRate = constrain(value, 1, 60 * 10);
       break;
     
     case StrokeParameter::DEPTH:
