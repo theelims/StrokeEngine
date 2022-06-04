@@ -1,64 +1,31 @@
 # StrokeEngine
-A library to create a variety of stroking motions with a stepper or servo motor on an ESP32. A usage example can be found in my other related project: [FuckIO](https://github.com/theelims/FuckIO). It will work with all kinds of stepper / servo operated fucking and stroking machines. An other popular example is the Kinky Makers [OSSM-Project](https://github.com/KinkyMakers/OSSM-hardware)
+StrokeEngine provides a unified way of handling Motion Generation and feeding these Motions into Motor Drivers.
+It comes bundled with a set of generic Patterns and Drivers allowing anyone with a [OSSM](https://github.com/KinkyMakers/OSSM-hardware), or other similar hardware, to be quickly up and running.
 
-Every DIY fucking machine with a linear position drive powered by a stepper or servo motor can be used with this library. 
+This Library will allow you to take full advantage of the freedom a linear-positionable stroking or fucking machine can provide over fixed cam-driven designs. To this date there are only few commercial offerings using this advantage. And often so the implementation is rather boring, not utilizing the full possibilities of such a linear position drive.
 
-## Concepts
-StrokeEngine takes full advantage of the freedom a servo / stepper driven stroking or fucking machine can provide over fixed cam-driven designs. To this date there are only few commercial offerings using this advantage. And often so the implementation is rather boring, not utilizing the full possibilities of such a linear position drive.
+This project has full support for usage with
+- [Open Source Sex Machine](https://github.com/KinkyMakers/OSSM-hardware) (Recommended approach)
+- LinMot-based Custom Machines
+- Step/Dir-based Custom Machines
 
-## Supported Hardware
-Motors in StrokeEngine are abstracted away, to allow the end-user to provide a compatible motor implementation.
-So if your motor uses a new communication protocol, like EtherCAT or Ethernet/IP, the work needed to integrate StrokeEngine is kept minimal.
+but can be adapted to any DIY fucking machine.
 
-StrokeEngine only offers a `MotorInterface` which must be satisfied by an external driver.
+There are several Libraries which provide more advanced integration on top of StrokeEngine
+- [FuckIO](https://github.com/theelims/FuckIO)
+- [CANFuck](https://github.com/zylos146/CANFuck)
 
-See [CANFuck](https://github.com/zylos146/CANFuck) for a repository of Pre-built Drivers for
-- LinMot
-- TB6600 Drives
-- iHSV57 Servos
-- Generic Steppers
+> Table of contents  
+> <span class="mono">¶</span>&emsp;[Getting Started](#getting-started)  
+> <span class="mono">¶</span>&emsp;[Motion Generation](#motion-supported)  
+> <span class="mono">¶</span>&emsp;[Drives Supported](#drives-supported)  
+> <span class="mono">¶</span>&emsp;[Internals](#internals)
 
-### Homing
-Homing can be handled in two different ways.
-- Sensor-less - Home will be determined by moving in a specific direction until a desired current, and thus torqe/force threshold has been reached. This threshold indicates the machine has reached it's start of motion point.
-- Sensored - Home will be determined by moving in a specific direction until a physical switch has been activated
-
-### Coordinate System
-The machine uses an internal metric (mm, m/s, m/s<sup>2</sup>) coordinate system for all motion planning. This offers an advantage, that this is independent of a specific implementation and works with all machine sizes and regardless of the motor chosen.
-
-Each motor is expected to handle converting from metric Motion Commands into their own relative coordinate system. There is a standard way mapping these two coordinate systems is handled.
-
-![Coordinate System](./doc/coordinates.svg)
-* The system is 1-dimensional and the positive move direction is towards the front a.k.a. towards the body.
-* The __physicalTravel__ is the real physical travel the machine has from one hard endstop to the other. 
-* From `physicalTravel` a safety distance called __keepoutBoundary__ is subtracted on each side giving the real working distance **_travel**: 
-  ```
-  _travel = physicalTravel - (2 * keepoutBoundary)
-  ``` 
-  This gives a safety margin to avoid crashes into a hard endstop.
-* The __Home__-position is expected to be at `-keepoutBoundary`. Albeit not recommended for safety reasons, it is possible to mount the home switch in the front at `physicalTravel` as well.
-* Zero __MIN = 0__ is `keepoutBoundary` away from the home position.
-* Pattern make use of __Depth__ and __Stroke__. These values are dynamic parameter and may be adjusted during runtime:
-  * __Depth__ is the furthest point the machine can extract at any given time. This is useful to find a sweet spot in positioning the body relative to the machine.
-  * __Stroke__ is the longest working distance a stroking motion will have.
-
-Think of __Stroke__ as the amplitude and __Depth__ a linear offset that is added.
-
-### Pattern
-One of the biggest benefits of a linear position drive over a cam-driven motion is its versatility. StrokeEngine uses a pattern generator to provide a wide variety of sensations where parameters like speed, stroke and depth are adjusted dynamically on a motion by motion basis. It uses a trapezoidal motion profile with a defined acceleration and deceleration distance. In between it moves with a constant speed. Pattern take __depth__, __stroke__, __speed__ and an arbitrary __sensation__ parameter. In [Pattern.md](./Pattern.md) you can find a detailed description of each available pattern. Also some information how to write your own patterns and contribute them to this project.
-
-### Graceful Behavior
-One design goal was to have a unobtrusive failure handling when invalid parameters are given. Either from the user with values that lay outside the physics of the machine, or from a pattern commanding an impossible speed, position or acceleration. 
-
-All `MotorInterface` implementations are expected to constrain any Motion Command which will exit the provided `motionBounds`. The command will still execute, but the full range of motion will be cut short. This manifests in a distortion of the motion. Strokes may be shortened when position targets outside of the machine bounds are requested (e.g. `stroke > depth`). Acceleration and speed are limited leading to distorted ramps. The motion is executed over the full distance, but may take slightly longer then expected to reach the target position. 
-
-### Mid-Stroke Parameter Update
-It is possible to update any parameter like depth, stroke, speed and pattern mid-stroke. This gives a very responsive and fluid user experience. Safeguards are in place to ensure the move stays inside the bounds of the machine at any time.
+<a name="getting-started"></a>
+# Getting Started
 
 ## Usage
 StrokeEngine aims to have a simple and straight forward, yet powerful API. The following describes the minimum case to get up and running. All input parameters need to be specified in real world (metric) units.
-
-The below example is assuming you have provided your own driver for `motors/stepper.hpp` that meets the `MotorInterface`, or you are using an external driver like CANFuck.
 
 ### > Initialize
 First all parameters of the machine and the servo need to be set. Including the pins for interacting with the driver and an (optionally) homing switch.
@@ -87,6 +54,7 @@ StrokeEngine* engine;
 ```
 Inside `void setup()` call the following functions to initialize the StrokeEngine:
 ```cpp
+// TODO - Can we move app_motion into some basic wrapper? People shouldn't need to handle this part
 float position = 0;
 void app_motion(void *pvParameter) {
   while (true) {
@@ -213,3 +181,96 @@ float value = engine->setParameter(StrokeParameter::DEPTH); // Depth in mm
 float value = engine->setParameter(StrokeParameter::STROKE); // Stroke length in mm
 float value = engine->setParameter(StrokeParameter::SENSATION); // Sensation (arbitrary value a pattern may use to alter its behavior), constrained to [-100, 100] with 0 being neutral.
 ```
+
+<a name="motion-supported"></a>
+# Motion Generation
+
+## Streaming
+StrokeEngine will support ingesting Motion Commands or T-Codes and sending them directly to the Motor. These will act in a similar way to G-Code. Either a pre-built file can be loaded, or an external integration can stream them in.
+
+Streaming/Loading T-Codes is not currently supported, but is a intended goal.
+
+Once built, the hope is other devices like Deep Throat Trainer can be integrated to send commands to mimic the sucking motion, on a OSSM perhaps equiped with a Fleshlight or similar. 
+
+## Patterns
+Patterns allow a set of pre-built, real-time configurable strokes to be generated on-demand.
+These Strokes will typically be cyclic, always eventually repeating what has happened before.
+
+## Directors
+Directors are complex Meta-Patterns that allow orchestrating a Scene, or set of Patterns. This allows, for example, a Throat Fucking Director to randomly vary between deep thrusts, short thrusts, pauses, throat fucking, and other patterns.
+
+The Directors are meant to provide a more varied, but automatic experience, without needing manual user input.
+
+<a name="drives-supported"></a>
+# Drives Supported
+Motors in StrokeEngine are abstracted away, to allow the end-user to provide a compatible motor implementation.
+So if your motor uses a new communication protocol, like EtherCAT or Ethernet/IP, the work needed to integrate StrokeEngine is kept minimal.
+
+StrokeEngine Core offers a few basic drivers for
+- Step/Dir Pulse-based drives (TB6600)
+- iHSV
+Motors in StrokeEngine are abstracted away, to allow the end-user to provide a compatible motor implementation.
+So if your motor uses a new communication protocol, like EtherCAT or Ethernet/IP, the work needed to integrate StrokeEngine is kept minimal.
+
+StrokeEngine Core supports a few motors by default. Other motors are provided via External Libraries
+### StrokeEngine Core
+- ModBus 
+  - :heavy_check_mark: iHSV57 V6xx Servos 100/140/180W (`IHSV57Motor` in `motor/ihsv57.hpp`)
+  - :x: iHSV57 V5xx is **NOT SUPPORTED** due to differing communication protocol with V6xx drivers
+- Step/Dir Pulses (`StepperMotor` in `motor/stepper.hpp`)
+  - :heavy_check_mark: TB6600 drives
+  - :heavy_check_mark: Other generic Step/Dir stepper/servo drives
+
+### [StrokeEngine-CANOpen](https://github.com/zylos146/StrokeEngine-CANOpen)
+- CANOpen
+  - LinMot CiA 402 CANOpen capable drives
+    - :x: E1200-EC / E1200-DC are not supported unless EtherCat support is built
+    - :heavy_check_mark: E1200-GP-xx (Haven't confirmed yet, but should work)
+    - :heavy_check_mark: E1100-GP-xx (Haven't confirmed yet, but should work)
+    - :heavy_check_mark: E1100-CO-xx (Haven't confirmed yet, but should work)
+    - :heavy_check_mark: B1100-GP-xx
+    - :heavy_check_mark: A1100-GP-LC
+  - Other CiA 402 drives could likely be ported with minimal effort
+- EtherCat - Not yet supported, but might be in the future if demand arises
+  - CiA 402
+    - :question: Rtelligent ECT60 / ECT40 Closed-Loop Servos
+    - :question: LinMot EtherCat CiA 402 capable drives (E1200-DC, etc)
+
+<a name="internals"></a>
+# Internals
+## Homing
+Homing can be handled in two different ways.
+- Sensor-less - Home will be determined by moving in a specific direction until a desired current, and thus torqe/force threshold has been reached. This threshold indicates the machine has reached it's start of motion point.
+- Sensored - Home will be determined by moving in a specific direction until a physical switch has been activated
+
+### Coordinate System
+The machine uses an internal metric (mm, m/s, m/s<sup>2</sup>) coordinate system for all motion planning. This offers an advantage, that this is independent of a specific implementation and works with all machine sizes and regardless of the motor chosen.
+
+Each motor is expected to handle converting from metric Motion Commands into their own relative coordinate system. There is a standard way mapping these two coordinate systems is handled.
+
+![Coordinate System](./doc/coordinates.svg)
+* The system is 1-dimensional and the positive move direction is towards the front a.k.a. towards the body.
+* The __physicalTravel__ is the real physical travel the machine has from one hard endstop to the other. 
+* From `physicalTravel` a safety distance called __keepoutBoundary__ is subtracted on each side giving the real working distance **_travel**: 
+  ```
+  _travel = physicalTravel - (2 * keepoutBoundary)
+  ``` 
+  This gives a safety margin to avoid crashes into a hard endstop.
+* The __Home__-position is expected to be at `-keepoutBoundary`. Albeit not recommended for safety reasons, it is possible to mount the home switch in the front at `physicalTravel` as well.
+* Zero __MIN = 0__ is `keepoutBoundary` away from the home position.
+* Pattern make use of __Depth__ and __Stroke__. These values are dynamic parameter and may be adjusted during runtime:
+  * __Depth__ is the furthest point the machine can extract at any given time. This is useful to find a sweet spot in positioning the body relative to the machine.
+  * __Stroke__ is the longest working distance a stroking motion will have.
+
+Think of __Stroke__ as the amplitude and __Depth__ a linear offset that is added.
+
+### Pattern
+One of the biggest benefits of a linear position drive over a cam-driven motion is its versatility. StrokeEngine uses a pattern generator to provide a wide variety of sensations where parameters like speed, stroke and depth are adjusted dynamically on a motion by motion basis. It uses a trapezoidal motion profile with a defined acceleration and deceleration distance. In between it moves with a constant speed. Pattern take __depth__, __stroke__, __speed__ and an arbitrary __sensation__ parameter. In [Pattern.md](./Pattern.md) you can find a detailed description of each available pattern. Also some information how to write your own patterns and contribute them to this project.
+
+### Graceful Behavior
+One design goal was to have a unobtrusive failure handling when invalid parameters are given. Either from the user with values that lay outside the physics of the machine, or from a pattern commanding an impossible speed, position or acceleration. 
+
+All `MotorInterface` implementations are expected to constrain any Motion Command which will exit the provided `motionBounds`. The command will still execute, but the full range of motion will be cut short. This manifests in a distortion of the motion. Strokes may be shortened when position targets outside of the machine bounds are requested (e.g. `stroke > depth`). Acceleration and speed are limited leading to distorted ramps. The motion is executed over the full distance, but may take slightly longer then expected to reach the target position. 
+
+### Mid-Stroke Parameter Update
+It is possible to update any parameter like depth, stroke, speed and pattern mid-stroke. This gives a very responsive and fluid user experience. Safeguards are in place to ensure the move stays inside the bounds of the machine at any time.

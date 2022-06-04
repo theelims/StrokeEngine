@@ -63,11 +63,11 @@ class MotorInterface {
     motionBounds getBounds() { return this->bounds; }
 
     // Motion
-    void goToHome() { this->state = MotorState::HOMING; this->removeStatusFlag(MOTOR_FLAG_HOMED); }
+    virtual void goToHome();
     void goToPos(float position, float speed, float acceleration) {
       // TODO - Build protections here - Compute basic trajectory and see if a crash happens
       // Should be able to cut and re-compute a position/speed/acceleration that won't crash then
-      this->_unsafeGoToPos(position, speed, acceleration);
+      this->unsafeGoToPos(position, speed, acceleration);
     }
     virtual void stopMotion();
     bool isMotionCompleted() { return this->hasStatusFlag(MOTOR_FLAG_AT_TARGET) && !this->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE); }
@@ -95,7 +95,7 @@ class MotorInterface {
     float maxSpeed;
     float maxAcceleration;
 
-    virtual void _unsafeGoToPos(float position, float speed, float acceleration);
+    virtual void unsafeGoToPos(float position, float speed, float acceleration);
 };
 
 #endif
