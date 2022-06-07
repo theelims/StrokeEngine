@@ -59,26 +59,46 @@ class MotorInterface {
     void setMaxAcceleration(float acceleration) { this->maxAcceleration = acceleration; }
     float getMaxAcceleration() { return this->maxAcceleration; }
 
-    void setBounds(motionBounds bounds) { this->bounds = bounds; }
+    void setBounds(motionBounds bounds) {
+      this->bounds = bounds;
+    }
     motionBounds getBounds() { return this->bounds; }
 
     // Motion
     virtual void goToHome();
     void goToPos(float position, float speed, float acceleration) {
-      // TODO - Are there any other cases we need to protect from here? Speed change? Position?
-      
       // Apply bounds and protections
-      float safePosition = constrain(position, this->bounds.start + this->bounds.keepout, this->bounds.end - this->bounds.keepout);
+      float safePosition = constrain(
+        position, 
+        this->bounds.start + this->bounds.keepout, 
+        this->bounds.end - this->bounds.keepout
+      );
       float safeSpeed = constrain(speed, 0, this->maxSpeed);
       float safeAcceleration = constrain(acceleration, 0, this->maxAcceleration);
+      
+      if (safePosition != position) {
+        ESP_LOGW("motor", "Clipped position to fit within bounds! %05.1f was clipped to %05.1f", position, safePosition);
+      }
+
+      if (safeSpeed != speed) {
+        ESP_LOGW("motor", "Clipped speed to fit within bounds! %05.1f was clipped to %05.1f", speed, safeSpeed);
+      }
+
+      if (safeAcceleration != acceleration) {
+        ESP_LOGW("motor", "Clipped acceleration to fit within bounds! %05.1f was clipped to %05.1f", acceleration, safeAcceleration);
+      }
 
       // Acceleration cannot be lowered, only increased, unless the current motion command has finished executing
       // This prevents putting the system into a state where the acceleration is too low to come to a stop before a crash occurs
       if (!this->isMotionCompleted() && safeAcceleration > this->currentAcceleration) {
+        ESP_LOGW("motor", "Clipped acceleration to prevent a crash! %05.1f was clipped to %05.1f", safeAcceleration, this->currentAcceleration);
         safeAcceleration = this->currentAcceleration;
       }
 
       this->currentAcceleration = safeAcceleration;
+
+      // TODO - Add logging based on tags. Allows user to filter out these without filtering other debug messages
+      ESP_LOGD("motor", "Going to position %05.1f mm @ %05.1f m/s, %05.1f m/s^2", safePosition, safeSpeed, safeAcceleration);
       this->unsafeGoToPos(safePosition, safeSpeed, safeAcceleration);
     }
     virtual void stopMotion();
