@@ -104,6 +104,8 @@ float StrokeEngine::getParameter(StrokeParameter parameter) {
       return this->sensation;
     case StrokeParameter::PATTERN:
       return this->_patternIndex;
+    default:
+      return 0; // Should never be reached
   }
 }
 
