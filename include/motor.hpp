@@ -17,7 +17,6 @@
 #define DEBUG_CLIPPING              // Show debug messages when motions violating the machine 
                                     // physics are commanded
 
-// If start > end, indicates an inversion of direction
 typedef struct {
   float start;
   float end;
@@ -51,7 +50,7 @@ class MotorInterface {
   public:
     void enable() { this->addStatusFlag(MOTOR_FLAG_ENABLED); }
     // TODO - virtual void disable();
-    
+     
     // Safety Bounds
     void setMaxSpeed(float speed) { this->maxSpeed = speed; }
     float getMaxSpeed() { return this->maxSpeed; }
@@ -65,9 +64,17 @@ class MotorInterface {
     // Motion
     virtual void goToHome();
     void goToPos(float position, float speed, float acceleration) {
-      // TODO - Build protections here - Compute basic trajectory and see if a crash happens
-      // Should be able to cut and re-compute a position/speed/acceleration that won't crash then
-      this->unsafeGoToPos(position, speed, acceleration);
+      // TODO - Are there any other cases we need to protect from here? Speed change? Position?
+
+      // Acceleration cannot be lowered, only increased, unless the current motion command has finished executing
+      // This prevents putting the system into a state where the acceleration is too low to come to a stop before a crash occurs
+      float trueAcceleration = acceleration;
+      if (!this->isMotionCompleted() && trueAcceleration > this->currentAcceleration) {
+        trueAcceleration = this->currentAcceleration;
+      }
+
+      this->currentAcceleration = trueAcceleration;
+      this->unsafeGoToPos(position, speed, trueAcceleration);
     }
     virtual void stopMotion();
     bool isMotionCompleted() { return this->hasStatusFlag(MOTOR_FLAG_AT_TARGET) && !this->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE); }
@@ -94,6 +101,7 @@ class MotorInterface {
     motionBounds bounds;
     float maxSpeed;
     float maxAcceleration;
+    float currentAcceleration = 0;
 
     virtual void unsafeGoToPos(float position, float speed, float acceleration);
 };

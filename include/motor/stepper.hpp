@@ -20,8 +20,7 @@ class StepperMotor: public MotorInterface {
     void setEnablePin(int enablePin, bool activeHigh = true);
 
     // Assumes always homing to back of machine for safety
-    void setSensorlessHoming(int currentPin, float currentLevel); // For OSSM rev2 current sensor
-    void setSensoredHoming(int homePin = 0, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true);
+    void setHoming(int homePin = 0, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true);
 
     // Tasks
     void task_motion();
