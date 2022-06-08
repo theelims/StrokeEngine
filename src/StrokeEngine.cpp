@@ -7,9 +7,7 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
   this->motor = motor;
         
   // Initialize with default values
-  motionBounds bounds = motor->getBounds();
-
-  this->maxDepth = abs(bounds.end - bounds.start);
+  this->maxDepth = motor->getMaxPosition();
   this->depth = this->maxDepth; 
   this->stroke = this->maxDepth / 3;
   this->strokeRate = 1.0;
