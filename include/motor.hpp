@@ -19,13 +19,13 @@
                                     // physics are commanded
 
 typedef struct {
-  float start; // Should always be 0
+  float start;
   float end;
   float keepout; /*  Soft endstop preventing hard crashes in mm. Will be 
                   *  subtracted twice from physicalTravel. Should be 
                   *  sufficiently to completley drive clear from 
                   *  homing switch */
-} motionBounds;
+} MachineLimits;
 
 #define MOTOR_FLAG_ENABLED (1 << 0)
 
@@ -53,25 +53,31 @@ class MotorInterface {
     // TODO - virtual void disable();
      
     // Safety Bounds
+    void setMachineLimits(MachineLimits limits) {
+      this->machineLimits = limits;
+      this->maxPosition = abs(limits.start - limits.end) - (limits.keepout * 2);
+    };
+    MachineLimits getMachineLimits() { this->machineLimits; };
+
+    // Max Position cannot be set directly, but is computed from Machine Limits
+    float getMaxPosition() { return this->maxPosition; }
+
     void setMaxSpeed(float speed) { this->maxSpeed = speed; }
     float getMaxSpeed() { return this->maxSpeed; }
 
     void setMaxAcceleration(float acceleration) { this->maxAcceleration = acceleration; }
     float getMaxAcceleration() { return this->maxAcceleration; }
 
-    void setBounds(motionBounds bounds) {
-      this->bounds = bounds;
-    }
-    motionBounds getBounds() { return this->bounds; }
-
     // Motion
     virtual void goToHome();
     void goToPos(float position, float speed, float acceleration) {
+      // Map Bounded Coordinate Space into Machine Coordinate Space
+
       // Apply bounds and protections
       float safePosition = constrain(
         position, 
-        this->bounds.start + this->bounds.keepout, 
-        this->bounds.end - this->bounds.keepout
+        0, 
+        this->maxPosition
       );
       float safeSpeed = constrain(speed, 0, this->maxSpeed);
       float safeAcceleration = constrain(acceleration, 0, this->maxAcceleration);
@@ -125,12 +131,32 @@ class MotorInterface {
     void addStatusFlag(uint32_t flag) { this->status |= flag; }
     void removeStatusFlag(uint32_t flag) { this->status &= ~flag; }
 
-    motionBounds bounds;
+    MachineLimits machineLimits;
+    float maxPosition;
     float maxSpeed;
     float maxAcceleration;
     float currentAcceleration = 0;
 
     virtual void unsafeGoToPos(float position, float speed, float acceleration);
+    float mapSafePosition(float position) {
+      float safeStart = this->machineLimits.start;
+      float safeEnd = this->machineLimits.end;
+      float keepout = this->machineLimits.keepout;
+
+      if (safeStart > safeEnd) {
+        safeStart -= keepout;
+        safeEnd += keepout;
+      } else {
+        safeStart += keepout;
+        safeEnd -= keepout;
+      }
+
+      // (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+      float in_min = 0; float in_max = this->maxPosition;
+      float out_min = safeStart; float out_max = safeEnd;
+
+      return (position - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    }
 };
 
 #endif

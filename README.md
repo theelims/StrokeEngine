@@ -246,7 +246,14 @@ Homing can be handled in two different ways.
 ### Coordinate System
 The machine uses an internal metric (mm, m/s, m/s<sup>2</sup>) coordinate system for all motion planning. This offers an advantage, that this is independent of a specific implementation and works with all machine sizes and regardless of the motor chosen.
 
-Each motor is expected to handle converting from metric Motion Commands into their own relative coordinate system. There is a standard way mapping these two coordinate systems is handled.
+There are three Coordinate Systems when working with StrokeEngine
+- Machine Space [start to end] - The physical extents of travel for the machine itself
+- Bounded Space [0 to maxPosition] - The safe space within which a pattern can direct the motor to move
+- Pattern Space [0 to strokeLength] - Each pattern runs in a subset of the BoundedSpace. This allows StrokeEngine to translate the pattern around at-will whenever Depth is changed.
+
+Each motor driver is expected to handle converting from metric Motion Commands into their own relative coordinate system. There are utility functions to assist in mapping between the Bounded Space and Machine Space, but unit conversions must be handled by the driver themselves.
+
+### Bounded Coordinate Space, and how Pattern Space fits within
 
 ![Coordinate System](./doc/coordinates.svg)
 * The system is 1-dimensional and the positive move direction is towards the front a.k.a. towards the body.
