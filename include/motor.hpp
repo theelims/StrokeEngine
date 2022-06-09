@@ -25,7 +25,7 @@ typedef struct {
                   *  subtracted twice from physicalTravel. Should be 
                   *  sufficiently to completley drive clear from 
                   *  homing switch */
-} MachineLimits;
+} MachineGeometry;
 
 #define MOTOR_FLAG_ENABLED (1 << 0)
 
@@ -53,11 +53,11 @@ class MotorInterface {
     // TODO - virtual void disable();
      
     // Safety Bounds
-    void setMachineLimits(MachineLimits limits) {
-      this->machineLimits = limits;
-      this->maxPosition = abs(limits.start - limits.end) - (limits.keepout * 2);
+    void setMachineGeometry(MachineGeometry geometry) {
+      this->geometry = geometry;
+      this->maxPosition = abs(geometry.start - geometry.end) - (geometry.keepout * 2);
     };
-    MachineLimits getMachineLimits() { this->machineLimits; };
+    MachineGeometry getMachineGeometry() { this->geometry; };
 
     // Max Position cannot be set directly, but is computed from Machine Limits
     float getMaxPosition() { return this->maxPosition; }
@@ -131,7 +131,7 @@ class MotorInterface {
     void addStatusFlag(uint32_t flag) { this->status |= flag; }
     void removeStatusFlag(uint32_t flag) { this->status &= ~flag; }
 
-    MachineLimits machineLimits;
+    MachineGeometry geometry;
     float maxPosition;
     float maxSpeed;
     float maxAcceleration;
@@ -139,9 +139,9 @@ class MotorInterface {
 
     virtual void unsafeGoToPos(float position, float speed, float acceleration);
     float mapSafePosition(float position) {
-      float safeStart = this->machineLimits.start;
-      float safeEnd = this->machineLimits.end;
-      float keepout = this->machineLimits.keepout;
+      float safeStart = this->geometry.start;
+      float safeEnd = this->geometry.end;
+      float keepout = this->geometry.keepout;
 
       if (safeStart > safeEnd) {
         safeStart -= keepout;
