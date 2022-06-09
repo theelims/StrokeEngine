@@ -2,6 +2,8 @@
 #define MOTOR_H
 
 #include "Arduino.h"
+#include <exception.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -27,6 +29,10 @@ typedef struct {
                   *  homing switch */
 } MachineGeometry;
 
+#define MOVEMENT_TASK_FLAG_EXIT (1 << 0)
+#define MOVEMENT_TASK_FLAG_NEXT (1 << 1)
+
+// TODO - Change flags into a FreeRTOS Event Group which allows better synchronizing on Flag State
 #define MOTOR_FLAG_ENABLED (1 << 0)
 
 #define MOTOR_FLAG_WARNING (1 << 1)
@@ -47,10 +53,43 @@ typedef enum {
   ERROR = 3
 } MotorState;
 
+typedef enum {
+  // Retraction Emergency useful for Throat play, where a quick retraction to a safe position is required
+  RETRACT = 0, 
+
+  // De-energize Emergency useful for Vaginal/Anal play, where a retraction could cause pain.
+  // Instead the motor itself is de-energized so no Holding Torque is experienced.
+  DEENERGIZE = 1 
+} MotorEmergency
+
+class MotorException extends std::exception {
+
+}
+
 class MotorInterface {
   public:
     void enable() { this->addStatusFlag(MOTOR_FLAG_ENABLED); }
     // TODO - virtual void disable();
+
+    SemaphoreHandle_t takeSemaphore() {
+      if (this->taskSemaphore == null) {
+        this->taskSemaphore = xSemaphoreCreateBinary();
+      }
+
+      if( xSemaphoreTake( this->taskSemaphore, 100 / portTICK_PERIOD_MS ) != pdTRUE ) {
+        throw new MotorBusyError("Unable to attach a new Motion Task, as one is already active!");
+      }
+
+      this->motionTask = xGetCurrentTaskHandle();
+    }
+    void giveSemaphore(SemaphoreHandle_t semaphore) {
+      if (semaphore != this->taskSemaphore) {
+        throw new MotorGenericError("Attempted to release Semaphore using invalid handle!");
+      }
+
+      xSemaphoreGive(this->taskSemaphore);
+      this->motionTask = null;
+    }
      
     // Safety Bounds
     void setMachineGeometry(MachineGeometry geometry) {
@@ -71,7 +110,16 @@ class MotorInterface {
     // Motion
     virtual void goToHome();
     void goToPos(float position, float speed, float acceleration) {
-      // Map Bounded Coordinate Space into Machine Coordinate Space
+      // TODO - If a motion task is provided, ensure the caller is the motion task (Mutex?)
+      // Ensure in ACTIVE and valid movement state
+      if (!this->isInState(MotorState::ACTIVE)) {
+        throw new MotorInvalidStateError("Unable to command motion while motor is not in ACTIVE state!");
+      }
+
+      // Take Semaphore for movement
+      if( xSemaphoreTake( this->movementSemaphore, 1000 / portTICK_PERIOD_MS ) != pdTRUE ) {
+        throw new MotorInMotionError("Unable to acquire Motor Movement Semaphore within 1000ms. Motor currently within movement still!");
+      }
 
       // Apply bounds and protections
       float safePosition = constrain(
@@ -107,7 +155,33 @@ class MotorInterface {
       ESP_LOGD("motor", "Going to position %05.1f mm @ %05.1f m/s, %05.1f m/s^2", safePosition, safeSpeed, safeAcceleration);
       this->unsafeGoToPos(safePosition, safeSpeed, safeAcceleration);
     }
-    virtual void stopMotion();
+
+    // Execute the defined Emergency behavior, disconnect Motion Task, and disable the motor
+    void emergencyStop(MotorEmergency emergency) {
+      switch (emergency) {
+        case MotorEmergency::RETRACT:
+
+          return;
+        
+        case MotorEmergency::DEENERGIZE:
+        default:
+
+          return;
+      }
+    }
+
+    // Force current Motion Command to be abandoned, and new one to be accepted.
+    // Allows changing parameters mid-command and updating command
+    void namehere() {
+
+    }
+
+    // TODO - do we just enforce that the driver must call this when motion is completed?
+    void motionCompleted() {
+      if (this->motionTask) {
+        xTaskNotifyGiveIndexed(this->motionTask, notifyMovementDone);
+      }
+    }
     bool isMotionCompleted() { return this->hasStatusFlag(MOTOR_FLAG_AT_TARGET) && !this->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE); }
 
     // Status / State flags
@@ -128,6 +202,10 @@ class MotorInterface {
     MotorState state = MotorState::INACTIVE;
     uint32_t status = 0;
 
+    TaskHandle_t motionTask; // Task which will provide movement commands to Motor
+    SemaphoreHandle_t taskSemaphore; // Prevent more than one task being interfaced to a motor at a time
+    SemaphoreHandle_t movementSemaphore; // Prevent additional movement commands while in motion
+
     void addStatusFlag(uint32_t flag) { this->status |= flag; }
     void removeStatusFlag(uint32_t flag) { this->status &= ~flag; }
 
@@ -135,6 +213,8 @@ class MotorInterface {
     float maxPosition;
     float maxSpeed;
     float maxAcceleration;
+
+    // TODO - needs to be reset to 0 whenever motion comes to a stop
     float currentAcceleration = 0;
 
     virtual void unsafeGoToPos(float position, float speed, float acceleration);

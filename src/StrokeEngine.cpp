@@ -153,7 +153,7 @@ void StrokeEngine::stopPattern() {
   ESP_LOGI("StrokeEngine", "Suspending Pattern!");
 
   if (_taskStrokingHandle != NULL) {
-    vTaskSuspend(_taskStrokingHandle);
+    vTaskDelete(_taskStrokingHandle);
   }
   this->active = false;
   this->motor->stopMotion();
@@ -170,6 +170,8 @@ String StrokeEngine::getPatternName(int index) {
 
 void StrokeEngine::_stroking() {
     motionParameter currentMotion;
+
+    SemaphoreHandle_t semaphore = this->motor->takeSemaphore();
 
     while(1) { // infinite loop
 
@@ -227,8 +229,17 @@ void StrokeEngine::_stroking() {
             xSemaphoreGive(_parameterMutex);
         }
         
-        // Delay 10ms 
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        // Delay 1ms while waiting for an Movement Exit notification
+        BaseType_t xResult = xTaskNotifyWait(notifyMovementExit, 0, 0, NULL, 10 / portTICK_PERIOD_MS);
+        if (xResult & MOVEMENT_TASK_FLAG_EXIT) {
+          // Exit was requested
+          this->motor->giveSemaphore(semaphore);
+          this->stopPattern();
+        }
+
+        if (xResult & MOVEMENT_TASK_FLAG_NEXT) {
+          currentMotion = patternTable[_patternIndex]->nextTarget(_index);
+        }
     }
 }
 
