@@ -46,7 +46,7 @@ enum class StrokeParameter {
 /**************************************************************************/
 class StrokeEngine {
     public:
-
+        void StrokeEngine();
         void attachMotor(MotorInterface *motor);
 
         /*!
@@ -86,6 +86,7 @@ class StrokeEngine {
     protected:
       bool active = false;
       MotorInterface *motor;
+      duk_context *jsContext;
 
       int _patternIndex = 0;
       int _index = 0;

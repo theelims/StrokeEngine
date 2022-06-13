@@ -1,6 +1,33 @@
 #include <Arduino.h>
+#include "SPIFFS.h"
+
 #include <StrokeEngine.h>
+#include "duktape_support.hpp"
 #include <pattern.h>
+
+StrokeEngine::StrokeEngine() {
+  ESP_LOGI("StrokeEngine", "Initializing DukTape JS Env");
+  this->jsContext = duk_start();
+
+  File root = SPIFFS.open("/patterns/");
+  File file = root.openNextFile();
+
+  while (file) {
+    ESP_LOGI("StrokeEngine", "Loading pattern %s... w/ size %d", file.name(), file.size());
+
+    String fileContents;
+    while (file.available()){
+      fileContents += char(file.read());
+    }
+
+    duk_eval_string_noresult(this->jsContext, fileContents.c_str());
+
+    file.close();
+    file = root.openNextFile();
+  }
+  
+  ESP_LOGI("StrokeEngine", "Finished loading DukTape and Patterns");
+}
 
 void StrokeEngine::attachMotor(MotorInterface* motor) {
   // store the machine geometry and motor properties pointer
@@ -119,7 +146,7 @@ bool StrokeEngine::startPattern() {
 
   // Stop current move, should one be pending (moveToMax or moveToMin)
   if (this->motor->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE)) {
-    this->motor->stopMotion();
+    this->motor->motionInterrupt();
   }
 
   // Reset Stroke and Motion parameters
@@ -144,7 +171,6 @@ bool StrokeEngine::startPattern() {
     // Resume task, if it already exists
     vTaskResume(_taskStrokingHandle);
   }
-  this->active = true;
 
   return true;
 }
@@ -153,10 +179,8 @@ void StrokeEngine::stopPattern() {
   ESP_LOGI("StrokeEngine", "Suspending Pattern!");
 
   if (_taskStrokingHandle != NULL) {
-    vTaskDelete(_taskStrokingHandle);
+    xTaskNotifyGiveIndexed(_taskStrokingHandle, MOVEMENT_TASK_FLAG_EXIT);
   }
-  this->active = false;
-  this->motor->stopMotion();
 }
 
 String StrokeEngine::getPatternName(int index) {
@@ -165,21 +189,38 @@ String StrokeEngine::getPatternName(int index) {
     } else {
         return String("Invalid");
     }
-    
 }
 
 void StrokeEngine::_stroking() {
     motionParameter currentMotion;
+    this->motor->lockTask();
+    this->active = true;
 
-    SemaphoreHandle_t semaphore = this->motor->takeSemaphore();
-
+    // TODO - While loop must be exitable via Task Notify, so we can switch Motion Tasks
     while(1) { // infinite loop
-
-        // Suspend task, if motor is not active
-        // TODO - This doesn't look quite right
         if (!this->motor->isInState(MotorState::ACTIVE)) {
-          ESP_LOGI("StrokeEngine", "Motor is no longer active! Attempting to suspend pattern.");
-          this->stopPattern();
+          ESP_LOGI("StrokeEngine", "Motion Task: Motor is no longer active! Detaching Motion Task");
+          this->motor->unlockTask();
+          this->active = false;
+          vTaskDelete(NULL);
+        }
+
+        // Delay 10ms while waiting for an event from the Motor
+        BaseType_t xResult = xTaskNotifyWait(0, 0, NULL, 10 / portTICK_PERIOD_MS);
+        if (xResult & MOVEMENT_TASK_FLAG_EXIT) {
+          ESP_LOGI("StrokeEngine", "Motion Task: EVENT EXIT - Detaching Motion Task");
+          this->motor->unlockTask();
+          this->active = false;
+          vTaskDelete(NULL);
+        }
+
+        if (xResult & MOVEMENT_TASK_FLAG_NEXT) {
+          bool atTarget = this->motor->hasStatusFlag(MOTOR_FLAG_AT_TARGET);
+          currentMotion = patternTable[_patternIndex]->nextTarget(_index);
+
+          if (xSemaphoreTake(_parameterMutex, 0) == pdTRUE) {
+            
+          }
         }
 
         // Take mutex to ensure no interference / race condition with communication threat on other core
@@ -207,7 +248,7 @@ void StrokeEngine::_stroking() {
                 _index++;
 
                 // Querey new set of pattern parameters
-                currentMotion = patternTable[_patternIndex]->nextTarget(_index);
+                currentMotion = patternTable[_patternIndex]->nextTarget();
 
                 // Pattern may introduce pauses between strokes
                 if (currentMotion.skip == false) {
@@ -227,18 +268,6 @@ void StrokeEngine::_stroking() {
 
             // give back mutex
             xSemaphoreGive(_parameterMutex);
-        }
-        
-        // Delay 1ms while waiting for an Movement Exit notification
-        BaseType_t xResult = xTaskNotifyWait(notifyMovementExit, 0, 0, NULL, 10 / portTICK_PERIOD_MS);
-        if (xResult & MOVEMENT_TASK_FLAG_EXIT) {
-          // Exit was requested
-          this->motor->giveSemaphore(semaphore);
-          this->stopPattern();
-        }
-
-        if (xResult & MOVEMENT_TASK_FLAG_NEXT) {
-          currentMotion = patternTable[_patternIndex]->nextTarget(_index);
         }
     }
 }
