@@ -1,17 +1,259 @@
 # StrokeEngine
-A library to create a variety of stroking motions with a stepper or servo motor on an ESP32. A usage example can be found in my other related project: [FuckIO](https://github.com/theelims/FuckIO). It will work with all kinds of stepper / servo operated fucking and stroking machines. An other popular example is the Kinky Makers [OSSM-Project](https://github.com/KinkyMakers/OSSM-hardware)
+StrokeEngine provides a unified way of handling Motion Generation and feeding these Motions into Motor Drivers.
+It comes bundled with a set of generic Patterns and Drivers allowing anyone with a [OSSM](https://github.com/KinkyMakers/OSSM-hardware), or other similar hardware, to be quickly up and running.
 
-Every DIY fucking machine with a linear position drive powered by a stepper or servo motor can be used with this library. 
+This Library will allow you to take full advantage of the freedom a linear-positionable stroking or fucking machine can provide over fixed cam-driven designs. To this date there are only few commercial offerings using this advantage. And often so the implementation is rather boring, not utilizing the full possibilities of such a linear position drive.
 
-## Concepts
-StrokeEngine takes full advantage of the freedom a servo / stepper driven stroking or fucking machine can provide over fixed cam-driven designs. To this date there are only few commercial offerings using this advantage. And often so the implementation is rather boring, not utilizing the full possibilities of such a linear position drive. 
+This project has full support for usage with
+- [Open Source Sex Machine](https://github.com/KinkyMakers/OSSM-hardware) (Recommended approach)
+- LinMot-based Custom Machines
+- Step/Dir-based Custom Machines
 
-Under the hood it uses the fabulous [FastAccelStepper](https://github.com/gin66/FastAccelStepper) library to interface stepper or servo motors with commonly found STEP / DIR interfaces.
+but can be adapted to any DIY fucking machine.
 
-Understanding the underlying concepts will help you to get up and running with StrokeEngine faster. 
+There are several Libraries which provide more advanced integration on top of StrokeEngine
+- [FuckIO](https://github.com/theelims/FuckIO)
+- [CANFuck](https://github.com/zylos146/CANFuck)
+
+> Table of contents  
+> <span class="mono">¶</span>&emsp;[Getting Started](#getting-started)  
+> <span class="mono">¶</span>&emsp;[Motion Generation](#motion-supported)  
+> <span class="mono">¶</span>&emsp;[Drives Supported](#drives-supported)  
+> <span class="mono">¶</span>&emsp;[Internals](#internals)
+
+<a name="getting-started"></a>
+# Getting Started
+
+## Usage
+StrokeEngine aims to have a simple and straight forward, yet powerful API. The following describes the minimum case to get up and running. All input parameters need to be specified in real world (metric) units.
+
+### > Initialize
+First all parameters of the machine and the servo need to be set. Including the pins for interacting with the driver and an (optionally) homing switch.
+```cpp
+#include "esp_log.h"
+
+#include "motors/stepper.hpp"
+#include "StrokeEngine.h"
+
+// Pin Definitions
+#define SERVO_PULSE       4
+#define SERVO_DIR         16
+#define SERVO_ENABLE      17
+#define SERVO_ENDSTOP     25        // Optional: Only needed if you have a homing switch
+
+// Calculation Aid:
+#define STEP_PER_REV      2000      // How many steps per revolution of the motor (S1 off, S2 on, S3 on, S4 off)
+#define PULLEY_TEETH      20        // How many teeth has the pulley
+#define BELT_PITCH        2         // What is the timing belt pitch in mm
+#define MAX_RPM           3000.0    // Maximum RPM of motor
+#define STEP_PER_MM       STEP_PER_REV / (PULLEY_TEETH * BELT_PITCH)
+#define MAX_SPEED         (MAX_RPM / 60.0) * PULLEY_TEETH * BELT_PITCH // Max Speed in mm/s
+
+StepperMotor* motor;
+StrokeEngine* engine;
+```
+Inside `void setup()` call the following functions to initialize the StrokeEngine:
+```cpp
+// TODO - Can we move app_motion into some basic wrapper? People shouldn't need to handle this part
+float position = 0;
+void app_motion(void *pvParameter) {
+  while (true) {
+    if (motor->isInState(MotorState::ACTIVE) && motor->hasStatusFlag(MOTOR_FLAG_HOMED) && !engine->isActive()) {
+      ESP_LOGE("main", "Motor ready and homed. Attempting to start Stroke Engine");
+      engine->startPattern();
+    }
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
+void loop() {}
+void setup() {
+  Serial.begin(115200);
+
+  ESP_LOGI("main", "Configuring Motor");
+  motor = new StepperMotor();
+
+  motionBounds bounds = {
+    .start = 100, // mm
+    .end = 0, // mm
+    .keepout = 5 // mm
+  };
+  motor->setMaxSpeed(MAX_SPEED); // 5 m/s
+  motor->setMaxAcceleration(25000); // 25 m/s^2
+  motor->setBounds(bounds);
+  motor->setStepsPerMm(STEP_PER_MM);
+  motor->setMovementPin(SERVO_PULSE, SERVO_DIR);
+  motor->setEnablePin(SERVO_ENABLE, true);
+  motor->setSensoredHoming(SERVO_ENDSTOP, INPUT_PULLUP, false);
+
+  ESP_LOGI("main", "Configuring Stroke Engine");
+  engine = new StrokeEngine();
+  c->attachMotor(motor);
+  engine->setParameter(StrokeParameter::PATTERN, 0);
+  engine->setParameter(StrokeParameter::RATE, 50);
+  engine->setParameter(StrokeParameter::DEPTH, 100);
+  engine->setParameter(StrokeParameter::STROKE, 50);
+  engine->setParameter(StrokeParameter::SENSATION, 0);
+
+  ESP_LOGI("main", "Homing Motor");
+  motor->enable();
+  motor->goToHome();
+  
+  ESP_LOGI("main", "Starting Motion Task!");
+  xTaskCreate(&app_motion, "app_motion", 4096, NULL, 5, NULL);
+}
+```
+
+#### > Retrieve Available Patterns as JSON-String
+This is an example snippet showing how `Stroker.getNumberOfPattern()` and `Stroker.getPatternName(i)` may be used to iterate through the available patterns and composing a JSON-String.
+```cpp
+String getPatternJSON() {
+    String JSON = "[{\"";
+    for (size_t i = 0; i < engine->getNumberOfPattern(); i++) {
+        JSON += String( engine->getPatternName(i));
+        JSON += "\": ";
+        JSON += String(i, DEC);
+        if (i < engine->getNumberOfPattern() - 1) {
+            JSON += "},{\"";
+        } else {
+            JSON += "}]";
+        }
+    }
+    Serial.println(JSON);
+    return JSON;
+}
+```
+
+### Running
+#### > Start & Stop the Stroking Action
+Use `engine->startPattern();` and `engine->stopPattern();` to start and stop the motion. Stop is immediate and with the highest possible acceleration.
+
+#### > Move to the Minimum or Maximum Position
+You can move to either end of the machine for setting up reaches. Call `motor->goToPos(0, speed, acceleratio)` to move all they way back towards home. With `motor->goToPos(motor->getBounds().end, speed, acceleration)` it moves all the way out.
+
+#### > Setup Optimal Depth/Stroke Interactively
+There is a special pattern `Adjust Depth` which allows setting up an optimal depth/stroke. 
+
+This pattern allows not only to interactively adjust `depth`, but also `stroke` by using the sensation slider. `sensation` gets mapped into the interval `[depth-stroke, depth]`: `sensation = 100` adjusts `depth`-position, whereas `sensation = -100` adjusts the `stroke`-position. `sensation = 0` yields the midpoint of the stroke.
+
+#### > Set Parameters
+```cpp
+enum class StrokeParameter {
+  // RATE & SPEED are mutually exclusive. Only one can be specified at a time!
+  // RATE - Range 0.5 to 600 Strokes / Min
+  // Can allow better control typically than just SPEED, as other machines use
+  RATE,
+
+  // DEPTH - Range is constrainted by motionBounds from MotorInterface
+  // Is the point at which the stroke ends
+  DEPTH, 
+
+  // STROKE - Range is constrainted by motionBounds from MotorInterface
+  // How far the stroke will retract from DEPTH point
+  STROKE, 
+
+  // SENSATION - Range is -100 to 100
+  // Serves as a generic parameter for usage by patterns to adjust sensation
+  SENSATION,
+
+  PATTERN
+};
+
+void setParameter(StrokeParameter parameter, float value, bool applyNow = false);
+float getParameter(StrokeParameter parameter);
+```
+Parameters can be updated in any state and are stored internally. On `engine->startPattern();` they will be used to initialize the pattern. Each one may be get/set individually. The argument given to the function is constrained to the physical limits of the machine (depth/stroke within `[0, maxTravel]`)
+```cpp
+engine->setParameter(StrokeParameter::PATTERN, 0); // Pattern, index must be < Stroker.getNumberOfPattern()
+engine->setParameter(StrokeParameter::RATE, 50); // Speed in Cycles (in & out) per minute
+engine->setParameter(StrokeParameter::DEPTH, 100); // Depth in mm
+engine->setParameter(StrokeParameter::STROKE, 50); // Stroke length in mm
+engine->setParameter(StrokeParameter::SENSATION, 0); // Sensation (arbitrary value a pattern may use to alter its behavior), constrained to [-100, 100] with 0 being neutral.
+```
+Normally a parameter change is only executed after the current stroke has finished. However, sometimes it is desired to have the changes take effect immediately, even mid-stroke. In that case set the argument `bool applyNow` to `true`. 
+
+#### > Get Parameters
+```cpp
+float value = engine->getParameter(StrokeParameter::PATTERN); // Pattern, index must be < Stroker.getNumberOfPattern()
+float value = engine->setParameter(StrokeParameter::RATE); // Speed in Cycles (in & out) per minute
+float value = engine->setParameter(StrokeParameter::DEPTH); // Depth in mm
+float value = engine->setParameter(StrokeParameter::STROKE); // Stroke length in mm
+float value = engine->setParameter(StrokeParameter::SENSATION); // Sensation (arbitrary value a pattern may use to alter its behavior), constrained to [-100, 100] with 0 being neutral.
+```
+
+<a name="motion-supported"></a>
+# Motion Generation
+
+## Streaming
+StrokeEngine will support ingesting Motion Commands or T-Codes and sending them directly to the Motor. These will act in a similar way to G-Code. Either a pre-built file can be loaded, or an external integration can stream them in.
+
+Streaming/Loading T-Codes is not currently supported, but is a intended goal.
+
+Once built, the hope is other devices like Deep Throat Trainer can be integrated to send commands to mimic the sucking motion, on a OSSM perhaps equiped with a Fleshlight or similar. 
+
+## Patterns
+Patterns allow a set of pre-built, real-time configurable strokes to be generated on-demand.
+These Strokes will typically be cyclic, always eventually repeating what has happened before.
+
+## Directors
+Directors are complex Meta-Patterns that allow orchestrating a Scene, or set of Patterns. This allows, for example, a Throat Fucking Director to randomly vary between deep thrusts, short thrusts, pauses, throat fucking, and other patterns.
+
+The Directors are meant to provide a more varied, but automatic experience, without needing manual user input.
+
+<a name="drives-supported"></a>
+# Drives Supported
+Motors in StrokeEngine are abstracted away, to allow the end-user to provide a compatible motor implementation.
+So if your motor uses a new communication protocol, like EtherCAT or Ethernet/IP, the work needed to integrate StrokeEngine is kept minimal.
+
+StrokeEngine Core offers a few basic drivers for
+- Step/Dir Pulse-based drives (TB6600)
+- iHSV
+Motors in StrokeEngine are abstracted away, to allow the end-user to provide a compatible motor implementation.
+So if your motor uses a new communication protocol, like EtherCAT or Ethernet/IP, the work needed to integrate StrokeEngine is kept minimal.
+
+StrokeEngine Core supports a few motors by default. Other motors are provided via External Libraries
+### StrokeEngine Core
+- ModBus 
+  - :heavy_check_mark: iHSV57 V6xx Servos 100/140/180W (`IHSV57Motor` in `motor/ihsv57.hpp`)
+  - :x: iHSV57 V5xx is **NOT SUPPORTED** due to differing communication protocol with V6xx drivers
+- Step/Dir Pulses (`StepperMotor` in `motor/stepper.hpp`)
+  - :heavy_check_mark: TB6600 drives
+  - :heavy_check_mark: Other generic Step/Dir stepper/servo drives
+
+### [StrokeEngine-CANOpen](https://github.com/zylos146/StrokeEngine-CANOpen)
+- CANOpen
+  - LinMot CiA 402 CANOpen capable drives
+    - :x: E1200-EC / E1200-DC are not supported unless EtherCat support is built
+    - :heavy_check_mark: E1200-GP-xx (Haven't confirmed yet, but should work)
+    - :heavy_check_mark: E1100-GP-xx (Haven't confirmed yet, but should work)
+    - :heavy_check_mark: E1100-CO-xx (Haven't confirmed yet, but should work)
+    - :heavy_check_mark: B1100-GP-xx
+    - :heavy_check_mark: A1100-GP-LC
+  - Other CiA 402 drives could likely be ported with minimal effort
+- EtherCat - Not yet supported, but might be in the future if demand arises
+  - CiA 402
+    - :question: Rtelligent ECT60 / ECT40 Closed-Loop Servos
+    - :question: LinMot EtherCat CiA 402 capable drives (E1200-DC, etc)
+
+<a name="internals"></a>
+# Internals
+## Homing
+Homing can be handled in two different ways.
+- Sensor-less - Home will be determined by moving in a specific direction until a desired current, and thus torqe/force threshold has been reached. This threshold indicates the machine has reached it's start of motion point.
+- Sensored - Home will be determined by moving in a specific direction until a physical switch has been activated
 
 ### Coordinate System
-The machine spans it's own internal coordinate system. It takes the real world (metric) units and converts them into the internal coordinate system just counting the encoder / stepper steps of the motor and vice versa. This offers the advantage, that this is independent of a specific implementation and works with all machine sizes and regardless of the motor chosen. 
+The machine uses an internal metric (mm, m/s, m/s<sup>2</sup>) coordinate system for all motion planning. This offers an advantage, that this is independent of a specific implementation and works with all machine sizes and regardless of the motor chosen.
+
+There are three Coordinate Systems when working with StrokeEngine
+- Machine Space [start to end] - The physical extents of travel for the machine itself
+- Bounded Space [0 to maxPosition] - The safe space within which a pattern can direct the motor to move
+- Pattern Space [0 to strokeLength] - Each pattern runs in a subset of the BoundedSpace. This allows StrokeEngine to translate the pattern around at-will whenever Depth is changed.
+
+Each motor driver is expected to handle converting from metric Motion Commands into their own relative coordinate system. There are utility functions to assist in mapping between the Bounded Space and Machine Space, but unit conversions must be handled by the driver themselves.
+
+### Bounded Coordinate Space, and how Pattern Space fits within
 
 ![Coordinate System](./doc/coordinates.svg)
 * The system is 1-dimensional and the positive move direction is towards the front a.k.a. towards the body.
@@ -33,167 +275,9 @@ Think of __Stroke__ as the amplitude and __Depth__ a linear offset that is added
 One of the biggest benefits of a linear position drive over a cam-driven motion is its versatility. StrokeEngine uses a pattern generator to provide a wide variety of sensations where parameters like speed, stroke and depth are adjusted dynamically on a motion by motion basis. It uses a trapezoidal motion profile with a defined acceleration and deceleration distance. In between it moves with a constant speed. Pattern take __depth__, __stroke__, __speed__ and an arbitrary __sensation__ parameter. In [Pattern.md](./Pattern.md) you can find a detailed description of each available pattern. Also some information how to write your own patterns and contribute them to this project.
 
 ### Graceful Behavior
-One design goal was to have a unobtrusive failure handling when invalid parameters are given. Either from the user with values that lay outside the physics of the machine, or from a pattern commanding an impossible speed, position or acceleration. All set-functions make use of a `constrain()`-function to limit the input to the physical capabilities of the given machine. Values outside the bounds are simply cropped. 
+One design goal was to have a unobtrusive failure handling when invalid parameters are given. Either from the user with values that lay outside the physics of the machine, or from a pattern commanding an impossible speed, position or acceleration. 
 
-Also on the pattern side `constrain()` is used to ensure no impossible motion commands leading to crashes or step losses are executed. This manifests in a distortion of the motion. Strokes may be shortened when position targets outside of the machine bounds are requested (e.g. `stroke > depth`). Acceleration and speed are limited leading to  distorted ramps. The motion is executed over the full distance, but may take slightly longer then expected to reach the target position. 
+All `MotorInterface` implementations are expected to constrain any Motion Command which will exit the provided `motionBounds`. The command will still execute, but the full range of motion will be cut short. This manifests in a distortion of the motion. Strokes may be shortened when position targets outside of the machine bounds are requested (e.g. `stroke > depth`). Acceleration and speed are limited leading to distorted ramps. The motion is executed over the full distance, but may take slightly longer then expected to reach the target position. 
 
 ### Mid-Stroke Parameter Update
 It is possible to update any parameter like depth, stroke, speed and pattern mid-stroke. This gives a very responsive and fluid user experience. Safeguards are in place to ensure the move stays inside the bounds of the machine at any time.
-
-### State Machine
-An internal finite state machine handles the different states of the machine. See the below graph with all functions relating to the state machine and how to cause transitions:
-```mermaid
-stateDiagram-v2
-    [*] --> UNDEFINED: begin()
-    UNDEFINED --> READY     : thisIsHome()<br>enableAndHome()
-    READY --> PATTERN       : startPattern()
-    READY --> UNDEFINED     : disable()
-    READY --> READY         : moveToMin()<br>moveToMax()
-    READY --> SETUPDEPTH    : setupDepth()
-    SETUPDEPTH --> UNDEFINED: disable()
-    PATTERN --> READY       : stopMotion()<br>moveToMin()<br>moveToMax()
-    PATTERN --> SETUPDEPTH  : setupDepth()
-    PATTERN --> UNDEFINED   : disable()
-    SETUPDEPTH --> PATTERN  : startPattern()
-    SETUPDEPTH --> READY    : stopMotion()<br>moveToMin()<br>moveToMax()
-```
-* __UNDEFINED:__ The initial state prior to homing. Stepper / Servo are disabled and the position is undefined.
-* __READY:__ Homing defines the position inside the internal coordinate system. Machine is now ready to be used and accepts motion commands.
-* __PATTERN:__ The cyclic motion has started and the pattern generator is commanding a sequence of trapezoidal motions until stopped.
-* __SETUPDEPTH:__ The servo always follows the depth position. This can be used to setup the optimal stroke depth. 
-
-## Usage
-StrokeEngine aims to have a simple and straight forward, yet powerful API. The following describes the minimum case to get up and running. All input parameters need to be specified in real world (metric) units.
-### Initialize
-First all parameters of the machine and the servo need to be set. Including the pins for interacting with the driver and an (optionally) homing switch.
-```cpp
-#include <StrokeEngine.h>
-
-// Pin Definitions
-#define SERVO_PULSE       4
-#define SERVO_DIR         16
-#define SERVO_ENABLE      17
-#define SERVO_ENDSTOP     25        // Optional: Only needed if you have a homing switch
-
-// Calculation Aid:
-#define STEP_PER_REV      2000      // How many steps per revolution of the motor (S1 off, S2 on, S3 on, S4 off)
-#define PULLEY_TEETH      20        // How many teeth has the pulley
-#define BELT_PITCH        2         // What is the timing belt pitch in mm
-#define MAX_RPM           3000.0    // Maximum RPM of motor
-#define STEP_PER_MM       STEP_PER_REV / (PULLEY_TEETH * BELT_PITCH)
-#define MAX_SPEED         (MAX_RPM / 60.0) * PULLEY_TEETH * BELT_PITCH
-
-static motorProperties servoMotor {
-  .maxSpeed = MAX_SPEED,              // Maximum speed the system can go in mm/s
-  .maxAcceleration = 10000,           // Maximum linear acceleration in mm/s²
-  .stepsPerMillimeter = STEP_PER_MM,  // Steps per millimeter 
-  .invertDirection = true,            // One of many ways to change the direction,  
-                                      // should things move the wrong way
-  .enableActiveLow = true,            // Polarity of the enable signal      
-  .stepPin = SERVO_PULSE,             // Pin of the STEP signal
-  .directionPin = SERVO_DIR,          // Pin of the DIR signal
-  .enablePin = SERVO_ENABLE           // Pin of the enable signal
-};
-
-static machineGeometry strokingMachine = {
-  .physicalTravel = 160.0,            // Real physical travel from one hard endstop to the other
-  .keepoutBoundary = 5.0              // Safe distance the motion is constrained to avoiding crashes
-};
-
-// Configure Homing Procedure
-static endstopProperties endstop = {
-  .homeToBack = true,                 // Endstop sits at the rear of the machine
-  .activeLow = true,                  // switch is wired active low
-  .endstopPin = SERVO_ENDSTOP,        // Pin number
-  .pinMode = INPUT                    // pinmode INPUT with external pull-up resistor
-};
-
-StrokeEngine Stroker;
-```
-Inside `void setup()` call the following functions to initialize the StrokeEngine:
-```cpp
-void setup() 
-{
-  // Setup Stroke Engine
-  Stroker.begin(&strokingMachine, &servoMotor);
-  Stroker.enableAndHome(&endstop);    // pointer to the homing config struct
-  
-  // other initialization code
-  
-  // wait for homing to complete
-  while (Stroker.getState() != READY) {
-    delay(100);
-  }
-}
-```
-
-#### Alternate Manual Homing Procedure __[Dangerous]__
-Some machines may not have a homing switch mounted. For these you may use a manual homing procedure instead of `Stroker.enableAndHome(&endstop);`. Manually move back until the physical endstop and then call:
-```cpp
-Stroker.thisIsHome();
-```
-This enables the driver and sets the current position as `-keepoutBoundary`. It then slowly moves to 0. 
-
-__Be sure to know what you do. If this function is called while not at the physical endstop the internal coordinate system is off resulting in a certain crash! This could damage your machine!__
-
-#### Retrieve Available Patterns as JSON-String
-This is an example snippet showing how `Stroker.getNumberOfPattern()` and `Stroker.getPatternName(i)` may be used to iterate through the available patterns and composing a JSON-String.
-```cpp
-String getPatternJSON() {
-    String JSON = "[{\"";
-    for (size_t i = 0; i < Stroker.getNumberOfPattern(); i++) {
-        JSON += String(Stroker.getPatternName(i));
-        JSON += "\": ";
-        JSON += String(i, DEC);
-        if (i < Stroker.getNumberOfPattern() - 1) {
-            JSON += "},{\"";
-        } else {
-            JSON += "}]";
-        }
-    }
-    Serial.println(JSON);
-    return JSON;
-}
-```
-
-### Running
-#### Start & Stop the Stroking Action
-Use `Stroker.startPattern();` and `Stroker.stopMotion();` to start and stop the motion. Stop is immediate and with the highest possible acceleration.
-
-#### Move to the Minimum or Maximum Position
-You can move to either end of the machine for setting up reaches. Call `Stroker.moveToMin();` to move all they way back towards home. With `Stroker.moveToMax();` it moves all the way out. Takes the speed in mm/s as an argument: e.g. `Stroker.moveToMax(10.0);` Speed defaults to 10 mm/s. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state.
-
-#### Setup Optimal Depth Interactively
-In a special setup mode it will always follow the __Depth__ position. By evoking `Stroker.setupDepth();` it will start to follow the depth position whenever `Stroker.setDepth(float);` is updated. Takes the speed in mm/s as an argument: e.g. `Stroker.setupDepth(10.0);` Speed defaults to 10 mm/s. With `float Stroker.getDepth()` one may obtain the current set depth to calculate incremental updates for `Stroker.setDepth(float)`. Can be called from states `SERVO_RUNNING` and `SERVO_READY` and stops any current motion. Returns `false` if called in a wrong state. 
-
-##### Fancy Mode
-To setup the optimal depth and reach of the machine `Stroker.setupDepth(10.0, true)` evokes a special fancy adjustment mode. This allows not only to interactively adjust `depth`, but also `stroke` by using the sensation slider. `sensation` gets mapped into the interval `[depth-stroke, depth]`: `sensation = 100` adjusts `depth`-position, whereas `sensation = -100` adjusts the `stroke`-position. `sensation = 0` yields the midpoint of the stroke.
-
-#### Change Parameters
-Parameters can be updated in any state and are stored internally. On `Stroker.startMotion();` they will be used to initialize the pattern. Each one may be called individually. The argument given to the function is constrained to the physical limits of the machine:
-```cpp
-Stroker.setSpeed(float speed, bool applyNow);          // Speed in Cycles (in & out) per minute, constrained from 0.5 to 6000
-Stroker.setDepth(float depth, bool applyNow);          // Depth in mm, constrained to [0, _travel]
-Stroker.setStroke(float stroke, bool applyNow);        // Stroke length in mm, constrained to [0, _travel]
-Stroker.setSensation(float sensation, bool applyNow);  // Sensation (arbitrary value a pattern may use to alter its behavior), 
-                                                       // constrained to [-100, 100] with 0 being neutral.
-Stroker.setPattern(int index, bool applyNow);          // Pattern, index must be < Stroker.getNumberOfPattern()
-```
-Normally a parameter change is only executed after the current stroke has finished. However, sometimes it is desired to have the changes take effect immediately, even mid-stroke. In that case set the argument `bool applyNow` to `true`. 
-
-#### Readout Parameters
-Each set-function has a corresponding get-function to read out what parameters are currently set. As each set-function constrains it's input one can read back the truncated value that is actually used by the StrokeEngine. This is useful for implementing UI's.
-
-```cpp
-float Stroker.getSpeed();          // Speed in Cycles (in & out) per minute, constrained from 0.5 to 6000
-float Stroker.getDepth();          // Depth in mm, constrained to [0, _travel]
-float Stroker.getStroke();         // Stroke length in mm, constrained to [0, _travel]
-float Stroker.getSensation();      // Sensation (arbitrary value a pattern may use to alter its behavior), 
-                                   // constrained to [-100, 100] with 0 being neutral.
-int Stroker.getPattern();          // Pattern, index is [o, Stroker.getNumberOfPattern()[
-```
-
-### Advanced Functions
-Consult [StrokeEngine.h](./src/StrokeEngine.h) for further functions and a more detailed documentation of each function. Some functions are overloaded and may provide additional useful functionalities.
-#### Telemetry
-It is possible to receive telemetry information's about each trapezoidal move a pattern generates. You may register a callback function y calling `Stroker.registerTelemetryCallback(callbackTelemetry)` with the following signature `void callbackTelemetry(float position, float speed, bool clipping)`. 
