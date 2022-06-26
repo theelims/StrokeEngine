@@ -171,6 +171,7 @@ int StrokeEngine::getPattern() {
     return _patternIndex;
 }
 
+<<<<<<< Updated upstream
 bool StrokeEngine::applyNewSettingsNow() {
     motionParameter currentMotion;
 
@@ -208,6 +209,10 @@ bool StrokeEngine::applyNewSettingsNow() {
 
     // Updating not allowed
     return false;
+=======
+bool StrokeEngine::startStreaming() {
+    
+>>>>>>> Stashed changes
 }
 
 bool StrokeEngine::startPattern() {
@@ -227,10 +232,24 @@ bool StrokeEngine::startPattern() {
 
         // Reset Stroke and Motion parameters
         _index = -1;
+<<<<<<< Updated upstream
         patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
         patternTable[_patternIndex]->setStroke(_stroke);
         patternTable[_patternIndex]->setSensation(_sensation);
 #ifdef DEBUG_VERBOSE
+=======
+        if (xSemaphoreTake(_patternMutex, portMAX_DELAY) == pdTRUE) {
+            patternTable[_patternIndex]->setSpeedLimit(_maxStepPerSecond, _maxStepAcceleration, _motor->stepsPerMillimeter);
+            patternTable[_patternIndex]->setTimeOfStroke(_timeOfStroke);
+            patternTable[_patternIndex]->setStroke(_stroke);
+            patternTable[_patternIndex]->setDepth(_depth);
+            patternTable[_patternIndex]->setSensation(_sensation);            
+            xSemaphoreGive(_patternMutex);
+        }
+
+        
+#ifdef DEBUG_TALKATIVE
+>>>>>>> Stashed changes
         Serial.print(" _timeOfStroke: " + String(_timeOfStroke));
         Serial.print(" | _depth: " + String(_depth));
         Serial.print(" | _stroke: " + String(_stroke));
@@ -588,6 +607,31 @@ void StrokeEngine::emptyStreamingQueue() {
     xQueueReset(_queueStreamingHandle);
 }
 
+bool StrokeEngine::sendPositionToQueue(int targetPosition, int timeInMS) {
+    // copy function parameters into streamingSegment struct
+    static streamingSegment tempStreamingSegment;
+    // constrain relative position into valid range [0, 4096]
+    tempStreamingSegment.targetPos = constrain(targetPosition, 0, 4096);
+    tempStreamingSegment.timeToTarget = timeInMS;
+
+    // send to queue and return true on success
+    if (xQueueSend(_queueStreamingHandle, (void*) &tempStreamingSegment, 0) == pdTRUE) {
+        return true;
+    } else {
+        // return false if queue is full
+        return false;
+    };
+}
+
+void StrokeEngine::emptyStreamingQueue() {
+    //Reset queue to empty all elements
+    xQueueReset(_queueStreamingHandle);
+}
+
+void StrokeEngine::setStreamingAdjustmentSpeed(float speed) {
+
+}
+
 void StrokeEngine::_homingProcedure() {
     // Set feedrate for homing
     servo->setSpeedInHz(_homeingSpeed);       
@@ -709,6 +753,20 @@ void StrokeEngine::_stroking() {
 }
 
 void StrokeEngine::_streaming() {
+    TickType_t xLastWakeTime;
+    streamingSegment tempStreamingSegment;
+    int mappedStroke = 0;       // Intermediate variable to map relative position to stroke in steps
+    int targetStepPosition = 0; // Absolute position where to go
+    int targetStepSpeed = 0;    // Current speed accounting for acceleration compensation
+    int lastStepPosition = 0;   // Where we are currently
+    int lastStepSpeed = 0;      // the current target speed of the previous segment
+    int distance = 0;           // distance of this segment
+    int speed = 0;              // speed with infinite acceleration 
+    int strokeTarget = 0;       // target of the stroke sent to the servo. Contains a buffer length of 10ms and full deceleration to standstill
+    // tempStreamingSegment.timeToTarge: time in ms it takes to get to target
+
+    // Initialise the xLastWakeTime variable with the current time.
+    xLastWakeTime = xTaskGetTickCount();
 
     streamingSegment tempStreamingSegment;
     int mappedStroke = 0;       // Intermediate variable to map relative position to stroke in steps
@@ -724,10 +782,60 @@ void StrokeEngine::_streaming() {
         if (_state != STREAMING) {
             // empty streaming queue, so it is prepared for the next time
             emptyStreamingQueue();
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
             vTaskSuspend(_taskStreamingHandle);
         }
+
+        // Consume element from streaming queue
+        if (xQueueReceive(_queueStreamingHandle, &tempStreamingSegment, 0)) {
+
+            // Calculate real world step coordinates of next target
+            // map relative streaming position to stroke
+            mappedStroke = map(tempStreamingSegment.targetPos, 0, 4096, 0, _stroke);
+
+            // apply _depth offset
+            // TODO: offsetting speed overlay
+            targetStepPosition = (_depth - _stroke) + mappedStroke;
+            distance = abs(targetStepPosition - lastStepPosition);
+            speed = (distance * 1000 / tempStreamingSegment.timeToTarget);
+
+            // Calculate real speed with real acceleration
+            // TODO
+
+            // Perform speed boundary check
+            // TODO
+
+            // Apply continuity margin (10 ms coasting) + deceleration distance to stand still
+            strokeTarget = targetStepPosition + (speed / 100);          // add 10 ms coasting
+            strokeTarget += sq(speed)/_maxStepAcceleration;             // add deceleration distance to stand still
+            strokeTarget = constrain(strokeTarget, _minStep, _maxStep); // constrain to stay inside motion envelope of machine
+
+            // Execute speed and position target on servo
+            servo->setAcceleration(_maxStepAcceleration);
+            servo->setSpeedInHz(speed);
+            servo->moveTo(strokeTarget);
+
+            // write debug information to serial1
+
+            // Last target position will be the starting point for this segment
+            lastStepPosition = targetStepPosition;
+            lastStepSpeed = targetStepSpeed;
+            
+            // Delay until next element from queue is due
+            vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(tempStreamingSegment.timeToTarget)); 
+
+        } else {
+            // error handling for empty queue
+
+            // Delay 5 ms and check on queue again
+            vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(5)); 
+        };
+
         
+<<<<<<< Updated upstream
         // Consume element from streaming queue
         if (xQueueReceive(_queueStreamingHandle, &tempStreamingSegment, 0)) {
 
@@ -772,6 +880,8 @@ void StrokeEngine::_streaming() {
 
         // Delay 10ms 
         vTaskDelay(10 / portTICK_PERIOD_MS);
+=======
+>>>>>>> Stashed changes
     }
 }
 

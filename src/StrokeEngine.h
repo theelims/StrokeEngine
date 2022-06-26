@@ -22,7 +22,10 @@
 
 #define STREAMING_QUEUE_LENGHT 5    // Length of the streaming queue
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 /**************************************************************************/
 /*!
   @brief  Struct defining the physical propoerties of the stroking machine.
@@ -109,7 +112,11 @@ typedef struct {
 
 /**************************************************************************/
 /*!
+<<<<<<< Updated upstream
   @brief  Stroke Engine provides a conveniant package for stroking motions
+=======
+  @brief  Stroke Engine provides a convenient package for stroking motions
+>>>>>>> Stashed changes
   created by stepper or servo motors. It's internal states are handled by a 
   finite state machine. A pattern generator allows to creat a variaty of 
   motion profiles. Under the hood FastAccelStepper is used for interfacing
@@ -249,7 +256,11 @@ class StrokeEngine {
         */
         /**************************************************************************/
         bool startStreaming();
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
         /**************************************************************************/
         /*!
           @brief  Stops the motion with MAX_ACCEL and deletes the stroking task. Is
@@ -430,6 +441,33 @@ class StrokeEngine {
         /**************************************************************************/
         void emptyStreamingQueue();
 
+        /**************************************************************************/
+        /*!
+          @brief Send a position and time tuple to the streaming queue
+          @param targetPosition relative target position in intervall [0,4096]
+          @param timeInMS time in ms to reach that target position from the last position
+          @return true if enqueued correctly, false if queue is full
+        */
+        /**************************************************************************/
+        bool sendPositionToQueue(int targetPosition, int timeInMS);
+
+        /**************************************************************************/
+        /*!
+          @brief  Get the current set maximum acceleration
+          @return maximum acceleration in mm/s²
+        */
+        /**************************************************************************/
+        void emptyStreamingQueue();
+
+        /**************************************************************************/
+        /*!
+          @brief when depth or stroke changes transfer motions need to be overlayed.
+          This functions set's the speed for those transfer motions. 
+          @param speed speed in [m/s]
+        */
+        /**************************************************************************/
+        void setStreamingAdjustmentSpeed(float speed);
+
     protected:
         ServoState _state = UNDEFINED;
         motorProperties *_motor;
@@ -455,6 +493,10 @@ class StrokeEngine {
         TaskHandle_t _taskStrokingHandle = NULL;
         TaskHandle_t _taskHomingHandle = NULL;
         TaskHandle_t _taskStreamingHandle = NULL;
+<<<<<<< Updated upstream
+=======
+        SemaphoreHandle_t _patternMutex = xSemaphoreCreateMutex();
+>>>>>>> Stashed changes
         QueueHandle_t _queueStreamingHandle = NULL;
         void _applyMotionProfile(motionParameter* motion);
         void(*_callBackHomeing)(bool);
