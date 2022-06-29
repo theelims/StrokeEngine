@@ -15,6 +15,7 @@
 
 #include <pattern.h>
 #include <motor.hpp>
+#include "MotionTask.hpp"
 
 enum class StrokeParameter {
   // RATE - Range 0.5 to 6000 Strokes / Min
@@ -44,7 +45,7 @@ enum class StrokeParameter {
   motion profiles.
 */
 /**************************************************************************/
-class StrokeEngine {
+class StrokeEngine : public MotionTaskInterface {
     public:
 
         void attachMotor(MotorInterface *motor);
@@ -85,7 +86,6 @@ class StrokeEngine {
         bool isActive() { return this->active; }
     protected:
       bool active = false;
-      MotorInterface *motor;
 
       int _patternIndex = 0;
       int _index = 0;
@@ -101,9 +101,9 @@ class StrokeEngine {
       SemaphoreHandle_t _parameterMutex = xSemaphoreCreateMutex();
       void sendParameters(int patternIndex);
 
-      static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
-      void _stroking();
-      TaskHandle_t _taskStrokingHandle = NULL;
+      void motion_task_init();
+      void motion_task_event(MotionTaskEvent event);
+      void motion_task_exit() {};
 };
 
 #endif

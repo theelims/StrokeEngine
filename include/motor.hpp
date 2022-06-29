@@ -2,11 +2,12 @@
 #define MOTOR_H
 
 #include "Arduino.h"
-#include <exception.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+
+#include "MotionTask.hpp"
 //#include "freertos/semphr.h"
 
 /**
@@ -28,9 +29,6 @@ typedef struct {
                   *  sufficiently to completley drive clear from 
                   *  homing switch */
 } MachineGeometry;
-
-#define MOVEMENT_TASK_FLAG_EXIT (1 << 0)
-#define MOVEMENT_TASK_FLAG_NEXT (1 << 1)
 
 // TODO - Change flags into a FreeRTOS Event Group which allows better synchronizing on Flag State
 #define MOTOR_FLAG_ENABLED (1 << 0)
@@ -60,37 +58,76 @@ typedef enum {
   // De-energize Emergency useful for Vaginal/Anal play, where a retraction could cause pain.
   // Instead the motor itself is de-energized so no Holding Torque is experienced.
   DEENERGIZE = 1 
-} MotorEmergency
+} MotorEmergency;
 
-class MotorException extends std::exception {
+class MotorException : public std::exception {
+  public:
+    explicit MotorException(const char* message) : msg_(message) {}
 
-}
+    /** Destructor.
+     * Virtual to allow for subclassing.
+     */
+    virtual ~MotorException() noexcept {}
+
+    /** Returns a pointer to the (constant) error description.
+     *  @return A pointer to a const char*. The underlying memory
+     *          is in posession of the Exception object. Callers must
+     *          not attempt to free the memory.
+     */
+    virtual const char* what() const noexcept {
+       return msg_.c_str();
+    }
+
+protected:
+    /** Error message.
+     */
+    String msg_;
+};
+
+class MotorBusyError : public MotorException {
+  public:
+    explicit MotorBusyError(const char* message) : MotorException(message) {}
+};
+class MotorGenericError : public MotorException {
+  public:
+    explicit MotorGenericError(const char* message) : MotorException(message) {}
+};
+class MotorInvalidStateError : public MotorException {
+  public:
+    explicit MotorInvalidStateError(const char* message) : MotorException(message) {}
+};
+class MotorInMotionError : public MotorException {
+  public:
+    explicit MotorInMotionError(const char* message) : MotorException(message) {}
+};
 
 class MotorInterface {
   public:
     void enable() { this->addStatusFlag(MOTOR_FLAG_ENABLED); }
     // TODO - virtual void disable();
 
-    SemaphoreHandle_t takeSemaphore() {
-      if (this->taskSemaphore == null) {
-        this->taskSemaphore = xSemaphoreCreateBinary();
+    void lockTask(MotionTaskInterface* motionTask) {
+      // TODO - Move this to constructor
+      if (this->taskSemaphore == NULL) {
+        this->taskSemaphore = xSemaphoreCreateMutex();
+      }
+      
+      if (xSemaphoreTake( this->taskSemaphore, 100 / portTICK_PERIOD_MS ) == pdFALSE) {
+        throw MotorBusyError("Unable to attach a new Motion Task, as one is already active!");
       }
 
-      if( xSemaphoreTake( this->taskSemaphore, 100 / portTICK_PERIOD_MS ) != pdTRUE ) {
-        throw new MotorBusyError("Unable to attach a new Motion Task, as one is already active!");
-      }
-
-      this->motionTask = xGetCurrentTaskHandle();
+      this->motionTask = motionTask;
     }
-    void giveSemaphore(SemaphoreHandle_t semaphore) {
-      if (semaphore != this->taskSemaphore) {
-        throw new MotorGenericError("Attempted to release Semaphore using invalid handle!");
+
+    void unlockTask() {
+      if (this->motionTask != NULL && this->motionTask->_motionTaskHandle != xTaskGetCurrentTaskHandle()) {
+        throw MotorGenericError("Attempted to release Semaphore using invalid handle!");
       }
 
       xSemaphoreGive(this->taskSemaphore);
-      this->motionTask = null;
+      this->motionTask = NULL;
     }
-     
+    
     // Safety Bounds
     void setMachineGeometry(MachineGeometry geometry) {
       this->geometry = geometry;
@@ -110,16 +147,24 @@ class MotorInterface {
     // Motion
     virtual void goToHome();
     void goToPos(float position, float speed, float acceleration) {
+      this->checkTaskLock();
+
       // TODO - If a motion task is provided, ensure the caller is the motion task (Mutex?)
       // Ensure in ACTIVE and valid movement state
       if (!this->isInState(MotorState::ACTIVE)) {
-        throw new MotorInvalidStateError("Unable to command motion while motor is not in ACTIVE state!");
+        throw MotorInvalidStateError("Unable to command motion while motor is not in ACTIVE state!");
+      }
+
+      // TODO - Move to constructor
+      if (this->movementSemaphore == NULL) {
+        this->movementSemaphore = xSemaphoreCreateMutex();
       }
 
       // Take Semaphore for movement
       if( xSemaphoreTake( this->movementSemaphore, 1000 / portTICK_PERIOD_MS ) != pdTRUE ) {
-        throw new MotorInMotionError("Unable to acquire Motor Movement Semaphore within 1000ms. Motor currently within movement still!");
+        throw MotorInMotionError("Unable to acquire Motor Movement Semaphore within 1000ms. Motor currently within movement still!");
       }
+      this->movementInProgress = true;
 
       // Apply bounds and protections
       float safePosition = constrain(
@@ -157,32 +202,22 @@ class MotorInterface {
     }
 
     // Execute the defined Emergency behavior, disconnect Motion Task, and disable the motor
-    void emergencyStop(MotorEmergency emergency) {
-      switch (emergency) {
-        case MotorEmergency::RETRACT:
+    void emergencyStop(MotorEmergency emergency) {} // TODO - Should we wrap like unsafe pos, so disable motor/task is handled automatically?
 
-          return;
-        
-        case MotorEmergency::DEENERGIZE:
-        default:
+    // Force stops all motor motion, and abandons current Motion Command, allowing a new one to be accepted
+    void motionStop() {
+      this->checkTaskLock();
 
-          return;
-      }
+      // xSemaphoreGive(this->movementSemaphore);
     }
 
     // Force current Motion Command to be abandoned, and new one to be accepted.
     // Allows changing parameters mid-command and updating command
-    void namehere() {
+    void motionInterrupt() {
+      this->checkTaskLock();
 
+      // TODO - Stop motion
     }
-
-    // TODO - do we just enforce that the driver must call this when motion is completed?
-    void motionCompleted() {
-      if (this->motionTask) {
-        xTaskNotifyGiveIndexed(this->motionTask, notifyMovementDone);
-      }
-    }
-    bool isMotionCompleted() { return this->hasStatusFlag(MOTOR_FLAG_AT_TARGET) && !this->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE); }
 
     // Status / State flags
     MotorState getState() { return this->state; }
@@ -197,14 +232,17 @@ class MotorInterface {
     uint32_t getStatus() { return this->status; }
     bool isInState(MotorState state) { return this->state == state; }
     bool hasStatusFlag(uint32_t flag) { return (this->status & flag) > 0; }
-
+    
+    bool isMotionCompleted() { return this->hasStatusFlag(MOTOR_FLAG_AT_TARGET) && !this->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE); }
+    
   protected:
     MotorState state = MotorState::INACTIVE;
     uint32_t status = 0;
 
-    TaskHandle_t motionTask; // Task which will provide movement commands to Motor
-    SemaphoreHandle_t taskSemaphore; // Prevent more than one task being interfaced to a motor at a time
-    SemaphoreHandle_t movementSemaphore; // Prevent additional movement commands while in motion
+    MotionTaskInterface* motionTask = NULL; // Task which will provide movement commands to Motor
+    SemaphoreHandle_t taskSemaphore = NULL; // Prevent more than one task being interfaced to a motor at a time
+    SemaphoreHandle_t movementSemaphore = NULL; // Prevent additional movement commands while in motion
+    bool movementInProgress = false; // TODO - This is super hacky workaround due to motionCompleted being called before semaphore is taken
 
     void addStatusFlag(uint32_t flag) { this->status |= flag; }
     void removeStatusFlag(uint32_t flag) { this->status &= ~flag; }
@@ -236,6 +274,24 @@ class MotorInterface {
       float out_min = safeStart; float out_max = safeEnd;
 
       return (position - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    }
+    
+    // TODO - do we just enforce that the driver must call this when motion is completed?
+    void motionCompleted() {
+      if (this->movementInProgress) {
+        xSemaphoreGive( this->movementSemaphore );
+        this->movementInProgress = false;
+      }
+
+      if (this->motionTask != NULL) {
+        this->motionTask->notifyMotionTask(MotionTaskEvent::MOTION_COMPLETED);
+      }
+    }
+
+    void checkTaskLock() {
+      if (this->motionTask != NULL && this->motionTask->_motionTaskHandle != xTaskGetCurrentTaskHandle()) {
+        throw MotorGenericError("Attempted to command motion from Task that doesn't own Motion Task Semaphore!");
+      }
     }
 };
 

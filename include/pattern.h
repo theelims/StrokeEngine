@@ -12,7 +12,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <StrokeEngine.h>
 #include <math.h>
 #include "PatternMath.h"
 
