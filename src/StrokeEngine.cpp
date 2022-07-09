@@ -2,6 +2,10 @@
 #include <StrokeEngine.h>
 #include <pattern.h>
 
+StrokeEngine::StrokeEngine() {
+  this->listeners = new StrokeEngineListener*[10];
+}
+
 void StrokeEngine::attachMotor(MotorInterface* motor) {
   // store the machine geometry and motor properties pointer
   this->motor = motor;
@@ -49,7 +53,7 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
 
     case StrokeParameter::SENSATION:
       name = "Sensation";
-      debugValue = this->sensation = constrain(sensation, -100, 100); 
+      debugValue = this->sensation = constrain(value, -100, 100); 
       break;
 
     case StrokeParameter::PATTERN:
@@ -60,8 +64,11 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
   }
   
   this->sendParameters(this->_patternIndex);
+  for (int i = 0; i < this->listenerCount; i++) {
+    this->listeners[i]->engine_parameterUpdated(parameter, debugValue);
+  }
   
-  ESP_LOGD("StrokeEngine", "Stroke Parameter %s - %f", name, debugValue);
+  ESP_LOGD("StrokeEngine", "Stroke Parameter %s - %f > %f", name, value, debugValue);
   
   // When running a pattern and immediate update requested: 
   if (applyNow == true) {

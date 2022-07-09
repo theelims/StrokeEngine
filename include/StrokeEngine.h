@@ -36,6 +36,11 @@ enum class StrokeParameter {
   PATTERN
 };
 
+class StrokeEngineListener {
+  public:
+    virtual void engine_parameterUpdated(StrokeParameter parameter, float value);
+};
+
 /**************************************************************************/
 /*!
   @brief  Stroke Engine provides a convenient package for stroking motions
@@ -46,8 +51,18 @@ enum class StrokeParameter {
 /**************************************************************************/
 class StrokeEngine {
     public:
-
+        StrokeEngine();
         void attachMotor(MotorInterface *motor);
+
+        // TODO - Add a more robust event system
+        void registerListener(StrokeEngineListener* listener) {
+          if (this->listenerCount < 10) {
+            this->listeners[this->listenerCount] = listener; // TODO - Doesn't allow additional listeners
+            this->listenerCount++;
+          } else {
+            ESP_LOGE("stroke", "Unable to register listener due to max count reached!");
+          }
+        }
 
         /*!
           @brief Sets an internal Pattern Parameter. Takes effect on next stroke unless applyNow isused
@@ -86,6 +101,9 @@ class StrokeEngine {
     protected:
       bool active = false;
       MotorInterface *motor;
+
+      StrokeEngineListener** listeners;
+      int listenerCount = 0;
 
       int _patternIndex = 0;
       int _index = 0;

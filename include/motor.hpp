@@ -37,9 +37,6 @@ typedef struct {
 #define MOTOR_FLAG_MOTION_ACTIVE (1 << 5)
 #define MOTOR_FLAG_HOMED (1 << 6)
 
-#define MOTOR_FLAG_OVERHEATING (1 << 7)
-#define MOTOR_FLAG_OVERFORCE (1 << 8)
-
 typedef enum {
   INACTIVE = 0,
   ACTIVE = 1,
@@ -80,7 +77,7 @@ class MotorInterface {
         this->maxPosition
       );
       float safeSpeed = constrain(speed, 0, this->maxSpeed);
-      float safeAcceleration = constrain(acceleration, 0, this->maxAcceleration);
+      float safeAcceleration = constrain(acceleration, 1, this->maxAcceleration);
       
       if (safePosition != position) {
         ESP_LOGW("motor", "Clipped position to fit within bounds! %05.1f was clipped to %05.1f", position, safePosition);
@@ -104,7 +101,7 @@ class MotorInterface {
       this->currentAcceleration = safeAcceleration;
 
       // TODO - Add logging based on tags. Allows user to filter out these without filtering other debug messages
-      ESP_LOGD("motor", "Going to position %05.1f mm @ %05.1f m/s, %05.1f m/s^2", safePosition, safeSpeed, safeAcceleration);
+      ESP_LOGD("motor", "Going to position %05.1f mm @ %05.1f mm/s, %05.1f mm/s^2", safePosition, safeSpeed, safeAcceleration);
       this->unsafeGoToPos(safePosition, safeSpeed, safeAcceleration);
     }
     virtual void stopMotion();
