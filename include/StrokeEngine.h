@@ -10,22 +10,20 @@
  */
 
 #pragma once
-#ifndef STROKE_ENGINE_H
-#define STROKE_ENGINE_H
 
 #include <pattern.h>
-#include <motor.hpp>
+#include <motor.h>
 
 enum class StrokeParameter {
   // RATE - Range 0.5 to 6000 Strokes / Min
   // Can allow better control typically than just SPEED, as other machines use
   RATE,
 
-  // DEPTH - Range is constrainted by motionBounds from MotorInterface
+  // DEPTH - Range is constrained by motionBounds from MotorInterface
   // Is the point at which the stroke ends
   DEPTH, 
 
-  // STROKE - Range is constrainted by motionBounds from MotorInterface
+  // STROKE - Range is constrained by motionBounds from MotorInterface
   // How far the stroke will retract from DEPTH point
   STROKE, 
 
@@ -50,7 +48,7 @@ class StrokeEngine {
         void attachMotor(MotorInterface *motor);
 
         /*!
-          @brief Sets an internal Pattern Parameter. Takes effect on next stroke unless applyNow isused
+          @brief Sets an internal Pattern Parameter. Takes effect on next stroke unless applyNow issued
           @param value See StrokeParameter documentation for constraints placed on value
           @param applyNow Set to true if changes should take effect immediately 
         */
@@ -82,7 +80,7 @@ class StrokeEngine {
           return patternTableSize; 
         };
 
-        bool isActive() { return this->active; }
+        bool isActive() { return active; }
     protected:
       bool active = false;
       MotorInterface *motor;
@@ -99,11 +97,10 @@ class StrokeEngine {
       bool applyUpdate = false;
 
       SemaphoreHandle_t _parameterMutex = xSemaphoreCreateMutex();
-      void sendParameters(int patternIndex);
+      void _sendParameters(int patternIndex);
 
       static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
       void _stroking();
       TaskHandle_t _taskStrokingHandle = NULL;
 };
 
-#endif

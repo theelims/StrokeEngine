@@ -1,10 +1,9 @@
-#ifndef MOTOR_IHSV57_H
-#define MOTOR_IHSV57_H
+#pragma once
 
 #include <time.h>
 #include <FastAccelStepper.h>
 
-#include "motor.hpp"
+#include "motor.h"
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 
@@ -32,4 +31,3 @@ class IHSV57Motor: public MotorInterface {
     bool hasInitialized = false;
 };
 
-#endif

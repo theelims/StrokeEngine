@@ -29,7 +29,7 @@
 */
 /**************************************************************************/
 typedef struct {
-    int stroke;         //!< Absolute and properly constrainted target position of a move in steps 
+    int stroke;         //!< Absolute and properly constrained target position of a move in steps 
     int speed;          //!< Speed of a move in Steps/second 
     int acceleration;   //!< Acceleration to get to speed or halt 
     bool skip;          //!< no valid stroke, skip this set an query for the next --> allows pauses between strokes
@@ -40,13 +40,13 @@ typedef struct {
 /*!
   @class Pattern 
   @brief  Base class to derive your pattern from. Offers a unified set of
-          functions to store all relevant paramteres. These function can be
-          overridenid necessary. Pattern should be self-containted and not 
+          functions to store all relevant parameters. These function can be
+          overriden if necessary. Pattern should be self-contained and not 
           rely on any stepper/servo related properties. Internal book keeping
           is done in steps. The translation from real word units to steps is
           provided by the StrokeEngine. Also the sanity check whether motion
           parameters are physically possible are done by the StrokeEngine. 
-          Imposible motion commands are clipped, cropped or adjusted while 
+          Impossible motion commands are clipped, cropped or adjusted while 
           still having a smooth appearance.  
 */
 /**************************************************************************/
@@ -83,7 +83,7 @@ class Pattern {
         */
         virtual void setSensation(float sensation) { _sensation = sensation; } 
 
-        //! Retrives the name of a pattern
+        //! Retrieves the name of a pattern
         /*! 
           @return c_string containing the name of a pattern 
         */
@@ -92,7 +92,7 @@ class Pattern {
         //! Calculate the position of the next stroke based on the various parameters
         /*! 
           @param index index of a stroke. Increments with every new stroke. 
-          @return Set of motion parameteres like speed, acceleration & position
+          @return Set of motion parameters like speed, acceleration & position
         */
         virtual motionParameter nextTarget(unsigned int index) {
             _index = index;
@@ -392,7 +392,7 @@ class HalfnHalf : public Pattern {
 /**************************************************************************/
 /*!
   @brief  The insertion depth ramps up gradually with each stroke until it
-  reaches its maximum. It then resets and restars. Sensations controls how 
+  reaches its maximum. It then resets and restarts. Sensations controls how 
   many strokes there are in a ramp.
 */
 /**************************************************************************/
@@ -692,7 +692,7 @@ class JackHammer : public Pattern {
                 // even stroke is shaking in
                 } else {
                     // limit range to _depth
-                    // TODO - Fix this - _nextMove.stroke = min((_nextMove.stroke + _inVibrationDistance), _depth);
+                    _nextMove.stroke = min((_nextMove.stroke + _inVibrationDistance), _depth);
                 }
             }
             _index = index;
