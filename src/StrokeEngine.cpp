@@ -1,15 +1,9 @@
 #include <Arduino.h>
-#include <StrokeEngine.h>
-#include <pattern.h>
+#include <engines/stroke.hpp>
 
 StrokeEngine::StrokeEngine() {
   this->listeners = new StrokeEngineListener*[10];
-}
 
-void StrokeEngine::attachMotor(MotorInterface* motor) {
-  // store the machine geometry and motor properties pointer
-  this->motor = motor;
-        
   // Initialize with default values
   this->maxDepth = motor->getMaxPosition();
   this->depth = this->maxDepth; 
@@ -22,8 +16,6 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
   ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke = %f", this->stroke);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke Rate = %f", this->strokeRate);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Sensation = %f", this->sensation);
-
-  ESP_LOGI("StrokeEngine", "Attached Motor succesfully to Stroke Engine!");
 }
 
 void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow) {
@@ -136,34 +128,14 @@ bool StrokeEngine::startPattern() {
     xSemaphoreGive(_parameterMutex);
   }
 
-  if (_taskStrokingHandle == NULL) {
-    // Create Stroke Task
-    xTaskCreatePinnedToCore(
-      this->_strokingImpl,    // Function that should be called
-      "Stroking",             // Name of the task (for debugging)
-      4096,                   // Stack size (bytes)
-      this,                   // Pass reference to this class instance
-      24,                     // Pretty high task priority
-      &_taskStrokingHandle,   // Task handle
-      1                       // Pin to application core
-    ); 
-  } else {
-    // Resume task, if it already exists
-    vTaskResume(_taskStrokingHandle);
-  }
-  this->active = true;
+  this->startMotion();
 
   return true;
 }
 
 void StrokeEngine::stopPattern() {
   ESP_LOGI("StrokeEngine", "Suspending Pattern!");
-
-  if (_taskStrokingHandle != NULL) {
-    vTaskSuspend(_taskStrokingHandle);
-  }
-  this->active = false;
-  this->motor->stopMotion();
+  this->stopMotion();
 }
 
 String StrokeEngine::getPatternName(int index) {

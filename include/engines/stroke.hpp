@@ -13,8 +13,8 @@
 #ifndef STROKE_ENGINE_H
 #define STROKE_ENGINE_H
 
+#include "engine.hpp"
 #include <pattern.h>
-#include <motor.hpp>
 
 enum class StrokeParameter {
   // RATE - Range 0.5 to 6000 Strokes / Min
@@ -49,10 +49,9 @@ class StrokeEngineListener {
   motion profiles.
 */
 /**************************************************************************/
-class StrokeEngine {
+class StrokeEngine : public Engine {
     public:
         StrokeEngine();
-        void attachMotor(MotorInterface *motor);
 
         // TODO - Add a more robust event system
         void registerListener(StrokeEngineListener* listener) {
@@ -96,12 +95,7 @@ class StrokeEngine {
         unsigned int getNumberOfPattern() { 
           return patternTableSize; 
         };
-
-        bool isActive() { return this->active; }
     protected:
-      bool active = false;
-      MotorInterface *motor;
-
       StrokeEngineListener** listeners;
       int listenerCount = 0;
 
@@ -119,9 +113,7 @@ class StrokeEngine {
       SemaphoreHandle_t _parameterMutex = xSemaphoreCreateMutex();
       void sendParameters(int patternIndex);
 
-      static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
       void _stroking();
-      TaskHandle_t _taskStrokingHandle = NULL;
 };
 
 #endif
