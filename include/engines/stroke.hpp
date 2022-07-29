@@ -52,6 +52,7 @@ class StrokeEngineListener {
 class StrokeEngine : public Engine {
     public:
         StrokeEngine();
+        void attachMotor(MotorInterface *motor);
 
         // TODO - Add a more robust event system
         void registerListener(StrokeEngineListener* listener) {

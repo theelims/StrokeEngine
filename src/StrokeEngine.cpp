@@ -3,8 +3,11 @@
 
 StrokeEngine::StrokeEngine() {
   this->listeners = new StrokeEngineListener*[10];
+}
 
-  // Initialize with default values
+void StrokeEngine::attachMotor(MotorInterface *motor) {
+  Engine::attachMotor(motor);
+
   this->maxDepth = motor->getMaxPosition();
   this->depth = this->maxDepth; 
   this->stroke = this->maxDepth / 3;
