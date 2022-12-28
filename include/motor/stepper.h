@@ -27,18 +27,19 @@ typedef struct {
 
 class StepperMotor: public MotorInterface {
   public:
-    void enable() { addStatusFlag(MOTOR_FLAG_ENABLED); }
-    void disable() { removeStatusFlag(MOTOR_FLAG_ENABLED); }
+    StepperMotor(motorProperties *motor) { _motor = motor; }
+    void enable();
+    void disable();
 
     // Motion
-    void goToHome();
-    void stopMotion();
-    void motionCompleted();
-    void goToHome(float speed = 5.0);
-    void goToHome(void(*callBackHoming)(bool), float speed = 5.0);
+    void stop()
+    void motionCompleted()
+    void home()
+    void home(float speed = 5.0)
+    void home(void(*callBackHoming)(bool), float speed = 5.0)
 
     // Stepper
-    void init(motorProperties *motor);
+    void init(motorProperties *motor)
 
     // Assumes always homing to back of machine for safety
     void setSensoredHoming(int homePin = 0, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true);
@@ -52,6 +53,7 @@ class StepperMotor: public MotorInterface {
 
   private:
     FastAccelStepper *stepper;
+    int _stepPerMm; 
     bool hasInitialized = false;
     motorProperties *_motor;
     static void _homingProcedureImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_homingProcedure(); }

@@ -62,7 +62,7 @@ class StrokeEngine {
         bool startPattern();
 
         /*! @brief Stops Pattern execution, and instructs the motor to immediately stop motion */
-        void stopPattern();
+        void stopMotion();
 
         /*!
           @brief  Allows fetching Pattern names for UIs
@@ -81,6 +81,7 @@ class StrokeEngine {
         };
 
         bool isActive() { return active; }
+        
     protected:
       bool active = false;
       MotorInterface *motor;

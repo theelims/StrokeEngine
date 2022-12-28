@@ -54,7 +54,7 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
 
     case StrokeParameter::PATTERN:
       name = "Pattern";
-      debugValue = _patternIndex = value;
+      debugValue = _patternIndex = value; //TODO: Check for validity
       _index = 0;
       break;
   }
@@ -82,11 +82,11 @@ void StrokeEngine::_sendParameters(int patternIndex) {
     motor->getMaxSpeed(), 
     motor->getMaxAcceleration(),
     1
-  );
+  ); //TODO: Should not be part of a pattern --> delete
 
   patternTable[patternIndex]->setTimeOfStroke(constrain(60.0 / strokeRate, 0.01, 120.0));
   patternTable[patternIndex]->setStroke(constrain(int(stroke), 0, depth));
-  patternTable[patternIndex]->setDepth(depth);
+  patternTable[patternIndex]->setDepth(depth); //TODO: Should not be part of a pattern --> delete
   patternTable[patternIndex]->setSensation(sensation);
 }
 
@@ -118,7 +118,7 @@ bool StrokeEngine::startPattern() {
   ESP_LOGE("StrokeEngine", "Starting pattern %s", pattern->getName());
 
   // Stop current move, should one be pending (moveToMax or moveToMin)
-  if (motor->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE)) {
+  if (motor->motionCompleted == false) {
     motor->stopMotion();
   }
 
@@ -149,7 +149,7 @@ bool StrokeEngine::startPattern() {
   return true;
 }
 
-void StrokeEngine::stopPattern() {
+void StrokeEngine::stopMotion() {
   ESP_LOGI("StrokeEngine", "Suspending Pattern!");
   active = false;
   motor->stopMotion();
@@ -167,7 +167,7 @@ String StrokeEngine::getPatternName(int index) {
 void StrokeEngine::_stroking() {
     motionParameter currentMotion;
 
-    SemaphoreHandle_t semaphore = motor->claimMotorControl();
+    //SemaphoreHandle_t semaphore = motor->claimMotorControl();
 
     while(1) { // infinite loop
 
@@ -202,7 +202,7 @@ void StrokeEngine::_stroking() {
             }
 
             // If motor has stopped issue moveTo command to next position
-            else if (motor->hasStatusFlag(MOTOR_FLAG_AT_TARGET)) {
+            else if (motor->motionCompleted()) {
                 // Increment index for pattern
                 _index++;
 
@@ -229,17 +229,8 @@ void StrokeEngine::_stroking() {
             xSemaphoreGive(_parameterMutex);
         }
         
-        // Delay 1ms while waiting for an Movement Exit notification
-        BaseType_t xResult = xTaskNotifyWait(notifyMovementExit, 0, 0, NULL, 10 / portTICK_PERIOD_MS);
-        if (xResult & MOVEMENT_TASK_FLAG_EXIT) {
-          // Exit was requested
-          motor->releaseMotorControl(semaphore);
-          stopPattern();
-        }
-
-        if (xResult & MOVEMENT_TASK_FLAG_NEXT) {
-          currentMotion = patternTable[_patternIndex]->nextTarget(_index);
-        }
+        // Delay 10ms 
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 

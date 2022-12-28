@@ -12,7 +12,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <StrokeEngine.h>
+#include "StrokeEngine.h"
 #include <math.h>
 #include "PatternMath.h"
 
@@ -29,9 +29,9 @@
 */
 /**************************************************************************/
 typedef struct {
-    int stroke;         //!< Absolute and properly constrained target position of a move in steps 
-    int speed;          //!< Speed of a move in Steps/second 
-    int acceleration;   //!< Acceleration to get to speed or halt 
+    float stroke;         //!< Absolute and properly constrained target position of a move in steps 
+    float speed;          //!< Speed of a move in Steps/second 
+    float acceleration;   //!< Acceleration to get to speed or halt 
     bool skip;          //!< no valid stroke, skip this set an query for the next --> allows pauses between strokes
 } motionParameter;
 
@@ -71,12 +71,6 @@ class Pattern {
         */
         virtual void setStroke(float stroke) { _stroke = stroke; }
 
-        //! Set the maximum depth a pattern may have
-        /*! 
-          @param stroke stroke distance in Steps 
-        */
-        virtual void setDepth(float depth) { _depth = depth; }
-
         //! Sensation is an additional parameter a pattern can take to alter its behaviour
         /*! 
           @param sensation Arbitrary value from -100 to 100, with 0 beeing neutral 
@@ -92,35 +86,24 @@ class Pattern {
         //! Calculate the position of the next stroke based on the various parameters
         /*! 
           @param index index of a stroke. Increments with every new stroke. 
+          @param retract this is a hint StrokeEngine gives 
           @return Set of motion parameters like speed, acceleration & position
         */
-        virtual motionParameter nextTarget(unsigned int index) {
+        virtual motionParameter nextTarget(unsigned int index, bool retract = false) {
             _index = index;
             return _nextMove;
         } 
 
-        //! Communicates the maximum possible speed and acceleration limits of the machine to a pattern.
-        /*! 
-          @param maxSpeed maximum speed which is possible. Higher speeds get truncated inside StrokeEngine anyway.
-          @param maxAcceleration maximum possible acceleration. Get also truncated, if impossible.
-          @param stepsPerMM 
-        */
-        virtual void setSpeedLimit(unsigned int maxSpeed, unsigned int maxAcceleration, unsigned int stepsPerMM) { _maxSpeed = maxSpeed; _maxAcceleration = maxAcceleration; _stepsPerMM = stepsPerMM; } 
-
     protected:
         float _stroke;
-        float _depth;
         float _timeOfStroke;
         float _sensation = 0.0;
-
+        const float _infinite = 1.0e30; // an approximation for infinite should maximum machine speed and acceleration are needed.
         int _index = -1;
         char _name[STRING_LEN]; 
-        motionParameter _nextMove = {0, 0, 0, false};
+        motionParameter _nextMove = {0.0, 0.0, 0.0, false};
         int _startDelayMillis = 0;
         int _delayInMillis = 0;
-        unsigned int _maxSpeed = 0;
-        unsigned int _maxAcceleration = 0;
-        unsigned int _stepsPerMM = 0;
 
         /*!
           @brief Start a delay timer which can be polled by calling _isStillDelayed(). 
@@ -150,47 +133,11 @@ class Pattern {
 
 };
 
-/**************************************************************************/
-/*!
-  @brief  Simple Stroke Pattern. It creates a trapezoidal stroke profile
-  with 1/3 acceleration, 1/3 coasting, 1/3 deceleration. Sensation has 
-  no effect.
-*/
-/**************************************************************************/
-class SimpleStroke : public Pattern {
-    public:
-        SimpleStroke(const char *str) : Pattern(str) {}
-
-        void setTimeOfStroke(float speed = 0) { 
-             // In & Out have same time, so we need to divide by 2
-            _timeOfStroke = 0.5 * speed; 
-        }   
-
-        motionParameter nextTarget(unsigned int index) {
-            // maximum speed of the trapezoidal motion 
-            _nextMove.speed = 1.5 * _stroke/_timeOfStroke;
-
-            // acceleration to meet the profile
-            _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfStroke;
-
-            // odd stroke is moving out    
-            if (index % 2) {
-                _nextMove.stroke = _depth - _stroke;
-            
-            // even stroke is moving in
-            } else {
-                _nextMove.stroke = _depth;
-            }
-
-            _index = index;
-            return _nextMove;
-        }
-};
 
 /**************************************************************************/
 /*!
   @brief  Simple pattern where the sensation value can change the speed 
-  ratio between in and out. Sensation > 0 make the in move faster (up to 5x)
+  ratio between in and out. Sensation > 0 make the in move faster (up to 3x)
   giving a hard pounding sensation. Values < 0 make the out move going 
   faster. This gives a more pleasing sensation. The time for the overall 
   stroke remains the same. 
@@ -207,23 +154,23 @@ class TeasingPounding : public Pattern {
             _timeOfStroke = speed;
             _updateStrokeTiming();
         }
-        motionParameter nextTarget(unsigned int index) {
+        mmotionParameter nextTarget(unsigned int index, bool retract = false) {
             // odd stroke is moving out
             if (index % 2) {
                 // maximum speed of the trapezoidal motion
-                _nextMove.speed = int(1.5 * _stroke/_timeOfOutStroke);
+                _nextMove.speed = 1.5 * _stroke/_timeOfOutStroke;
 
                 // acceleration to meet the profile                  
-                _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfOutStroke);    
-                _nextMove.stroke = _depth - _stroke;
+                _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfOutStroke;    
+                _nextMove.stroke = 0;
             // even stroke is moving in
             } else {
                 // maximum speed of the trapezoidal motion
-                _nextMove.speed = int(1.5 * _stroke/_timeOfInStroke); 
+                _nextMove.speed = 1.5 * _stroke/_timeOfInStroke; 
      
                 // acceleration to meet the profile            
-                _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfInStroke);    
-                _nextMove.stroke = _depth;
+                _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfInStroke;    
+                _nextMove.stroke = _stroke;
             }
             _index = index;
             return _nextMove;
@@ -235,7 +182,7 @@ class TeasingPounding : public Pattern {
         void _updateStrokeTiming() {
             // calculate the time it takes to complete the faster stroke
             // Division by 2 because reference is a half stroke
-            _timeOfFastStroke = (0.5 * _timeOfStroke) / fscale(0.0, 100.0, 1.0, 5.0, abs(_sensation), 0.0);
+            _timeOfFastStroke = (0.5 * _timeOfStroke) / fscale(0.0, 100.0, 1.0, 3.0, abs(_sensation), 0.0);
             // positive sensation, in is faster
             if (_sensation > 0.0) {
                 _timeOfInStroke = _timeOfFastStroke;
@@ -283,21 +230,20 @@ class RoboStroke : public Pattern {
 #endif
         }
 
-        motionParameter nextTarget(unsigned int index) {
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
             // maximum speed of the trapezoidal motion
-            float speed = float(_stroke) / ((1 - _x) * _timeOfStroke);
-            _nextMove.speed = int(speed); 
+            _nextMove.speed = _stroke / ((1 - _x) * _timeOfStroke);
 
             // acceleration to meet the profile
-            _nextMove.acceleration = int(speed / (_x * _timeOfStroke));
+            _nextMove.acceleration = _nextMove.speed / (_x * _timeOfStroke);
 
             // odd stroke is moving out    
             if (index % 2) {
-                _nextMove.stroke = _depth - _stroke;
+                _nextMove.stroke = 0;
             
             // even stroke is moving in
             } else {
-                _nextMove.stroke = _depth;
+                _nextMove.stroke = _stroke;
             }
 
             _index = index;
@@ -311,7 +257,7 @@ class RoboStroke : public Pattern {
 /*!
   @brief  Like Teasing or Pounding, but every second stroke is only half the
   depth. The sensation value can change the speed ratio between in and out. 
-  Sensation > 0 make the in move faster (up to 5x) giving a hard pounding 
+  Sensation > 0 make the in move faster (up to 3x) giving a hard pounding 
   sensation. Values < 0 make the out move going faster. This gives a more 
   pleasing sensation. The time for the overall stroke remains the same for
   all strokes, even half ones. 
@@ -328,7 +274,7 @@ class HalfnHalf : public Pattern {
             _timeOfStroke = speed;
             _updateStrokeTiming();
         }
-        motionParameter nextTarget(unsigned int index) {
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
             // check if this is the very first 
             if (index == 0) {
               //pattern started for the very fist time, so we start gentle with a half move
@@ -336,7 +282,7 @@ class HalfnHalf : public Pattern {
             }
 
             // set-up the stroke length
-            int stroke = _stroke;
+            float stroke = _stroke;
             if (_half == true) {
                 // half the stroke length
                 stroke = _stroke / 2;
@@ -345,21 +291,21 @@ class HalfnHalf : public Pattern {
             // odd stroke is moving out
             if (index % 2) {
                 // maximum speed of the trapezoidal motion
-                _nextMove.speed = int(1.5 * stroke/_timeOfOutStroke);  
+                _nextMove.speed = 1.5 * stroke/_timeOfOutStroke;  
 
                 // acceleration to meet the profile                  
-                _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfOutStroke);    
-                _nextMove.stroke = _depth - _stroke;
+                _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfOutStroke;    
+                _nextMove.stroke = 0;
                 // every second move is half
                 _half = !_half;
             // even stroke is moving in
             } else {
                 // maximum speed of the trapezoidal motion
-                _nextMove.speed = int(1.5 * stroke/_timeOfInStroke);  
+                _nextMove.speed = 1.5 * stroke/_timeOfInStroke;  
      
                 // acceleration to meet the profile            
-                _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfInStroke);    
-                _nextMove.stroke = (_depth - _stroke) + stroke;  
+                _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfInStroke;    
+                _nextMove.stroke = stroke;  
             }
             _index = index;
             return _nextMove;
@@ -372,7 +318,7 @@ class HalfnHalf : public Pattern {
         void _updateStrokeTiming() {
             // calculate the time it takes to complete the faster stroke
             // Division by 2 because reference is a half stroke
-            _timeOfFastStroke = (0.5 * _timeOfStroke) / fscale(0.0, 100.0, 1.0, 5.0, abs(_sensation), 0.0);
+            _timeOfFastStroke = (0.5 * _timeOfStroke) / fscale(0.0, 100.0, 1.0, 3.0, abs(_sensation), 0.0);
             // positive sensation, in is faster
             if (_sensation > 0.0) {
                 _timeOfInStroke = _timeOfFastStroke;
@@ -419,9 +365,9 @@ class Deeper : public Pattern {
 #endif
         }
 
-        motionParameter nextTarget(unsigned int index) {
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
             // How many steps is each stroke advancing         
-            int slope = _stroke / (_countStrokesForRamp);
+            float slope = _stroke / float(_countStrokesForRamp);
 
             // The pattern recycles so we use modulo to get a cycling index.
             // Factor 2 because index increments with each full stroke twice
@@ -432,25 +378,25 @@ class Deeper : public Pattern {
             // sensation is adjusted.
 
             // Amplitude is slope * cycleIndex
-            int amplitude = slope * cycleIndex;
+            float amplitude = slope * float(cycleIndex;)
 #ifdef DEBUG_PATTERN
             Serial.println("amplitude: " + String(amplitude)
                          + " cycleIndex: " + String(cycleIndex));
 #endif
 
             // maximum speed of the trapezoidal motion 
-            _nextMove.speed = int(1.5 * amplitude/_timeOfStroke); 
+            _nextMove.speed = 1.5 * amplitude/_timeOfStroke; 
 
             // acceleration to meet the profile
-            _nextMove.acceleration = int(3.0 * _nextMove.speed/_timeOfStroke);
+            _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfStroke;
 
             // odd stroke is moving out    
             if (index % 2) {
-                _nextMove.stroke = _depth - _stroke;
+                _nextMove.stroke = 0;
             
             // even stroke is moving in
             } else {
-                _nextMove.stroke = (_depth - _stroke) + amplitude;
+                _nextMove.stroke = amplitude;
             }
 
             _index = index;
@@ -485,19 +431,19 @@ class StopNGo : public Pattern {
             _updateDelay(map(sensation, -100, 100, 100, 10000));
         }
 
-        motionParameter nextTarget(unsigned int index) {
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
             // maximum speed of the trapezoidal motion 
-            _nextMove.speed = int(1.5 * _stroke/_timeOfStroke); 
+            _nextMove.speed = 1.5 * _stroke/_timeOfStroke; 
 
             // acceleration to meet the profile
-            _nextMove.acceleration = int(3.0 * _nextMove.speed/_timeOfStroke);
+            _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfStroke;
 
             // adds a delay between each stroke
             if (_isStillDelayed() == false) {
 
                 // odd stroke is moving out    
                 if (index % 2) {
-                    _nextMove.stroke = _depth - _stroke;
+                    _nextMove.stroke = 0;
 
                     if (_strokeIndex >= _strokeSeriesIndex) {
                         // Reset stroke index to 1
@@ -527,7 +473,7 @@ class StopNGo : public Pattern {
 
                 // even stroke is moving in
                 } else {
-                    _nextMove.stroke = _depth;
+                    _nextMove.stroke = _stroke;
                     // Increment stroke index by one
                     _strokeIndex++;
                 }
@@ -583,7 +529,7 @@ class Insist : public Pattern {
             _updateStrokeTiming();
         }
 
-        motionParameter nextTarget(unsigned int index) {
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
 
             // acceleration & speed to meet the profile
             _nextMove.acceleration = _acceleration;
@@ -592,21 +538,21 @@ class Insist : public Pattern {
             if (_strokeInFront) {
                 // odd stroke is moving out
                 if (index % 2) {
-                    _nextMove.stroke = _depth - _realStroke;
+                    _nextMove.stroke = _stroke - _realStroke;
 
                 // even stroke is moving in
                 } else {
-                    _nextMove.stroke = _depth;  
+                    _nextMove.stroke = _stroke;  
                 }
 
             } else {
                 // odd stroke is moving out    
                 if (index % 2) {
-                    _nextMove.stroke = _depth - _stroke;
+                    _nextMove.stroke = 0;
                     
                 // even stroke is moving in
                 } else {
-                    _nextMove.stroke = (_depth - _stroke) + _realStroke;                
+                    _nextMove.stroke = _realStroke;                
                 }
             }
 
@@ -616,20 +562,20 @@ class Insist : public Pattern {
         }
 
     protected:
-        int _speed = 0;
-        int _acceleration = 0;
-        int _realStroke = 0;
+        float _speed = 0.0;
+        float _acceleration = 0.0;
+        float _realStroke = 0.0;
         float _strokeFraction = 1.0;
         bool _strokeInFront = false;
         void _updateStrokeTiming() {
             // maximum speed of the longest trapezoidal motion (full stroke)
-            _speed = int(1.5 * _stroke/_timeOfStroke);
+            _speed = 1.5 * _stroke/_timeOfStroke;
 
             // Acceleration to hold 1/3 profile with fractional strokes
-            _acceleration = int(3.0 * _nextMove.speed/(_timeOfStroke * _strokeFraction));
+            _acceleration = 3.0 * _speed/(_timeOfStroke * _strokeFraction);
 
             // Calculate fractional stroke length
-            _realStroke = int((float)_stroke * _strokeFraction);
+            _realStroke = _stroke * _strokeFraction;
         }
 
 };
@@ -656,24 +602,19 @@ class JackHammer : public Pattern {
             _stroke = stroke;
             _updateVibrationParameters();
         }
-        void setSpeedLimit(unsigned int maxSpeed, unsigned int maxAcceleration, unsigned int stepsPerMM) { 
-            _maxSpeed = maxSpeed; 
-            _maxAcceleration = maxAcceleration; 
-            _stepsPerMM = stepsPerMM;
-            _updateVibrationParameters(); 
-        }
-        motionParameter nextTarget(unsigned int index) {
+
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
 
             // revert position for the first move or if depth is exceeded
-            if (index == 0 || _nextMove.stroke >= _depth) {
+            if (index == 0 || _nextMove.stroke >= _stroke || retract == true) {
                 // Return strokes goes at regular speed without vibration back to 0
 
                 // maximum speed of the trapezoidal motion
-                _nextMove.speed = int(1.5 * _stroke/_timeOfStroke);  
+                _nextMove.speed = 1.5 * _stroke/_timeOfStroke;  
                 // acceleration to meet the profile                  
-                _nextMove.acceleration = int(3.0 * float(_nextMove.speed)/_timeOfStroke);  
+                _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfStroke;  
                 // all they way out to start
-                _nextMove.stroke = _depth - _stroke;
+                _nextMove.stroke = 0;
                 // we are done here
                 return _nextMove;
             }
@@ -683,8 +624,8 @@ class JackHammer : public Pattern {
             if (index != _index) {
              
                 // Vibration happens at maximum speed and acceleration of the machine
-                _nextMove.speed = _maxSpeed;
-                _nextMove.acceleration = _maxAcceleration;
+                _nextMove.speed = _infinite;
+                _nextMove.acceleration = _infinite;
 
                 // odd stroke is shaking out
                 if (index % 2) {  
@@ -692,22 +633,22 @@ class JackHammer : public Pattern {
                 // even stroke is shaking in
                 } else {
                     // limit range to _depth
-                    _nextMove.stroke = min((_nextMove.stroke + _inVibrationDistance), _depth);
+                    _nextMove.stroke = min((_nextMove.stroke + _inVibrationDistance), _stroke);
                 }
             }
             _index = index;
             return _nextMove;
         }
     protected:
-        int _inVibrationDistance = 0;
-        int _outVibrationDistance = 0;
-        int _strokeInSpeed = 0;
+        float _inVibrationDistance = 0.0;
+        float _outVibrationDistance = 0.0;
+        float _strokeInSpeed = 0.0;
         void _updateVibrationParameters() {
             // Hammering in takes considerable longer then backing off
-            _strokeInSpeed = int(0.5 * _stroke/_timeOfStroke);
+            _strokeInSpeed = 0.5 * _stroke/_timeOfStroke;
 
             // Scale vibration amplitude from 1mm to 15mm with sensation
-            _inVibrationDistance = (int)fscale(-100.0, 100.0, (float)(3.0*_stepsPerMM), (float)(25.0*_stepsPerMM), _sensation, 0.0);
+            _inVibrationDistance = fscale(-100.0, 100.0, 1.0, 15.0, _sensation, 0.0);
 
             /* Calculate _outVibrationDistance to match with stroking speed
                d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
@@ -744,22 +685,17 @@ class StrokeNibbler : public Pattern {
             _stroke = stroke;
             _updateVibrationParameters();
         }
-        void setSpeedLimit(unsigned int maxSpeed, unsigned int maxAcceleration, unsigned int stepsPerMM) { 
-            _maxSpeed = maxSpeed; 
-            _maxAcceleration = maxAcceleration; 
-            _stepsPerMM = stepsPerMM;
-            _updateVibrationParameters(); 
-        }
-        motionParameter nextTarget(unsigned int index) {
+
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
 
             // revert position to start for the first stroke
             if (index == 0) {
                 // Set motion parameter
                 _nextMove.speed = int(1.5 * _stroke/_timeOfStroke);
-                _nextMove.acceleration = _maxAcceleration;
+                _nextMove.acceleration = _infinite;
 
                 // go to back position
-                _nextMove.stroke = _depth - _stroke;
+                _nextMove.stroke = 0.0;
 
                 // store index and return
                 _index = index;
@@ -771,10 +707,10 @@ class StrokeNibbler : public Pattern {
             _nextMove.acceleration = _maxAcceleration;
 
             // check if we have reached one of the ends and reverse direction
-            if (_nextMove.stroke >= _depth) {
+            if (_nextMove.stroke >= _stroke || retract == true) {
                 _returnStroke = true;
             } 
-            if (_nextMove.stroke <= (_depth - _stroke)) {
+            if (_nextMove.stroke <= 0) {
                 _returnStroke = false;
             }
 
@@ -784,8 +720,8 @@ class StrokeNibbler : public Pattern {
                     // long vibration distance on way out
                     // odd stroke is shaking out
                     if (index % 2) {  
-                        // limit stroke to _depth - _stroke
-                        // TODO - Fix this - _nextMove.stroke = max(_nextMove.stroke - _inVibrationDistance, _depth - _stroke);
+                        // limit stroke to 0
+                        _nextMove.stroke = max(_nextMove.stroke - _inVibrationDistance, 0);
 
                     // even stroke is shaking in
                     } else {
@@ -800,8 +736,8 @@ class StrokeNibbler : public Pattern {
 
                     // even stroke is shaking in
                     } else {
-                        // limit stroke to _depth
-                        // TODO - Fix this - _nextMove.stroke = min(_nextMove.stroke + _inVibrationDistance, _depth);
+                        // limit stroke to _stroke
+                        _nextMove.stroke = min(_nextMove.stroke + _inVibrationDistance, _stroke);
                     }
                 }
             }
@@ -811,15 +747,15 @@ class StrokeNibbler : public Pattern {
         }
     protected:
         bool _returnStroke = false;
-        int _inVibrationDistance = 0;
-        int _outVibrationDistance = 0;
-        int _strokeSpeed = 0;
+        float _inVibrationDistance = 0.0;
+        float _outVibrationDistance = 0.0;
+        float _strokeSpeed = 0.0;
         void _updateVibrationParameters() {
             // Empirical factor to compensate time losses due to finite acceleration.
             _strokeSpeed = int(5.0 * _stroke/_timeOfStroke);
 
-            // Scale vibration amplitude from 3mm to 25mm with sensation
-            _inVibrationDistance = (int)fscale(-100.0, 100.0, (float)(3.0*_stepsPerMM), (float)(25.0*_stepsPerMM), _sensation, 0.0);
+            // Scale vibration amplitude from 1mm to 15mm with sensation
+            _inVibrationDistance = fscale(-100.0, 100.0, 1.0, 15.0, _sensation, 0.0);
 
             /* Calculate _outVibrationDistance to match with stroking speed
                d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
@@ -841,7 +777,6 @@ class StrokeNibbler : public Pattern {
 */
 /**************************************************************************/
 static Pattern *patternTable[] = { 
-  new SimpleStroke("Simple Stroke"),
   new TeasingPounding("Teasing or Pounding"),
   new RoboStroke("Robo Stroke"),
   new HalfnHalf("Half'n'Half"),
