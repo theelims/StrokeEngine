@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Arduino.h"
-#include <exception.h>
+//#include <exception.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -16,13 +16,18 @@
  */
 
 
-class MotorException extends std::exception { }
+//class MotorException extends std::exception { }
 
 class MotorInterface {
   public:
-    virtual void enable()
-    virtual void disable()
+
+    // Control
+    virtual void enable();
+    virtual void disable();
     virtual bool isEnabled() { return _enabled; } 
+    virtual void home();
+    virtual bool isHomed() { return _homed; }
+    virtual bool isActive() { return (_enabled && _homed); }
 
 /*     SemaphoreHandle_t claimMotorControl() {
       if (taskSemaphore == null) {
@@ -55,21 +60,18 @@ class MotorInterface {
     // Max Position cannot be set directly, but is computed from Machine Limits
     float getMaxPosition() { return _maxPosition; }
 
-    void setMaxSpeed(float speed) { _maxSpeed = speed; }
+    virtual void setMaxSpeed(float speed) { _maxSpeed = speed; }
     float getMaxSpeed() { return _maxSpeed; }
 
-    void setMaxAcceleration(float acceleration) { _maxAcceleration = acceleration; }
+    virtual void setMaxAcceleration(float acceleration) { _maxAcceleration = acceleration; }
     float getMaxAcceleration() { return _maxAcceleration; }
 
     // Motion
-    virtual void home()
-    virtual bool isHomed() { return _homed; }
-
     void goToPos(float position, float speed, float acceleration) {
       // TODO - If a motion task is provided, ensure the caller is the motion task (Mutex?)
       // Ensure in ACTIVE and valid movement state
       if (!_enabled || !_homed) {
-        throw new MotorInvalidStateError("Unable to command motion while motor is not ENABLED or HOMED!");
+        //throw new MotorInvalidStateError("Unable to command motion while motor is not ENABLED or HOMED!");
       }
 
 /*       // Take Semaphore for movement
@@ -78,9 +80,9 @@ class MotorInterface {
       } */
 
       // Apply bounds and protections
-      float safePosition = constrain(position, 0, maxPosition);
-      float safeSpeed = constrain(speed, 0, maxSpeed);
-      float safeAcceleration = constrain(acceleration, 0, maxAcceleration);
+      float safePosition = constrain(position, 0, _maxPosition);
+      float safeSpeed = constrain(speed, 0, _maxSpeed);
+      float safeAcceleration = constrain(acceleration, 0, _maxAcceleration);
       
       if (safePosition != position) {
         ESP_LOGW("motor", "Clipped position to fit within bounds! %05.1f was clipped to %05.1f", position, safePosition);
@@ -99,11 +101,8 @@ class MotorInterface {
       _unsafeGoToPos(safePosition, safeSpeed, safeAcceleration);
     }
 
-    virtual void stop();
-
-    virtual void motionCompleted();
-
-    
+    virtual void stopMotion();
+    virtual bool motionCompleted();
 
   protected:
     bool _enabled = false;
@@ -113,9 +112,11 @@ class MotorInterface {
     SemaphoreHandle_t taskSemaphore; // Prevent more than one task being interfaced to a motor at a time
     SemaphoreHandle_t movementSemaphore; // Prevent additional movement commands while in motion
 
+    virtual void _unsafeGoToPos(float position, float speed, float acceleration);
+
     float _start;
     float _end;
-    float _keepout
+    float _keepout;
     float _maxPosition;
     float _maxSpeed;
     float _maxAcceleration;

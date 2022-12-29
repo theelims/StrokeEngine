@@ -14,7 +14,7 @@ FastAccelStepperEngine engine = FastAccelStepperEngine();
 */
 /**************************************************************************/
 typedef struct {
-  int stepsPerMillimeter;   /*> Number of steps per millimeter */
+  int stepsPerMillimeter;     /*> Number of steps per millimeter */
   bool invertDirection;       /*> Set to true to invert the direction signal
                                *  The firmware expects the home switch to be located at the 
                                *  end of an retraction move. That way the machine homes 
@@ -25,38 +25,32 @@ typedef struct {
   int enablePin;              /*> Pin connected to the ENA input */
 } motorProperties;
 
-class StepperMotor: public MotorInterface {
+class GenericStepperMotor: public MotorInterface {
   public:
-    StepperMotor(motorProperties *motor) { _motor = motor; }
+
+    // Init
+    void begin(motorProperties *motor) { _motor = motor; }
+    void setSensoredHoming(int homePin = 0, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true); // Assumes always homing to back of machine for safety
+    void home();
+    void home(float speed = 5.0);
+    void home(void(*callBackHoming)(bool), float speed = 5.0);
+
+    // Control
     void enable();
     void disable();
 
     // Motion
-    void stop()
-    void motionCompleted()
-    void home()
-    void home(float speed = 5.0)
-    void home(void(*callBackHoming)(bool), float speed = 5.0)
-
-    // Stepper
-    void init(motorProperties *motor)
-
-    // Assumes always homing to back of machine for safety
-    void setSensoredHoming(int homePin = 0, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true);
-
-    // Tasks
-    void task_motion();
-
+    void stopMotion();
+    bool motionCompleted();
 
   protected:
-    void unsafeGoToPos(float position, float speed, float acceleration);
+    void _unsafeGoToPos(float position, float speed, float acceleration);
 
   private:
     FastAccelStepper *stepper;
     int _stepPerMm; 
-    bool hasInitialized = false;
     motorProperties *_motor;
-    static void _homingProcedureImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_homingProcedure(); }
+    static void _homingProcedureImpl(void* _this) { static_cast<GenericStepperMotor*>(_this)->_homingProcedure(); }
     void _homingProcedure();
     TaskHandle_t _taskHomingHandle = NULL;
     void(*_callBackHomeing)(bool) = NULL;

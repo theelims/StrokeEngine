@@ -3,7 +3,7 @@
  *   A library to create a variety of stroking motions with a stepper or servo motor on an ESP32.
  *   https://github.com/theelims/StrokeEngine 
  *
- * Copyright (C) 2021 theelims <elims@gmx.net>
+ * Copyright (C) 2022 theelims <elims@gmx.net>
  *
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
@@ -15,8 +15,6 @@
 #include "StrokeEngine.h"
 #include <math.h>
 #include "PatternMath.h"
-
-#define DEBUG_PATTERN                 // Print some debug informations over Serial
 
 #ifndef STRING_LEN
   #define STRING_LEN           64     // Bytes used to initialize char array. No path, topic, name, etc. should exceed this value
@@ -154,7 +152,7 @@ class TeasingPounding : public Pattern {
             _timeOfStroke = speed;
             _updateStrokeTiming();
         }
-        mmotionParameter nextTarget(unsigned int index, bool retract = false) {
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
             // odd stroke is moving out
             if (index % 2) {
                 // maximum speed of the trapezoidal motion
@@ -192,10 +190,6 @@ class TeasingPounding : public Pattern {
                 _timeOfOutStroke = _timeOfFastStroke;
                 _timeOfInStroke = _timeOfStroke - _timeOfFastStroke;
             }
-#ifdef DEBUG_PATTERN
-            Serial.println("TimeOfInStroke: " + String(_timeOfInStroke));
-            Serial.println("TimeOfOutStroke: " + String(_timeOfOutStroke));
-#endif
         }
 };
 
@@ -225,9 +219,6 @@ class RoboStroke : public Pattern {
             } else {
               _x = fscale(0.0, 100.0, 1.0/3.0, 0.05, -sensation, 0.0);
             }
-#ifdef DEBUG_PATTERN
-            Serial.println("Sensation:" + String(sensation,0) + " --> " + String(_x,6));
-#endif
         }
 
         motionParameter nextTarget(unsigned int index, bool retract = false) {
@@ -328,10 +319,6 @@ class HalfnHalf : public Pattern {
                 _timeOfOutStroke = _timeOfFastStroke;
                 _timeOfInStroke = _timeOfStroke - _timeOfFastStroke;
             }
-#ifdef DEBUG_PATTERN
-            Serial.println("TimeOfInStroke: " + String(_timeOfInStroke));
-            Serial.println("TimeOfOutStroke: " + String(_timeOfOutStroke));
-#endif
         }
 };
 
@@ -360,9 +347,6 @@ class Deeper : public Pattern {
             } else {
                 _countStrokesForRamp = map(sensation, 0, 100, 11, 32);
             }
-#ifdef DEBUG_PATTERN
-            Serial.println("_countStrokesForRamp: " + String(_countStrokesForRamp));
-#endif
         }
 
         motionParameter nextTarget(unsigned int index, bool retract = false) {
@@ -378,11 +362,7 @@ class Deeper : public Pattern {
             // sensation is adjusted.
 
             // Amplitude is slope * cycleIndex
-            float amplitude = slope * float(cycleIndex;)
-#ifdef DEBUG_PATTERN
-            Serial.println("amplitude: " + String(amplitude)
-                         + " cycleIndex: " + String(cycleIndex));
-#endif
+            float amplitude = slope * float(cycleIndex);
 
             // maximum speed of the trapezoidal motion 
             _nextMove.speed = 1.5 * amplitude/_timeOfStroke; 
@@ -595,7 +575,8 @@ class JackHammer : public Pattern {
             _updateVibrationParameters();
         }
         void setTimeOfStroke(float speed = 0) {
-            _timeOfStroke = 0.5 * speed;
+            _timeOfStroke = 1/3 * speed;
+            _inMillis = _outMillis = 0;
             _updateVibrationParameters();
         }
         void setStroke(int stroke) { 
@@ -605,7 +586,9 @@ class JackHammer : public Pattern {
 
         motionParameter nextTarget(unsigned int index, bool retract = false) {
 
-            // revert position for the first move or if depth is exceeded
+            unsigned int currentMillis = millis();
+
+            // retract move for the first move or if depth is exceeded
             if (index == 0 || _nextMove.stroke >= _stroke || retract == true) {
                 // Return strokes goes at regular speed without vibration back to 0
 
@@ -614,7 +597,13 @@ class JackHammer : public Pattern {
                 // acceleration to meet the profile                  
                 _nextMove.acceleration = 3.0 * _nextMove.speed/_timeOfStroke;  
                 // all they way out to start
-                _nextMove.stroke = 0;
+                _nextMove.stroke = 0.0;
+                
+                // store current state as baseline for next calculation
+                _index = index;
+                _previousMillis = currentMillis;
+                _lastMoveRetracted = true;
+
                 // we are done here
                 return _nextMove;
             }
@@ -627,149 +616,146 @@ class JackHammer : public Pattern {
                 _nextMove.speed = _infinite;
                 _nextMove.acceleration = _infinite;
 
-                // odd stroke is shaking out
+                // odd stroke is shaking in
                 if (index % 2) {  
-                    _nextMove.stroke = _nextMove.stroke - _outVibrationDistance;
-                // even stroke is shaking in
-                } else {
-                    // limit range to _depth
-                    _nextMove.stroke = min((_nextMove.stroke + _inVibrationDistance), _stroke);
-                }
-            }
-            _index = index;
-            return _nextMove;
-        }
-    protected:
-        float _inVibrationDistance = 0.0;
-        float _outVibrationDistance = 0.0;
-        float _strokeInSpeed = 0.0;
-        void _updateVibrationParameters() {
-            // Hammering in takes considerable longer then backing off
-            _strokeInSpeed = 0.5 * _stroke/_timeOfStroke;
-
-            // Scale vibration amplitude from 1mm to 15mm with sensation
-            _inVibrationDistance = fscale(-100.0, 100.0, 1.0, 15.0, _sensation, 0.0);
-
-            /* Calculate _outVibrationDistance to match with stroking speed
-               d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
-               Formula neglects acceleration. Real timing will be slower due to finite acceleration & deceleration
-            */
-           _outVibrationDistance = _inVibrationDistance * (_maxSpeed - _strokeInSpeed) / (_maxSpeed + _strokeInSpeed);
-
-#ifdef DEBUG_PATTERN
-            Serial.println("_maxSpeed: " + String(_maxSpeed) + " _strokeInSpeed: " + String(_strokeInSpeed)  + " _strokeOutSpeed: " + String(int(1.5 * _stroke/_timeOfStroke)));
-            Serial.println("inDist: " + String(_inVibrationDistance) + " outDist: " + String(_outVibrationDistance));
-#endif
-            
-        }
-};
-
-/**************************************************************************/
-/*!
-  @brief  Simple vibrational overlay pattern. Vibrates on the way in and out. 
-  Sensation sets the vibration amplitude.
-*/
-/**************************************************************************/
-class StrokeNibbler : public Pattern {
-    public:
-        StrokeNibbler(const char *str) : Pattern(str) {}
-        void setSensation(float sensation) { 
-            _sensation = sensation;
-            _updateVibrationParameters();
-        }
-        void setTimeOfStroke(float speed = 0) {
-            _timeOfStroke = speed;
-            _updateVibrationParameters();
-        }
-        void setStroke(int stroke) { 
-            _stroke = stroke;
-            _updateVibrationParameters();
-        }
-
-        motionParameter nextTarget(unsigned int index, bool retract = false) {
-
-            // revert position to start for the first stroke
-            if (index == 0) {
-                // Set motion parameter
-                _nextMove.speed = int(1.5 * _stroke/_timeOfStroke);
-                _nextMove.acceleration = _infinite;
-
-                // go to back position
-                _nextMove.stroke = 0.0;
-
-                // store index and return
-                _index = index;
-                return _nextMove;
-            }
-
-            // Vibration happens at maximum speed and acceleration of the machine
-            _nextMove.speed = _maxSpeed;
-            _nextMove.acceleration = _maxAcceleration;
-
-            // check if we have reached one of the ends and reverse direction
-            if (_nextMove.stroke >= _stroke || retract == true) {
-                _returnStroke = true;
-            } 
-            if (_nextMove.stroke <= 0) {
-                _returnStroke = false;
-            }
-
-            // only calculate new position, if index has incremented: no mid-stroke update, as vibration is sufficiently fast
-            if (index != _index) {
-                if (_returnStroke == true) {
-                    // long vibration distance on way out
-                    // odd stroke is shaking out
-                    if (index % 2) {  
-                        // limit stroke to 0
-                        _nextMove.stroke = max(_nextMove.stroke - _inVibrationDistance, 0);
-
-                    // even stroke is shaking in
-                    } else {
-                        _nextMove.stroke = _nextMove.stroke + _outVibrationDistance;
+                    if (!_lastMoveRetracted) {
+                        _outMillis = currentMillis - _previousMillis;
                     }
-
-                } else {
-                    // long vibration distance on way in
-                    // odd stroke is shaking out
-                    if (index % 2) {  
-                        _nextMove.stroke = _nextMove.stroke - _outVibrationDistance;
-
-                    // even stroke is shaking in
-                    } else {
-                        // limit stroke to _stroke
-                        _nextMove.stroke = min(_nextMove.stroke + _inVibrationDistance, _stroke);
-                    }
+                    _advanceDistance = _advanceSpeed * float(_inMillis + _outMillis) * 1e-3;
+                    _nextMove.stroke = min((_nextMove.stroke + _vibrationDistance + _advanceDistance), _stroke);
+                // even stroke is shaking out
+                } else {    
+                    if (!_lastMoveRetracted) {
+                        _inMillis = currentMillis - _previousMillis; 
+                    }             
+                    _nextMove.stroke = _nextMove.stroke - _vibrationDistance;
                 }
             }
 
+            // store current state as baseline for next calculation
             _index = index;
+            _previousMillis = currentMillis;
+            _lastMoveRetracted = false;
+
             return _nextMove;
         }
     protected:
-        bool _returnStroke = false;
-        float _inVibrationDistance = 0.0;
-        float _outVibrationDistance = 0.0;
-        float _strokeSpeed = 0.0;
+        float _vibrationDistance = 0.0;
+        float _advanceDistance = 0.0;
+        float _advanceSpeed = 0.0;
+        unsigned int _previousMillis = 0;
+        unsigned int _inMillis = 0;
+        unsigned int _outMillis = 0;
+        bool _lastMoveRetracted = false;
         void _updateVibrationParameters() {
-            // Empirical factor to compensate time losses due to finite acceleration.
-            _strokeSpeed = int(5.0 * _stroke/_timeOfStroke);
+            // Hammering in takes twice as longer as backing off
+            _advanceSpeed = _stroke/(2.0 * _timeOfStroke);
 
-            // Scale vibration amplitude from 1mm to 15mm with sensation
-            _inVibrationDistance = fscale(-100.0, 100.0, 1.0, 15.0, _sensation, 0.0);
-
-            /* Calculate _outVibrationDistance to match with stroking speed
-               d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
-               Formula neglects acceleration. Real timing will be slower due to finite acceleration & deceleration
-            */
-           _outVibrationDistance = _inVibrationDistance * (_maxSpeed - _strokeSpeed) / (_maxSpeed + _strokeSpeed);
-
-#ifdef DEBUG_PATTERN
-            Serial.println("_maxSpeed: " + String(_maxSpeed) + " _strokeSpeed: " + String(_strokeSpeed));
-            Serial.println("inDist: " + String(_inVibrationDistance) + " outDist: " + String(_outVibrationDistance));
-#endif
-            
+            // Scale vibration amplitude from 2mm to 15mm with sensation
+            _vibrationDistance = fscale(-100.0, 100.0, 2.0, 15.0, _sensation, 0.0);            
         }
 };
+
+// /**************************************************************************/
+// /*!
+//   @brief  Simple vibrational overlay pattern. Vibrates on the way in and out. 
+//   Sensation sets the vibration amplitude.
+// */
+// /**************************************************************************/
+// class StrokeNibbler : public Pattern {
+//     public:
+//         StrokeNibbler(const char *str) : Pattern(str) {}
+//         void setSensation(float sensation) { 
+//             _sensation = sensation;
+//             _updateVibrationParameters();
+//         }
+//         void setTimeOfStroke(float speed = 0) {
+//             _timeOfStroke = speed;
+//             _updateVibrationParameters();
+//         }
+//         void setStroke(int stroke) { 
+//             _stroke = stroke;
+//             _updateVibrationParameters();
+//         }
+
+//         motionParameter nextTarget(unsigned int index, bool retract = false) {
+
+//             // revert position to start for the first stroke
+//             if (index == 0) {
+//                 // Set motion parameter
+//                 _nextMove.speed = int(1.5 * _stroke/_timeOfStroke);
+//                 _nextMove.acceleration = _infinite;
+
+//                 // go to back position
+//                 _nextMove.stroke = 0.0;
+
+//                 // store index and return
+//                 _index = index;
+//                 return _nextMove;
+//             }
+
+//             // Vibration happens at maximum speed and acceleration of the machine
+//             _nextMove.speed = _infinite;
+//             _nextMove.acceleration = _infinite;
+
+//             // check if we have reached one of the ends and reverse direction
+//             if (_nextMove.stroke >= _stroke || retract == true) {
+//                 _returnStroke = true;
+//             } 
+//             if (_nextMove.stroke <= 0) {
+//                 _returnStroke = false;
+//             }
+
+//             // only calculate new position, if index has incremented: no mid-stroke update, as vibration is sufficiently fast
+//             if (index != _index) {
+//                 if (_returnStroke == true) {
+//                     // long vibration distance on way out
+//                     // odd stroke is shaking out
+//                     if (index % 2) {  
+//                         // limit stroke to 0
+//                         _nextMove.stroke = max(_nextMove.stroke - _inVibrationDistance, 0.0f);
+
+//                     // even stroke is shaking in
+//                     } else {
+//                         _nextMove.stroke = _nextMove.stroke + _outVibrationDistance;
+//                     }
+
+//                 } else {
+//                     // long vibration distance on way in
+//                     // odd stroke is shaking out
+//                     if (index % 2) {  
+//                         _nextMove.stroke = _nextMove.stroke - _outVibrationDistance;
+
+//                     // even stroke is shaking in
+//                     } else {
+//                         // limit stroke to _stroke
+//                         _nextMove.stroke = min(_nextMove.stroke + _inVibrationDistance, _stroke);
+//                     }
+//                 }
+//             }
+
+//             _index = index;
+//             return _nextMove;
+//         }
+//     protected:
+//         bool _returnStroke = false;
+//         float _inVibrationDistance = 0.0;
+//         float _outVibrationDistance = 0.0;
+//         float _strokeSpeed = 0.0;
+//         void _updateVibrationParameters() {
+//             // Empirical factor to compensate time losses due to finite acceleration.
+//             _strokeSpeed = int(5.0 * _stroke/_timeOfStroke);
+
+//             // Scale vibration amplitude from 1mm to 15mm with sensation
+//             _inVibrationDistance = fscale(-100.0, 100.0, 1.0, 15.0, _sensation, 0.0);
+
+//             /* Calculate _outVibrationDistance to match with stroking speed
+//                d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
+//                Formula neglects acceleration. Real timing will be slower due to finite acceleration & deceleration
+//             */
+//            _outVibrationDistance = _inVibrationDistance * (_maxSpeed - _strokeSpeed) / (_maxSpeed + _strokeSpeed);            
+//         }
+// };
 
 /**************************************************************************/
 /*
@@ -783,8 +769,8 @@ static Pattern *patternTable[] = {
   new Deeper("Deeper"),
   new StopNGo("Stop'n'Go"),
   new Insist("Insist"),
-  new JackHammer("Jack Hammer"),
-  new StrokeNibbler("Stroke Nibbler")
+  new JackHammer("Jack Hammer")
+//  new StrokeNibbler("Stroke Nibbler")
   // <-- insert your new pattern class here!
  };
 

@@ -23,53 +23,50 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
 }
 
 void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow) {
-  if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) != pdTRUE) {
-    return;
-  }
-
   String name;
   float debugValue;
+  if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {
+    switch (parameter) {
+      // TODO - When rate is set to 1 it bugs out and stops all motion
+      case StrokeParameter::RATE:
+        name = "Stroke Rate";
+        debugValue = strokeRate = constrain(value, 1, 60 * 10);
+        break;
+      
+      case StrokeParameter::DEPTH:
+        name = "Depth";
+        debugValue = depth = constrain(int(value), 0, maxDepth); 
+        break;
 
-  switch (parameter) {
-    // TODO - When rate is set to 1 it bugs out and stops all motion
-    case StrokeParameter::RATE:
-      name = "Stroke Rate";
-      debugValue = strokeRate = constrain(value, 1, 60 * 10);
-      break;
+      case StrokeParameter::STROKE:
+        name = "Stroke";
+        debugValue = stroke = constrain(int(value), 0, maxDepth); 
+        break;
+
+      case StrokeParameter::SENSATION:
+        name = "Sensation";
+        debugValue = sensation = constrain(sensation, -100, 100); 
+        break;
+
+      case StrokeParameter::PATTERN:
+        name = "Pattern";
+        debugValue = _patternIndex = value; //TODO: Check for validity
+        _index = 0;
+        break;
+    }
     
-    case StrokeParameter::DEPTH:
-      name = "Depth";
-      debugValue = depth = constrain(int(value), 0, maxDepth); 
-      break;
+    _sendParameters(_patternIndex);
+    
+    ESP_LOGD("StrokeEngine", "Stroke Parameter %s - %f", name, debugValue);
+    
+    // When running a pattern and immediate update requested: 
+    if (applyNow == true) {
+      applyUpdate = true;
+      ESP_LOGD("StrokeEngine", "Setting Apply Update Flag!");
+    }
 
-    case StrokeParameter::STROKE:
-      name = "Stroke";
-      debugValue = stroke = constrain(int(value), 0, maxDepth); 
-      break;
-
-    case StrokeParameter::SENSATION:
-      name = "Sensation";
-      debugValue = sensation = constrain(sensation, -100, 100); 
-      break;
-
-    case StrokeParameter::PATTERN:
-      name = "Pattern";
-      debugValue = _patternIndex = value; //TODO: Check for validity
-      _index = 0;
-      break;
+    xSemaphoreGive(_parameterMutex);
   }
-  
-  _sendParameters(_patternIndex);
-  
-  ESP_LOGD("StrokeEngine", "Stroke Parameter %s - %f", name, debugValue);
-  
-  // When running a pattern and immediate update requested: 
-  if (applyNow == true) {
-    applyUpdate = true;
-    ESP_LOGD("StrokeEngine", "Setting Apply Update Flag!");
-  }
-
-  xSemaphoreGive(_parameterMutex);
 }
 
 // WARNING: This function must be called only within the scope of a Taken _parameterMutex
@@ -78,15 +75,8 @@ void StrokeEngine::_sendParameters(int patternIndex) {
   // This allows depth to change, and allow stroke to fill the available space, 
   // rather than having to set the parameter again
 
-  patternTable[patternIndex]->setSpeedLimit(
-    motor->getMaxSpeed(), 
-    motor->getMaxAcceleration(),
-    1
-  ); //TODO: Should not be part of a pattern --> delete
-
   patternTable[patternIndex]->setTimeOfStroke(constrain(60.0 / strokeRate, 0.01, 120.0));
   patternTable[patternIndex]->setStroke(constrain(int(stroke), 0, depth));
-  patternTable[patternIndex]->setDepth(depth); //TODO: Should not be part of a pattern --> delete
   patternTable[patternIndex]->setSensation(sensation);
 }
 
