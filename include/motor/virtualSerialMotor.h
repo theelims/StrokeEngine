@@ -28,9 +28,7 @@ class VirtualSerialMotor: public MotorInterface {
         home();
 
         // Set everything to defaults
-        _speedSetPoint = 0.0;
-        _targetPosition = 0.0;
-        _accelerationSetPoint = 0.0;
+        _acceleration = 0.0;
     }
     void home() { 
         _homed = true; 
@@ -128,9 +126,7 @@ class VirtualSerialMotor: public MotorInterface {
         }
     }
     TaskHandle_t _taskMotionSimulatorHandle = NULL;
-    float _speedSetPoint = 0.0;             // unsigned speed
-    float _targetPosition = 0.0;
-    float _accelerationSetPoint = 0.0;
+    float _acceleration = 0.0;
     unsigned int _startOfRampInMs = 0;
     bool _motionCompleted = true;
     trapezoidalRampPoint _trapezoidalRamp[5];
@@ -140,6 +136,7 @@ class VirtualSerialMotor: public MotorInterface {
 
         float topSpeed = 0.0;
         float ramptime = 0.0;
+        float speedSetPoint = 0.0;
 
         // Safeguard thread against race condition
         if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {
@@ -154,11 +151,9 @@ class VirtualSerialMotor: public MotorInterface {
             _motionCompleted = false;
 
             // store motion defining parameters
-            _speedSetPoint = speed;
-            _targetPosition = position;
-            _accelerationSetPoint = acceleration;
+            _acceleration = acceleration;
 
-            // The generator may be called while in motion and starts the ramp calculation with the current speed and position
+            // The motion generator may be called while in motion and starts the ramp calculation with the current speed and position
             // In this case a trapezoidal motion always consists of these phases:
             // Now --[0]--> Deceleration --[1]--> Acceleration --[2]--> Coasting --[3]--> Deceleration to zero --[4]--> stand still / motion completed
             // Depending on the conditions certain phases have the time=0 and are effectively skipped. 
@@ -240,21 +235,21 @@ class VirtualSerialMotor: public MotorInterface {
                     / sqrt(acceleration * acceleration - 1);
 
                 // continue with the lower speed of these two, if speed is lower we will get a trapezoidal shape, otherwise it is triangle
-                _speedSetPoint = min(topSpeed, speed);
+                speedSetPoint = min(topSpeed, speed);
 
                 // calculate next ramp point values
-                _trapezoidalRamp[2].time = _trapezoidalRamp[1].time + _speedSetPoint / acceleration;
+                _trapezoidalRamp[2].time = _trapezoidalRamp[1].time + speedSetPoint / acceleration;
 
                 // traveling backwards
                 if (position - _trapezoidalRamp[1].position < 0) {
-                    _trapezoidalRamp[2].speed = -_speedSetPoint;
+                    _trapezoidalRamp[2].speed = -speedSetPoint;
                     _trapezoidalRamp[2].position = _trapezoidalRamp[1].position 
                         - 0.5 * acceleration * _trapezoidalRamp[2].time  * _trapezoidalRamp[2].time 
                         + _trapezoidalRamp[1].speed * _trapezoidalRamp[2].time;
 
                 // traveling forwards 
                 } else {
-                    _trapezoidalRamp[2].speed = _speedSetPoint;
+                    _trapezoidalRamp[2].speed = speedSetPoint;
                     _trapezoidalRamp[2].position = _trapezoidalRamp[1].position 
                         + 0.5 * acceleration * _trapezoidalRamp[2].time  * _trapezoidalRamp[2].time 
                         + _trapezoidalRamp[1].speed * _trapezoidalRamp[2].time;
@@ -303,20 +298,20 @@ class VirtualSerialMotor: public MotorInterface {
         if (t < _trapezoidalRamp[1].time) {
             // Deceleration Phase
             if (_trapezoidalRamp[0].speed > 0) {
-                result.speed = _trapezoidalRamp[0].speed - _accelerationSetPoint * t;
-                result.position = _trapezoidalRamp[0].position + 0.5 * _accelerationSetPoint * t * t;
+                result.speed = _trapezoidalRamp[0].speed - _acceleration * t;
+                result.position = _trapezoidalRamp[0].position + 0.5 * _acceleration * t * t;
             } else {
-                result.speed = _trapezoidalRamp[0].speed + _accelerationSetPoint * t;
-                result.position = _trapezoidalRamp[0].position - 0.5 * _accelerationSetPoint * t * t;
+                result.speed = _trapezoidalRamp[0].speed + _acceleration * t;
+                result.position = _trapezoidalRamp[0].position - 0.5 * _acceleration * t * t;
             }
         } else if (t < _trapezoidalRamp[2].time) {
             // Acceleration Phase
             if (_trapezoidalRamp[2].speed > 0) {
-                result.speed = _trapezoidalRamp[1].speed + _accelerationSetPoint * (t - _trapezoidalRamp[1].time);
-                result.position = _trapezoidalRamp[1].position - 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[1].time) * (t - _trapezoidalRamp[1].time);
+                result.speed = _trapezoidalRamp[1].speed + _acceleration * (t - _trapezoidalRamp[1].time);
+                result.position = _trapezoidalRamp[1].position - 0.5 * _acceleration * (t - _trapezoidalRamp[1].time) * (t - _trapezoidalRamp[1].time);
             } else {
-                result.speed = _trapezoidalRamp[1].speed - _accelerationSetPoint * (t - _trapezoidalRamp[1].time);
-                result.position = _trapezoidalRamp[1].position + 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[1].time) * (t - _trapezoidalRamp[1].time);
+                result.speed = _trapezoidalRamp[1].speed - _acceleration * (t - _trapezoidalRamp[1].time);
+                result.position = _trapezoidalRamp[1].position + 0.5 * _acceleration * (t - _trapezoidalRamp[1].time) * (t - _trapezoidalRamp[1].time);
             }
         } else if (t < _trapezoidalRamp[3].time) {
             // Coasting Phase
@@ -329,11 +324,11 @@ class VirtualSerialMotor: public MotorInterface {
         } else if (t < _trapezoidalRamp[4].time) {
             // Deceleration Phase
             if (_trapezoidalRamp[3].speed > 0) {
-                result.speed = _trapezoidalRamp[3].speed - _accelerationSetPoint * (t - _trapezoidalRamp[3].time);
-                result.position = _trapezoidalRamp[3].position + 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[3].time) * (t - _trapezoidalRamp[3].time);
+                result.speed = _trapezoidalRamp[3].speed - _acceleration * (t - _trapezoidalRamp[3].time);
+                result.position = _trapezoidalRamp[3].position + 0.5 * _acceleration * (t - _trapezoidalRamp[3].time) * (t - _trapezoidalRamp[3].time);
             } else {
-                result.speed = _trapezoidalRamp[3].speed + _accelerationSetPoint * (t - _trapezoidalRamp[3].time);
-                result.position = _trapezoidalRamp[3].position - 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[3].time) * (t - _trapezoidalRamp[3].time);
+                result.speed = _trapezoidalRamp[3].speed + _acceleration * (t - _trapezoidalRamp[3].time);
+                result.position = _trapezoidalRamp[3].position - 0.5 * _acceleration * (t - _trapezoidalRamp[3].time) * (t - _trapezoidalRamp[3].time);
             }
         } else {
             result.speed = 0.0;
@@ -342,12 +337,6 @@ class VirtualSerialMotor: public MotorInterface {
         }
 
         return result;       
-    }
-
-    speedAndPosition _changeSpeed(float vStart, float vEnd, float acceleration) {
-        speedAndPosition result;
-
-
     }
 
 };
