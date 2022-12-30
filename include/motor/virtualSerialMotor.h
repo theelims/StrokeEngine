@@ -227,7 +227,6 @@ class VirtualSerialMotor: public MotorInterface {
 
 
             // R A M P   P O I N T   2   - Do we need to accelerate?
-            
             // Are we at coasting speed already? --> skip
             if (abs(_trapezoidalRamp[1].speed) == speed) {
                 _trapezoidalRamp[2].time = _trapezoidalRamp[1].time;
@@ -302,17 +301,40 @@ class VirtualSerialMotor: public MotorInterface {
 
         // Calculate return values based on ramp phase
         if (t < _trapezoidalRamp[1].time) {
-            result.speed = 0.0;
-            result.position = 0.0;
+            // Deceleration Phase
+            if (_trapezoidalRamp[0].speed > 0) {
+                result.speed = _trapezoidalRamp[0].speed - _accelerationSetPoint * t;
+                result.position = _trapezoidalRamp[0].position + 0.5 * _accelerationSetPoint * t * t;
+            } else {
+                result.speed = _trapezoidalRamp[0].speed + _accelerationSetPoint * t;
+                result.position = _trapezoidalRamp[0].position - 0.5 * _accelerationSetPoint * t * t;
+            }
         } else if (t < _trapezoidalRamp[2].time) {
-            result.speed = a * t;
-            result.position = 0.5 * a * t * t;
+            // Acceleration Phase
+            if (_trapezoidalRamp[2].speed > 0) {
+                result.speed = _trapezoidalRamp[1].speed + _accelerationSetPoint * (t - _trapezoidalRamp[1].time);
+                result.position = _trapezoidalRamp[1].position - 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[1].time) * (t - _trapezoidalRamp[1].time);
+            } else {
+                result.speed = _trapezoidalRamp[1].speed - _accelerationSetPoint * (t - _trapezoidalRamp[1].time);
+                result.position = _trapezoidalRamp[1].position + 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[1].time) * (t - _trapezoidalRamp[1].time);
+            }
         } else if (t < _trapezoidalRamp[3].time) {
-            result.speed = vmax;
-            result.position = vmax * (t - t2) + 0.5 * a * t2 * t2;
+            // Coasting Phase
+            result.speed = _trapezoidalRamp[2].speed;
+            if (_trapezoidalRamp[2].speed > 0) {
+                result.position = _trapezoidalRamp[2].position + _trapezoidalRamp[2].speed * (t - _trapezoidalRamp[2].time);
+            } else {
+                result.position = _trapezoidalRamp[2].position - _trapezoidalRamp[2].speed * (t - _trapezoidalRamp[2].time);
+            }
         } else if (t < _trapezoidalRamp[4].time) {
-            result.speed = vmax - a * (t4 - t);
-            result.position = vmax * (t4 - t) - 0.5 * a * (t4 - t) * (t4 - t);
+            // Deceleration Phase
+            if (_trapezoidalRamp[3].speed > 0) {
+                result.speed = _trapezoidalRamp[3].speed - _accelerationSetPoint * (t - _trapezoidalRamp[3].time);
+                result.position = _trapezoidalRamp[3].position + 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[3].time) * (t - _trapezoidalRamp[3].time);
+            } else {
+                result.speed = _trapezoidalRamp[3].speed + _accelerationSetPoint * (t - _trapezoidalRamp[3].time);
+                result.position = _trapezoidalRamp[3].position - 0.5 * _accelerationSetPoint * (t - _trapezoidalRamp[3].time) * (t - _trapezoidalRamp[3].time);
+            }
         } else {
             result.speed = 0.0;
             result.position = _trapezoidalRamp[4].position;
