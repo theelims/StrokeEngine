@@ -99,7 +99,7 @@ float StrokeEngine::getParameter(StrokeParameter parameter) {
 
 bool StrokeEngine::startPattern() {
   // Only valid if state is ready
-  if (!motor->isInState(MotorState::ACTIVE)) {
+  if (!motor->isActive()) {
     ESP_LOGE("StrokeEngine", "Failed to start pattern! Motor is not active!");
     return false;
   }
@@ -108,7 +108,7 @@ bool StrokeEngine::startPattern() {
   ESP_LOGE("StrokeEngine", "Starting pattern %s", pattern->getName());
 
   // Stop current move, should one be pending (moveToMax or moveToMin)
-  if (motor->motionCompleted == false) {
+  if (motor->motionCompleted() == false) {
     motor->stopMotion();
   }
 
@@ -167,9 +167,9 @@ void StrokeEngine::_stroking() {
         }
 
         // TODO - This doesn't look quite right
-        if (!motor->isInState(MotorState::ACTIVE)) {
+        if (!motor->isActive()) {
           ESP_LOGI("StrokeEngine", "Motor is no longer active! Attempting to suspend pattern.");
-          stopPattern();
+          stopMotion();
         }
 
         // Take mutex to ensure no interference / race condition with communication threat on other core

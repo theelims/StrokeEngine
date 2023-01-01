@@ -17,12 +17,12 @@ struct trapezoidalRampPoint {
 };
 
 
-class VirtualSerialMotor: public MotorInterface {
+class VirtualMotor: public MotorInterface {
   public:
 
     // Init
-    void begin(HardwareSerial *serialPort) { 
-        _serialPort = serialPort; 
+    void begin(void(*cbMotionPoint)(float, float, float)) { 
+        _cbMotionPoint = cbMotionPoint; 
 
         // Since it is virtual no homing needed
         home();
@@ -48,15 +48,10 @@ class VirtualSerialMotor: public MotorInterface {
     // Control
     void enable() { 
         _enabled = true; 
-        _homed = true;
 
-        // initialize ramp with 0's so that system as at home position and in stand still
-        for (int i = 0; i < 5; i++) {
-            _trapezoidalRamp[i].position = 0.0;
-            _trapezoidalRamp[i].speed = 0.0;
-            _trapezoidalRamp[i].time = 0.0;
-        }
-        
+        // Reset motion to home position
+        home();
+
         // Create / resume motion simulator task
         if (_taskMotionSimulatorHandle == NULL) {
             // Create Stroke Task
@@ -90,9 +85,9 @@ class VirtualSerialMotor: public MotorInterface {
     void _unsafeGoToPos(float position, float speed, float acceleration) { _trapezoidalRampGenerator(position, speed, acceleration); }
 
   private:
-    HardwareSerial *_serialPort;
+    void(*_cbMotionPoint)(float, float, float) = NULL;
     TickType_t _timeSliceInMs = 50;
-    static void _motionSimulatorTaskImpl(void* _this) { static_cast<VirtualSerialMotor*>(_this)->_motionSimulatorTask(); }
+    static void _motionSimulatorTaskImpl(void* _this) { static_cast<VirtualMotor*>(_this)->_motionSimulatorTask(); }
     void _motionSimulatorTask() {
         TickType_t xLastWakeTime;
         // Initialize the xLastWakeTime variable with the current tick count.
@@ -114,12 +109,8 @@ class VirtualSerialMotor: public MotorInterface {
                 xSemaphoreGive(_parameterMutex);
             }
 
-            // Print results nicely on serial port
-            _serialPort->print(float(now), 3);
-            _serialPort->print("\t");
-            _serialPort->print(currentSpeedAndPosition.speed, 3);
-            _serialPort->print("\t");
-            _serialPort->println(currentSpeedAndPosition.position, 2);
+            // Return results of current motion point via the callback
+            _cbMotionPoint(now, currentSpeedAndPosition.position, currentSpeedAndPosition.speed);
 
             // Delay the task until the next tick count
             vTaskDelayUntil(&xLastWakeTime, _timeSliceInMs);
