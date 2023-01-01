@@ -150,10 +150,13 @@ class Pattern {
 class DepthAdjustment : public Pattern {
     public:
         DepthAdjustment(const char *str) : Pattern(str) {}
+        bool utilizeTransferspeed() { return true; }
         motionParameter nextTarget(unsigned int index, bool retract = false) {
             float adjustDistance = 0.0;
             float adjustFraction = 0.0;
             float relativeTarget = _stroke * fscale(-100.0, 100.0, 0.0, 1.0, _sensation, 0.0);
+
+            // TODO: How does this react when depth changes? Where does the speed come from?
             if (relativeTarget != _lastStroke) {
 
                 // calculate relative distance from last position
@@ -165,9 +168,12 @@ class DepthAdjustment : public Pattern {
 
                 // acceleration to meet the profile                  
                 _nextMove.acceleration = 3.0 * _nextMove.speed / (0.5 * _timeOfStroke * adjustFraction);   
+
+                // new relative target
+                _nextMove.stroke = relativeTarget;
+                _lastStroke = relativeTarget;
             }
             _index = index;
-            _lastStroke = relativeTarget;
             return _nextMove;
         }
     protected:
@@ -626,6 +632,8 @@ class JackHammer : public Pattern {
             _stroke = stroke;
             _updateVibrationParameters();
         }
+
+        bool utilizeTransferspeed() { return true; }
 
         motionParameter nextTarget(unsigned int index, bool retract = false) {
 
