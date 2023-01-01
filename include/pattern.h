@@ -81,6 +81,13 @@ class Pattern {
         */
         char *getName() { return _name; }
 
+        //! A pattern my command StrokeEngine to superimpose a transfer speed on the returned positions.
+        //  This is useful for pattern using small oscillations to reach their target.
+        /*! 
+          @return bool wether the concept of transfer speed should by applied to a patterns response 
+        */
+        virtual bool utilizeTransferspeed() { return false; }
+
         //! Calculate the position of the next stroke based on the various parameters
         /*! 
           @param index index of a stroke. Increments with every new stroke. 
@@ -129,6 +136,42 @@ class Pattern {
             return (millis() > (_startDelayMillis + _delayInMillis)) ? false : true; 
         }
 
+};
+
+/**************************************************************************/
+/*!
+  @brief  Simple pattern where the sensation value can change the speed 
+  ratio between in and out. Sensation > 0 make the in move faster (up to 3x)
+  giving a hard pounding sensation. Values < 0 make the out move going 
+  faster. This gives a more pleasing sensation. The time for the overall 
+  stroke remains the same. 
+*/
+/**************************************************************************/
+class DepthAdjustment : public Pattern {
+    public:
+        DepthAdjustment(const char *str) : Pattern(str) {}
+        motionParameter nextTarget(unsigned int index, bool retract = false) {
+            float adjustDistance = 0.0;
+            float adjustFraction = 0.0;
+            float relativeTarget = _stroke * fscale(-100.0, 100.0, 0.0, 1.0, _sensation, 0.0);
+            if (relativeTarget != _lastStroke) {
+
+                // calculate relative distance from last position
+                adjustDistance = abs(relativeTarget - _lastStroke);
+                adjustFraction = adjustDistance / _stroke;
+
+                // maximum speed of the trapezoidal motion for the move distance
+                _nextMove.speed = 1.5 * adjustDistance / (0.5 * _timeOfStroke * adjustFraction);
+
+                // acceleration to meet the profile                  
+                _nextMove.acceleration = 3.0 * _nextMove.speed / (0.5 * _timeOfStroke * adjustFraction);   
+            }
+            _index = index;
+            _lastStroke = relativeTarget;
+            return _nextMove;
+        }
+    protected:
+        float _lastStroke = 0.0;
 };
 
 
@@ -763,6 +806,7 @@ class JackHammer : public Pattern {
 */
 /**************************************************************************/
 static Pattern *patternTable[] = { 
+  new DepthAdjustment("Depth Adjustment"),
   new TeasingPounding("Teasing or Pounding"),
   new RoboStroke("Robo Stroke"),
   new HalfnHalf("Half'n'Half"),
