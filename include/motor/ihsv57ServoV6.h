@@ -3,7 +3,7 @@
 #include "genericStepper.h"
 
 
-class IHSV57Motor: public GenericStepperMotor {
+class IHSV57ServoV6: public GenericStepperMotor {
   public:
     // Motion
 

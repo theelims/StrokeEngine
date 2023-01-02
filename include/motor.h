@@ -1,3 +1,14 @@
+/**
+ *   Abstract Motor Driver of StrokeEngine
+ *   A library to create a variety of stroking motions with a stepper or servo motor on an ESP32.
+ *   https://github.com/theelims/StrokeEngine 
+ *
+ * Copyright (C) 2023 theelims <elims@gmx.net>
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 #pragma once
 
 #include "Arduino.h"
@@ -18,15 +29,66 @@
 
 //class MotorException extends std::exception { }
 
+/**************************************************************************/
+/*!
+  @brief  Motor Interface is a abstract class providing a possibility to 
+  abstract the motor from StrokeEngine. It provides a minimum set of functions
+  that will be called by StrokeEngine. Costume implementations must take care
+  of the trapezoidal motion path planning, as well as homing. The MotorInterface
+  class is also accessible from the user code allowing further functions that
+  a motor controller may offer. 
+*/
+/**************************************************************************/
 class MotorInterface {
   public:
 
-    // Control
+    /**************************************************************************/
+    /*!
+      @brief  Enables the motor driver. Meaning that the coils are energized and
+      the motor is ready to accept motion commands.
+    */
+    /**************************************************************************/
     virtual void enable();
+
+    /**************************************************************************/
+    /*!
+      @brief  Disables the motor driver. Motor must become powerless.
+    */
+    /**************************************************************************/
     virtual void disable();
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the enable state of the motor.
+      @return enable state
+    */
+    /**************************************************************************/
     virtual bool isEnabled() { return _enabled; } 
+
+    /**************************************************************************/
+    /*!
+      @brief  Initiates the homing procedure of the motor. Once completed the 
+      homed flag must be set.
+    */
+    /**************************************************************************/
     virtual void home();
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the homed state of the motor.
+      @return homed state 
+    */
+    /**************************************************************************/
     virtual bool isHomed() { return _homed; }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the active state of the motor. This is true if the motor
+      is enabled and is homed. This must be satisfied to issue move commands to
+      the motor.
+      @return active state 
+    */
+    /**************************************************************************/
     virtual bool isActive() { return (_enabled && _homed); }
 
 /*     SemaphoreHandle_t claimMotorControl() {
@@ -49,25 +111,83 @@ class MotorInterface {
       motionTask = null;
     } */
      
-    // Safety Bounds
-    virtual void setMachineGeometry(float start, float end, float keepout) {
+    /**************************************************************************/
+    /*!
+      @brief  Sets the machines mechanical geometries. The values are measured 
+      from hard endstop to hard endstop and are given in [mm].
+      @param start Start of the mechanical travel. Typically at the back of the
+      machine and at 0mm 
+      @param end End of the mechanical travel in the front most position [mm]
+      @param keepout This keepout is a soft endstop and subtracted at both ends
+      of the travel. A typical value would be 5mm. 
+    */
+    /**************************************************************************/
+    virtual void setMachineGeometry(float start, float end, float keepout = 5.0) {
       _start = start;
       _end = end;
       _keepout = keepout;
       _maxPosition = abs(start - end) - (keepout * 2);
     };
 
-    // Max Position cannot be set directly, but is computed from Machine Limits
+    /**************************************************************************/
+    /*!
+      @brief  Returns the maximum position the machine can safely travel. This 
+      is calculated from the values given by `setMachineGeometry()`. Minimum 
+      position is always at 0mm.
+      @return maximum position in [mm]
+    */
+    /**************************************************************************/
     float getMaxPosition() { return _maxPosition; }
 
+    /**************************************************************************/
+    /*!
+      @brief  Sets the maximum allowed speed the machine is capable.
+      @param speed maximum allowed speed of the motor in [mm/s] 
+    */
+    /**************************************************************************/
     virtual void setMaxSpeed(float speed) { _maxSpeed = speed; }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the maximum allowed speed the machine is capable.
+      @return maximum allowed speed of the motor in [mm/s]
+    */
+    /**************************************************************************/
     float getMaxSpeed() { return _maxSpeed; }
 
+    /**************************************************************************/
+    /*!
+      @brief  Sets the maximum allowed acceleration the machine is capable.
+      @param acceleration maximum allowed acceleration of the motor in [mm/s²] 
+    */
+    /**************************************************************************/
     virtual void setMaxAcceleration(float acceleration) { _maxAcceleration = acceleration; }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the maximum allowed acceleration the machine is capable.
+      @return maximum allowed acceleration of the motor in [mm/s²]
+    */
+    /**************************************************************************/
     float getMaxAcceleration() { return _maxAcceleration; }
 
-    // Motion
-    void goToPos(float position, float speed, float acceleration) {
+    /**************************************************************************/
+    /*!
+      @brief  This invokes a trapezoidal motion path planning and 
+      execution. It includes basic safeguards against nonphysical inputs and 
+      clips postion, speed and acceleration to the maximum values specified for 
+      the particular motor. The function call is ignored if the motor is neither
+      enabled and homed. The trapezoidal motion path planning may be called even
+      amidst a running stroke and updates the motion profile. If necessary even
+      decelerating to stand-still and reversing the direction.
+      @param position Target position that must be reached starting at the current 
+      position and speed in [mm]
+      @param speed The speed at which the motion should happen [mm/s]
+      @param acceleration The acceleration that is used to get up to speed and 
+      to slow down at the end in [mm/s²]
+    */
+    /**************************************************************************/
+    void goToPosition(float position, float speed, float acceleration) {
       // TODO - If a motion task is provided, ensure the caller is the motion task (Mutex?)
       // Ensure in ACTIVE and valid movement state
       if (!_enabled || !_homed) {
@@ -98,10 +218,24 @@ class MotorInterface {
 
       // TODO - Add logging based on tags. Allows user to filter out these without filtering other debug messages
       ESP_LOGD("motor", "Going to position %05.1f mm @ %05.1f m/s, %05.1f m/s^2", safePosition, safeSpeed, safeAcceleration);
-      _unsafeGoToPos(safePosition, safeSpeed, safeAcceleration);
+      _unsafeGoToPosition(safePosition, safeSpeed, safeAcceleration);
     }
 
+    /**************************************************************************/
+    /*!
+      @brief  Initiates the fastest safe breaking to stand-still stopping all
+      motion without loosing position. 
+    */
+    /**************************************************************************/
     virtual void stopMotion();
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns if a trapezoidal motion is carried out, or the machine is
+      at stand-still.
+      @return `true` if motion is completed, `false` if still under way
+    */
+    /**************************************************************************/
     virtual bool motionCompleted();
 
   protected:
@@ -112,7 +246,18 @@ class MotorInterface {
     SemaphoreHandle_t taskSemaphore; // Prevent more than one task being interfaced to a motor at a time
     SemaphoreHandle_t movementSemaphore; // Prevent additional movement commands while in motion
 
-    virtual void _unsafeGoToPos(float position, float speed, float acceleration);
+    /**************************************************************************/
+    /*!
+      @brief  This function is getting called from within `goToPosition()` and 
+      must be overriden by the user implementation for a specific motor. 
+      @param position Target position that must be reached starting at the current 
+      position and speed in [mm]
+      @param speed The speed at which the motion should happen [mm/s]
+      @param acceleration The acceleration that is used to get up to speed and 
+      to slow down at the end in [mm/s²]
+    */
+    /**************************************************************************/
+    virtual void _unsafeGoToPosition(float position, float speed, float acceleration);
 
     float _start;
     float _end;

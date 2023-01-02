@@ -1,35 +1,84 @@
-#pragma once
+/**
+ *   Virtual Motor Driver of StrokeEngine
+ *   A library to create a variety of stroking motions with a stepper or servo motor on an ESP32.
+ *   https://github.com/theelims/StrokeEngine 
+ *
+ * Copyright (C) 2023 theelims <elims@gmx.net>
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
 
+
+#pragma once
 
 #include "motor.h"
 #include "math.h"
 
-
+/**************************************************************************/
+/*!
+  @brief  Struct defining a speed and position tuple
+*/
+/**************************************************************************/
 struct speedAndPosition {
     float speed;
     float position;
 };
 
+/**************************************************************************/
+/*!
+  @brief  Struct defining a point of a trapezoidal motion profile
+*/
+/**************************************************************************/
 struct trapezoidalRampPoint {
     float time;
     float position;
     float speed;
 };
 
-
+/**************************************************************************/
+/*!
+  @brief  The Virtual Motor inherits from MotorInterface and provides a 
+  purely virtual motor. It has a trapezoidal motion planner and returns the
+  speed and position of StrokeEngine in real time. The time granularity is
+  configurable. The motion planner mimics the one of the FastAccelStepper-
+  library, allowing in-motion updates and recalculations. The main purpose 
+  for testing of StrokeEngine's safety features, new features and new patterns
+  without putting real hardware at risk.
+*/
+/**************************************************************************/
 class VirtualMotor: public MotorInterface {
   public:
 
-    // Init
-    void begin(void(*cbMotionPoint)(float, float, float)) { 
+    /**************************************************************************/
+    /*!
+      @brief  Initializes the virtual motor Arduino Style. It also attaches a
+      callback function where the speed and position are reported on a regular 
+      interval specified with timeInMs. 
+      @param cbMotionPoint Callback with the signature 
+      `cbMotionPoint(float now, float position, float speed)`. time is reported
+      seconds since the controller has started (`millis()`), speed in [m/s] and
+      position in [mm].
+      @param timeInMs time interval at which speed and position should be
+      reported in [ms]
+    */
+    /**************************************************************************/
+    void begin(void(*cbMotionPoint)(float, float, float), unsigned int timeInMs) { 
         _cbMotionPoint = cbMotionPoint; 
-
+        _timeSliceInMs = timeInMs / portTICK_PERIOD_MS;
         // Since it is virtual no homing needed
         home();
 
         // Set everything to defaults
         _acceleration = 0.0;
     }
+    
+    /**************************************************************************/
+    /*!
+      @brief  A virtual home function. Since a virtual driver always knows where
+      it is this can be used to reset the driver to 0.0mm at 0m/s velocity.   
+    */
+    /**************************************************************************/
     void home() { 
         _homed = true; 
         // Safeguard thread against race condition
@@ -43,9 +92,22 @@ class VirtualMotor: public MotorInterface {
             xSemaphoreGive(_parameterMutex);
         }        
     }
-    void timeGranularity(unsigned int timeInMs) { _timeSliceInMs = timeInMs / portTICK_PERIOD_MS; }
 
-    // Control
+    /**************************************************************************/
+    /*!
+      @brief  Can be used to change the update interval. 
+      @param timeInMs time interval at which speed and position should be
+      reported in [ms]
+    */
+    /**************************************************************************/
+    void setTimeGranularity(unsigned int timeInMs) { _timeSliceInMs = timeInMs / portTICK_PERIOD_MS; }
+
+    /**************************************************************************/
+    /*!
+      @brief  Enables the motor driver. This starts the task reporting speed and
+      position at the specified intervals.
+    */
+    /**************************************************************************/
     void enable() { 
         _enabled = true; 
 
@@ -69,6 +131,13 @@ class VirtualMotor: public MotorInterface {
             vTaskResume(_taskMotionSimulatorHandle);
         }
     }
+
+    /**************************************************************************/
+    /*!
+      @brief  Disables the motor driver. This stops the task reporting speed and
+      position.
+    */
+    /**************************************************************************/
     void disable() { 
         _enabled = false; 
         // Suspend motion simulator task if it exists already
@@ -77,12 +146,25 @@ class VirtualMotor: public MotorInterface {
         }
     };
 
-    // Motion
-    void stopMotion() { _trapezoidalRampGenerator(0.0, 0.0, _maxAcceleration); }
+    /**************************************************************************/
+    /*!
+      @brief  Initiates the fastest safe breaking to stand-still stopping all
+      motion without loosing position. 
+    */
+    /**************************************************************************/
+    void stopMotion() { _unsafeGoToPosition(0.0, 0.0, _maxAcceleration); }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns if a trapezoidal motion is carried out, or the machine is
+      at stand-still.
+      @return `true` if motion is completed, `false` if still under way
+    */
+    /**************************************************************************/
     bool motionCompleted() { return _motionCompleted; }
 
   protected:
-    void _unsafeGoToPos(float position, float speed, float acceleration) { _trapezoidalRampGenerator(position, speed, acceleration); }
+    void _unsafeGoToPosition(float position, float speed, float acceleration) { _trapezoidalRampGenerator(position, speed, acceleration); }
 
   private:
     void(*_cbMotionPoint)(float, float, float) = NULL;
@@ -118,11 +200,10 @@ class VirtualMotor: public MotorInterface {
     }
     TaskHandle_t _taskMotionSimulatorHandle = NULL;
     float _acceleration = 0.0;
-    unsigned int _startOfRampInMs = 0;
+    unsigned int _startOfProfileInMs = 0;
     bool _motionCompleted = true;
     trapezoidalRampPoint _trapezoidalRamp[5];
     SemaphoreHandle_t _parameterMutex = xSemaphoreCreateMutex();
-
     void _trapezoidalRampGenerator(float position, float speed, float acceleration) {
 
         float topSpeed = 0.0;
@@ -136,7 +217,7 @@ class VirtualMotor: public MotorInterface {
             speedAndPosition currentSpeedAndPosition = _currentSpeedAndPosition(now);
 
             // Save time as basis for later calculations
-            _startOfRampInMs = now;
+            _startOfProfileInMs = now;
 
             // Flag in-motion
             _motionCompleted = false;
@@ -277,13 +358,12 @@ class VirtualMotor: public MotorInterface {
             xSemaphoreGive(_parameterMutex);
         }
     }
-
     // This function must be called from within a xSemaphoreTake(_parameterMutex) == true scope
     speedAndPosition _currentSpeedAndPosition(unsigned int timeInMs) {
         speedAndPosition result;
 
         // Calculate time base in Seconds
-        float t = float(timeInMs - _startOfRampInMs) * 1.0e-3;
+        float t = float(timeInMs - _startOfProfileInMs) * 1.0e-3;
 
         // Calculate return values based on ramp phase
         if (t < _trapezoidalRamp[1].time) {
