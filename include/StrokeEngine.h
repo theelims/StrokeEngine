@@ -29,9 +29,7 @@ enum class StrokeParameter {
 
   // SENSATION - Range is -100 to 100
   // Serves as a generic parameter for usage by patterns to adjust sensation
-  SENSATION,
-
-  PATTERN
+  SENSATION
 };
 
 /**************************************************************************/
@@ -64,6 +62,27 @@ class StrokeEngine {
         /*! @brief Stops Pattern execution, and instructs the motor to immediately stop motion */
         void stopMotion();
 
+        /**************************************************************************/
+        /*!
+          @brief  Choose a pattern for the StrokeEngine. Settings take effect with 
+          next stroke, or after calling applyNewSettingsNow(). 
+          @param patternIndex  Index of a pattern
+          @param applyNow Set to true if changes should take effect immediately 
+          @return TRUE on success, FALSE, if patternIndex is invalid. Previous 
+                        pattern will be retained.
+        */
+        /**************************************************************************/
+        bool setPattern(int patternIndex, bool applyNow);
+
+        /**************************************************************************/
+        /*!
+          @brief  Get the pattern index for the StrokeEngine.
+          @return Index of a pattern
+        */
+        /**************************************************************************/
+        int getPattern();
+
+
         /*!
           @brief  Allows fetching Pattern names for UIs
           @param index index of a pattern.
@@ -76,26 +95,23 @@ class StrokeEngine {
           @brief  Allows fetching Pattern names for UIs without going out of bounds
           @return The number of patterns available.
         */
-        unsigned int getNumberOfPattern() { 
-          return patternTableSize; 
-        };
+        unsigned int getNumberOfPattern() { return patternTableSize; }
 
-        bool isActive() { return active; }
+        bool isActive() { return _active; }
         
     protected:
-      bool active = false;
-      MotorInterface *motor;
+      bool _active = false;
+      MotorInterface *_motor;
 
       int _patternIndex = 0;
       int _index = 0;
 
-      float maxDepth;
-      float depth;
-      float stroke;
-      float strokeRate;
-      float sensation;
+      float _depth;
+      float _stroke;
+      float _timeOfStroke;
+      float _sensation;
 
-      bool applyUpdate = false;
+      bool _applyUpdate = false;
 
       SemaphoreHandle_t _parameterMutex = xSemaphoreCreateMutex();
       void _sendParameters(int patternIndex);

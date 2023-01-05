@@ -39,11 +39,12 @@ typedef struct {
 
 /**************************************************************************/
 /*!
-  @brief  Stroke Engine provides a convenient package for stroking motions
-  created by stepper or servo motors. It's internal states are handled by a 
-  finite state machine. A pattern generator allows to creat a variety of 
-  motion profiles. Under the hood FastAccelStepper is used for interfacing
-  a stepper or servo motor vie a STEP/DIR interface.  
+  @brief  Generic Stepper inherits from MotorInterface and provides a generic
+  STEP/DIR interface to all common stepper and servo drivers. Under the hood
+  it uses FastAccelStepper for the trapezoidal motion planning and the 
+  hardware step signal generation. The generic stepper class uses a physical
+  end switch for homing. However, the homing procedure is written in a way
+  that derived classes may simply provide other signal inputs for homing.
 */
 /**************************************************************************/
 class GenericStepperMotor: public MotorInterface {
@@ -51,10 +52,36 @@ class GenericStepperMotor: public MotorInterface {
 
     // Init
     void begin(motorProperties *motor);
-    void setMachineGeometry(float start, float end, float keepout = 5.0);
-    void setSensoredHoming(int homePin = 0, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true); // Assumes always homing to back of machine for safety
-    void home(float speed = 5.0);
-    void home(void(*callBackHoming)(bool), float speed = 5.0); 
+
+    /**************************************************************************/
+    /*!
+      @brief  Sets the machines mechanical geometries. The values are measured 
+      from hard endstop to hard endstop and are given in [mm].
+      @param travel overal mechanical travel in [mm]. 
+      @param keepout This keepout [mm] is a soft endstop and subtracted at both ends
+      of the travel. A typical value would be 5mm. 
+    */
+    /**************************************************************************/
+    void setMachineGeometry(float travel, float keepout = 5.0);
+
+
+    void setSensoredHoming(int homePin, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true); // Assumes always homing to back of machine for safety
+    void home(float homePosition = 0.0, float speed = 5.0);
+    void home(void(*callBackHoming)(bool), float homePosition = 0.0, float speed = 5.0); 
+
+    /**************************************************************************/
+    /*!
+      @brief  Initializes the virtual motor Arduino Style. It also attaches a
+      callback function where the speed and position are reported on a regular 
+      interval specified with timeInMs. 
+      @param cbMotionPoint Callback with the signature 
+      `cbMotionPoint(float now, float position, float speed)`. time is reported
+      seconds since the controller has started (`millis()`), speed in [m/s] and
+      position in [mm].
+      @param timeInMs time interval at which speed and position should be
+      reported in [ms]
+    */
+    /**************************************************************************/
     void attachPositionFeedback(void(*cbMotionPoint)(float, float, float), unsigned int timeInMs = 50); 
 
     // Control
@@ -63,16 +90,59 @@ class GenericStepperMotor: public MotorInterface {
 
     // Motion
     void stopMotion(); 
-    bool motionCompleted();
+    bool motionCompleted() { return _stepper->isRunning(); }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the currently used acceleration.
+      @return acceleration of the motor in [mm/s²]
+    */
+    /**************************************************************************/
+    float getAcceleration() { return float(_stepper->getAcceleration()) / float(_motor->stepsPerMillimeter); }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the current speed the machine.
+      @return speed of the motor in [mm/s]
+    */
+    /**************************************************************************/
+    float getSpeed() { return (float(_stepper->getCurrentSpeedInMilliHz()) * 1.0e3) / float(_motor->stepsPerMillimeter); }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the current position of the machine.
+      @return position in [mm]
+    */
+    /**************************************************************************/
+    float getPosition() { return float(_stepper->getCurrentPosition()) / float(_motor->stepsPerMillimeter); }
 
     // Misc
     FastAccelStepperEngine& fastAccelStepperEngineReference() { return engine; } 
 
   protected:
+    /**************************************************************************/
+    /*!
+      @brief  Internal function that updates the trapezoidal motion path
+      generator. Here this is done by calling the appropriate FastAccelStepper
+      API calls and translate between metric units and steps 
+      @param position in [mm]
+      @param speed in [mm/s]
+      @param acceleration in [mm/s²]
+    */
+    /**************************************************************************/
     void _unsafeGoToPosition(float position, float speed, float acceleration);
 
+    /**************************************************************************/
+    /*!
+      @brief  Returns the current position of the machine. Must be overriden if
+      other forms of homing as end stop switches are desired.
+      @return position in [mm]
+    */
+    /**************************************************************************/
+    virtual bool _atHome();
+
   private:
-    FastAccelStepper *stepper;
+    FastAccelStepper *_stepper;
     motorProperties *_motor;
     int _minStep;
     int _maxStep;
@@ -82,6 +152,7 @@ class GenericStepperMotor: public MotorInterface {
     static void _homingProcedureImpl(void* _this) { static_cast<GenericStepperMotor*>(_this)->_homingProcedure(); }
     void _homingProcedure();
     int _homingSpeed;
+    float _homePosition;
     int _homingPin;
     bool _homingActiveLow;      /*> Polarity of the homing signal*/
     TaskHandle_t _taskHomingHandle = NULL;

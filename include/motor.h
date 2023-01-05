@@ -115,18 +115,15 @@ class MotorInterface {
     /*!
       @brief  Sets the machines mechanical geometries. The values are measured 
       from hard endstop to hard endstop and are given in [mm].
-      @param start Start of the mechanical travel. Typically at the back of the
-      machine and at 0mm 
-      @param end End of the mechanical travel in the front most position [mm]
-      @param keepout This keepout is a soft endstop and subtracted at both ends
+      @param travel overal mechanical travel in [mm]. 
+      @param keepout This keepout [mm] is a soft endstop and subtracted at both ends
       of the travel. A typical value would be 5mm. 
     */
     /**************************************************************************/
-    virtual void setMachineGeometry(float start, float end, float keepout = 5.0) {
-      _start = start;
-      _end = end;
+    virtual void setMachineGeometry(float travel, float keepout = 5.0) {
+      _travel = travel;
       _keepout = keepout;
-      _maxPosition = abs(start - end) - (keepout * 2);
+      _maxPosition = travel - (keepout * 2);
     };
 
     /**************************************************************************/
@@ -200,9 +197,9 @@ class MotorInterface {
       } */
 
       // Apply bounds and protections
-      float safePosition = constrain(position, 0, _maxPosition);
-      float safeSpeed = constrain(speed, 0, _maxSpeed);
-      float safeAcceleration = constrain(acceleration, 0, _maxAcceleration);
+      float safePosition = constrain(position, 0.0, _maxPosition);
+      float safeSpeed = constrain(speed, 0.0, _maxSpeed);
+      float safeAcceleration = constrain(acceleration, 0.0, _maxAcceleration);
       
       if (safePosition != position) {
         ESP_LOGW("motor", "Clipped position to fit within bounds! %05.1f was clipped to %05.1f", position, safePosition);
@@ -238,6 +235,30 @@ class MotorInterface {
     /**************************************************************************/
     virtual bool motionCompleted();
 
+    /**************************************************************************/
+    /*!
+      @brief  Returns the currently used acceleration.
+      @return acceleration of the motor in [mm/s²]
+    */
+    /**************************************************************************/
+    virtual float getAcceleration();
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the current speed the machine.
+      @return speed of the motor in [mm/s]
+    */
+    /**************************************************************************/
+    virtual float getSpeed();
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the current position of the machine.
+      @return position in [mm]
+    */
+    /**************************************************************************/
+    virtual float getPosition();
+
   protected:
     bool _enabled = false;
     bool _homed = false;
@@ -259,8 +280,7 @@ class MotorInterface {
     /**************************************************************************/
     virtual void _unsafeGoToPosition(float position, float speed, float acceleration);
 
-    float _start;
-    float _end;
+    float _travel;
     float _keepout;
     float _maxPosition;
     float _maxSpeed;

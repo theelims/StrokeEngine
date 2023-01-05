@@ -21,8 +21,9 @@
 */
 /**************************************************************************/
 struct speedAndPosition {
-    float speed;
-    float position;
+    float speed;            /*> Speed in [mm/s] */
+    float position;         /*> Position in [mm] */
+    float acceleration;     /*> Acceleration in [mm/s²] */
 };
 
 /**************************************************************************/
@@ -31,9 +32,9 @@ struct speedAndPosition {
 */
 /**************************************************************************/
 struct trapezoidalRampPoint {
-    float time;
-    float position;
-    float speed;
+    float time;             /*> Time in [s] */
+    float position;         /*> Position in [mm] */
+    float speed;            /*> Speed in [mm/s] */
 };
 
 /**************************************************************************/
@@ -162,6 +163,30 @@ class VirtualMotor: public MotorInterface {
     */
     /**************************************************************************/
     bool motionCompleted() { return _motionCompleted; }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the currently used acceleration.
+      @return acceleration of the motor in [mm/s²]
+    */
+    /**************************************************************************/
+    float getAcceleration() { return _acceleration; }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the current speed the machine.
+      @return speed of the motor in [mm/s]
+    */
+    /**************************************************************************/
+    float getSpeed() { return _currentSpeedAndPosition(millis()).speed; }
+
+    /**************************************************************************/
+    /*!
+      @brief  Returns the current position of the machine.
+      @return position in [mm]
+    */
+    /**************************************************************************/
+    float getPosition() { return _currentSpeedAndPosition(millis()).position; }
 
   protected:
     void _unsafeGoToPosition(float position, float speed, float acceleration) { _trapezoidalRampGenerator(position, speed, acceleration); }

@@ -4,64 +4,59 @@
 
 void StrokeEngine::attachMotor(MotorInterface* motor) {
   // store the machine geometry and motor properties pointer
-  motor = motor;
+  motor = _motor;
         
   // Initialize with default values
-  maxDepth = motor->getMaxPosition();
-  depth = maxDepth; 
-  stroke = maxDepth / 3;
-  strokeRate = 1.0;
-  sensation = 0.0;
+  _depth = _motor->getMaxPosition(); 
+  _stroke = _motor->getMaxPosition() / 3;
+  _timeOfStroke = 5.0;
+  _sensation = 0.0;
 
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Max Depth = %f", maxDepth);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Depth = %f", depth);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke = %f", stroke);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke Rate = %f", strokeRate);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Sensation = %f", sensation);
+  ESP_LOGD("StrokeEngine", "Stroke Parameter Max Depth = %f", _maxDepth);
+  ESP_LOGD("StrokeEngine", "Stroke Parameter Depth = %f", _depth);
+  ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke = %f", _stroke);
+  ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke Rate = %f", _timeOfStroke);
+  ESP_LOGD("StrokeEngine", "Stroke Parameter Sensation = %f", _sensation);
 
   ESP_LOGI("StrokeEngine", "Attached Motor successfully to Stroke Engine!");
 }
 
-void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow) {
+void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow = true) {
   String name;
   float debugValue;
   if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {
     switch (parameter) {
-      // TODO - When rate is set to 1 it bugs out and stops all motion
       case StrokeParameter::RATE:
         name = "Stroke Rate";
-        debugValue = strokeRate = constrain(value, 1, 60 * 10);
+        // Convert FPM into seconds to complete a full stroke
+        // Constrain stroke time between 100ms and 120 seconds
+        debugValue = _timeOfStroke = constrain(60.0 / value, 0.1, 120.0);
         break;
       
       case StrokeParameter::DEPTH:
         name = "Depth";
-        debugValue = depth = constrain(int(value), 0, maxDepth); 
+        debugValue = _depth = constrain(value, 0, _motor->getMaxPosition()); 
         break;
 
       case StrokeParameter::STROKE:
         name = "Stroke";
-        debugValue = stroke = constrain(int(value), 0, maxDepth); 
+        debugValue = _stroke = constrain(value, 0, _motor->getMaxPosition()); 
         break;
 
       case StrokeParameter::SENSATION:
         name = "Sensation";
-        debugValue = sensation = constrain(sensation, -100, 100); 
-        break;
-
-      case StrokeParameter::PATTERN:
-        name = "Pattern";
-        debugValue = _patternIndex = value; //TODO: Check for validity
-        _index = 0;
+        debugValue = _sensation = constrain(_sensation, -100, 100); 
         break;
     }
-    
+
     _sendParameters(_patternIndex);
-    
+
     ESP_LOGD("StrokeEngine", "Stroke Parameter %s - %f", name, debugValue);
     
     // When running a pattern and immediate update requested: 
     if (applyNow == true) {
-      applyUpdate = true;
+      _applyUpdate = true;
+      
       ESP_LOGD("StrokeEngine", "Setting Apply Update Flag!");
     }
 
@@ -71,35 +66,55 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
 
 // WARNING: This function must be called only within the scope of a Taken _parameterMutex
 void StrokeEngine::_sendParameters(int patternIndex) {
-  // Stroke is dynamically constrained based on depth.
-  // This allows depth to change, and allow stroke to fill the available space, 
-  // rather than having to set the parameter again
+  patternTable[patternIndex]->setTimeOfStroke(_timeOfStroke);
+  patternTable[patternIndex]->setStroke(_stroke);
+  patternTable[patternIndex]->setSensation(_sensation);
+}
 
-  patternTable[patternIndex]->setTimeOfStroke(constrain(60.0 / strokeRate, 0.01, 120.0));
-  patternTable[patternIndex]->setStroke(constrain(int(stroke), 0, depth));
-  patternTable[patternIndex]->setSensation(sensation);
+bool StrokeEngine::setPattern(int patternIndex, bool applyNow = true) {
+    // Check wether pattern Index is in range
+    if ((patternIndex < patternTableSize) && (patternIndex >= 0)) {
+      if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {
+        _patternIndex = patternIndex;
+
+        // Inject current motion parameters into new pattern
+        _sendParameters(_patternIndex);
+
+        // Reset index counter
+        _index = 0; 
+        xSemaphoreGive(_parameterMutex);
+      }
+      ESP_LOGD("StrokeEngine", "Load Pattern %i - %s", _patternIndex , getPatternName(_patternIndex));
+      return true;
+    }
+
+    // Return false on no match
+    ESP_LOGE("StrokeEngine", "Failed to set pattern!");
+    return false;   
 }
 
 float StrokeEngine::getParameter(StrokeParameter parameter) {
   switch (parameter) {
     case StrokeParameter::RATE:
-      return strokeRate;
+      return _timeOfStroke;
     case StrokeParameter::DEPTH:
-      return depth;
+      return _depth;
     case StrokeParameter::STROKE:
-      return stroke;
+      return _stroke;
     case StrokeParameter::SENSATION:
-      return sensation;
-    case StrokeParameter::PATTERN:
-      return _patternIndex;
+      return _sensation;
     default:
       return 0; // Should never be reached
   }
 }
 
+int StrokeEngine::getPattern() {
+    return _patternIndex;
+}
+
 bool StrokeEngine::startPattern() {
   // Only valid if state is ready
-  if (!motor->isActive()) {
+  if (!_motor->isActive()) {
     ESP_LOGE("StrokeEngine", "Failed to start pattern! Motor is not active!");
     return false;
   }
@@ -108,8 +123,8 @@ bool StrokeEngine::startPattern() {
   ESP_LOGE("StrokeEngine", "Starting pattern %s", pattern->getName());
 
   // Stop current move, should one be pending (moveToMax or moveToMin)
-  if (motor->motionCompleted() == false) {
-    motor->stopMotion();
+  if (_motor->motionCompleted() == false) {
+    _motor->stopMotion();
   }
 
   // Reset Stroke and Motion parameters
@@ -134,15 +149,15 @@ bool StrokeEngine::startPattern() {
     // Resume task, if it already exists
     vTaskResume(_taskStrokingHandle);
   }
-  active = true;
+  _active = true;
 
   return true;
 }
 
 void StrokeEngine::stopMotion() {
   ESP_LOGI("StrokeEngine", "Suspending Pattern!");
-  active = false;
-  motor->stopMotion();
+  _active = false;
+  _motor->stopMotion();
 }
 
 String StrokeEngine::getPatternName(int index) {
@@ -156,55 +171,72 @@ String StrokeEngine::getPatternName(int index) {
 
 void StrokeEngine::_stroking() {
     motionParameter currentMotion;
+    float targetPosition;
 
     //SemaphoreHandle_t semaphore = motor->claimMotorControl();
 
     while(1) { // infinite loop
 
-        // Suspend task, if motor is not active
-        if (active == false) {
-            vTaskSuspend(_taskStrokingHandle);
+        // Check if motor is still available
+        if (_motor->isActive() == false) {
+          ESP_LOGI("StrokeEngine", "Motor is no longer active! Attempting to suspend pattern.");
+          _active = false;
         }
 
-        // TODO - This doesn't look quite right
-        if (!motor->isActive()) {
-          ESP_LOGI("StrokeEngine", "Motor is no longer active! Attempting to suspend pattern.");
-          stopMotion();
+        // Suspend task, if motor is not active
+        if (_active == false) {
+            vTaskSuspend(_taskStrokingHandle);
         }
 
         // Take mutex to ensure no interference / race condition with communication threat on other core
         if (xSemaphoreTake(_parameterMutex, 0) == pdTRUE) {
 
-            if (applyUpdate == true) {
+            if (_applyUpdate == true && _motor->motionCompleted() == false) {
                 // Ask pattern for update on motion parameters
                 currentMotion = patternTable[_patternIndex]->nextTarget(_index);
 
+                // Constrain stroke to ensure it obeys to motion boundaries
+                currentMotion.stroke = constrain(currentMotion.stroke, 0.0, _stroke);
+                // Offset stroke by depth
+                targetPosition = (_depth - _stroke) + currentMotion.stroke;
+
+                // Increase deceleration if required to avoid crash
+                if (_motor->getAcceleration() > currentMotion.acceleration) {
+
+                    ESP_LOGW("StrokeEngine", "Crash avoidance! Set Acceleration from %05.1f to %05.1f", currentMotion.acceleration, _motor->getAcceleration());
+                    currentMotion.acceleration = _motor->getAcceleration();
+                }
+
                 // Apply new trapezoidal motion profile to servo
-                ESP_LOGI("StrokeEngine", "Stroking Index (FORCE): %d @ %f %f %f", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
-                motor->goToPos(
-                  currentMotion.stroke,
+                ESP_LOGI("StrokeEngine", "Stroking Index (UPDATE): %d @ %f %f %f", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
+                _motor->goToPosition(
+                  targetPosition,
                   currentMotion.speed,
                   currentMotion.acceleration
                 );
 
                 // clear update flag
-                applyUpdate = false;
+                _applyUpdate = false;
             }
 
             // If motor has stopped issue moveTo command to next position
-            else if (motor->motionCompleted()) {
+            else if (_motor->motionCompleted()) {
                 // Increment index for pattern
                 _index++;
 
                 // Query new set of pattern parameters
                 currentMotion = patternTable[_patternIndex]->nextTarget(_index);
 
+                // Constrain stroke to ensure it obeys to motion boundaries
+                currentMotion.stroke = constrain(currentMotion.stroke, 0.0, _stroke);
+                // Offset stroke by depth
+                targetPosition = (_depth - _stroke) + currentMotion.stroke;
+
                 // Pattern may introduce pauses between strokes
                 if (currentMotion.skip == false) {
-                    //ESP_LOGI("StrokeEngine", "Stroking Index (AT_TARGET): %d @ %d %d %d", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
-
-                    motor->goToPos(
-                      currentMotion.stroke,
+                    ESP_LOGI("StrokeEngine", "Stroking Index (AT_TARGET): %d @ %d %d %d", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
+                    _motor->goToPosition(
+                      targetPosition, 
                       currentMotion.speed,
                       currentMotion.acceleration
                     );
@@ -224,40 +256,3 @@ void StrokeEngine::_stroking() {
     }
 }
 
-// TODO - Move to a Depth Pattern
-/*
-void StrokeEngine::_setupDepths() {
-    // set depth to _depth
-    int depth = depth;
-
-    // in fancy mode we need to calculate exact position based on sensation, stroke & depth
-    if (_fancyAdjustment == true) {
-        // map sensation into the interval [depth-stroke, depth]
-        depth = map(sensation, -100, 100, depth - stroke, depth);
-
-#ifdef DEBUG_TALKATIVE
-        Serial.println("map sensation " + String(_sensation)
-            + " to interval [" + String(_depth - _stroke)
-            + ", " + String(_depth) 
-            + "] = " + String(depth));
-#endif
-    } 
-    
-    motor->goToPos(
-      depth,
-      1000,
-      1000
-    );
-
-    // Send telemetry data
-    ///if (_callbackTelemetry != NULL) {
-    ///    _callbackTelemetry(float(depth / _motor->stepsPerMillimeter), 
-    ///        float(servo->getSpeedInMilliHz() * 1000 / _motor->stepsPerMillimeter), 
-    ///        false);
-    ///} 
-
-#ifdef DEBUG_TALKATIVE
-    Serial.println("setup new depth: " + String(depth));
-#endif
-}
-*/
