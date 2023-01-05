@@ -21,7 +21,7 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
   ESP_LOGI("StrokeEngine", "Attached Motor successfully to Stroke Engine!");
 }
 
-void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow = true) {
+void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow) {
   String name;
   float debugValue;
   if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {
@@ -71,7 +71,7 @@ void StrokeEngine::_sendParameters(int patternIndex) {
   patternTable[patternIndex]->setSensation(_sensation);
 }
 
-bool StrokeEngine::setPattern(int patternIndex, bool applyNow = true) {
+bool StrokeEngine::setPattern(int patternIndex, bool applyNow) {
     // Check wether pattern Index is in range
     if ((patternIndex < patternTableSize) && (patternIndex >= 0)) {
       if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {

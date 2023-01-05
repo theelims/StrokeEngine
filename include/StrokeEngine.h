@@ -50,7 +50,7 @@ class StrokeEngine {
           @param value See StrokeParameter documentation for constraints placed on value
           @param applyNow Set to true if changes should take effect immediately 
         */
-        void setParameter(StrokeParameter parameter, float value, bool applyNow = false);
+        void setParameter(StrokeParameter parameter, float value, bool applyNow = true);
         float getParameter(StrokeParameter parameter);
 
         /*!
@@ -72,7 +72,7 @@ class StrokeEngine {
                         pattern will be retained.
         */
         /**************************************************************************/
-        bool setPattern(int patternIndex, bool applyNow);
+        bool setPattern(int patternIndex, bool applyNow = true);
 
         /**************************************************************************/
         /*!

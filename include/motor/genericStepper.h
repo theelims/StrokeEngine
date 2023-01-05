@@ -71,9 +71,8 @@ class GenericStepperMotor: public MotorInterface {
 
     /**************************************************************************/
     /*!
-      @brief  Initializes the virtual motor Arduino Style. It also attaches a
-      callback function where the speed and position are reported on a regular 
-      interval specified with timeInMs. 
+      @brief  It also attaches a callback function where the speed and position
+      are reported on a regular interval specified with timeInMs. 
       @param cbMotionPoint Callback with the signature 
       `cbMotionPoint(float now, float position, float speed)`. time is reported
       seconds since the controller has started (`millis()`), speed in [m/s] and
@@ -139,7 +138,7 @@ class GenericStepperMotor: public MotorInterface {
       @return position in [mm]
     */
     /**************************************************************************/
-    virtual bool _atHome();
+    bool _atHome();
 
   private:
     FastAccelStepper *_stepper;

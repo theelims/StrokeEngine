@@ -48,14 +48,14 @@ class MotorInterface {
       the motor is ready to accept motion commands.
     */
     /**************************************************************************/
-    virtual void enable();
+    virtual void enable() = 0;
 
     /**************************************************************************/
     /*!
       @brief  Disables the motor driver. Motor must become powerless.
     */
     /**************************************************************************/
-    virtual void disable();
+    virtual void disable() = 0;
 
     /**************************************************************************/
     /*!
@@ -71,7 +71,7 @@ class MotorInterface {
       homed flag must be set.
     */
     /**************************************************************************/
-    virtual void home();
+    //virtual void home() = 0;
 
     /**************************************************************************/
     /*!
@@ -224,7 +224,7 @@ class MotorInterface {
       motion without loosing position. 
     */
     /**************************************************************************/
-    virtual void stopMotion();
+    virtual void stopMotion() = 0;
 
     /**************************************************************************/
     /*!
@@ -233,7 +233,7 @@ class MotorInterface {
       @return `true` if motion is completed, `false` if still under way
     */
     /**************************************************************************/
-    virtual bool motionCompleted();
+    virtual bool motionCompleted() = 0;
 
     /**************************************************************************/
     /*!
@@ -241,7 +241,7 @@ class MotorInterface {
       @return acceleration of the motor in [mm/s²]
     */
     /**************************************************************************/
-    virtual float getAcceleration();
+    virtual float getAcceleration() = 0;
 
     /**************************************************************************/
     /*!
@@ -249,7 +249,7 @@ class MotorInterface {
       @return speed of the motor in [mm/s]
     */
     /**************************************************************************/
-    virtual float getSpeed();
+    virtual float getSpeed() = 0;
 
     /**************************************************************************/
     /*!
@@ -257,7 +257,7 @@ class MotorInterface {
       @return position in [mm]
     */
     /**************************************************************************/
-    virtual float getPosition();
+    virtual float getPosition() = 0;
 
   protected:
     bool _enabled = false;
@@ -278,7 +278,7 @@ class MotorInterface {
       to slow down at the end in [mm/s²]
     */
     /**************************************************************************/
-    virtual void _unsafeGoToPosition(float position, float speed, float acceleration);
+    virtual void _unsafeGoToPosition(float position, float speed, float acceleration) = 0;
 
     float _travel;
     float _keepout;
