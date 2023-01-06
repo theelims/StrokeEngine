@@ -27,10 +27,11 @@
 */
 /**************************************************************************/
 typedef struct {
-    float stroke;         //!< Absolute and properly constrained target position of a move in steps 
-    float speed;          //!< Speed of a move in Steps/second 
-    float acceleration;   //!< Acceleration to get to speed or halt 
-    bool skip;          //!< no valid stroke, skip this set an query for the next --> allows pauses between strokes
+    float stroke;         //!< Absolute and properly constrained target position of a move in [mm} 
+    float speed;          //!< Speed of a move in [mm/s] 
+    float acceleration;   //!< Acceleration to get to speed or halt in [mm/s^2]
+    float strokeTime;     //!< Time in [s] it will take to execute that stroke
+    bool skip;            //!< no valid stroke, skip this set an query for the next --> allows pauses between strokes
 } motionParameter;
 
 
@@ -172,6 +173,9 @@ class DepthAdjustment : public Pattern {
                 // new relative target
                 _nextMove.stroke = relativeTarget;
                 _lastStroke = relativeTarget;
+                _nextMove.skip = false;
+            } else {
+                _nextMove.skip = true;
             }
             _index = index;
             return _nextMove;
@@ -815,7 +819,7 @@ class JackHammer : public Pattern {
 /**************************************************************************/
 static Pattern *patternTable[] = { 
   new DepthAdjustment("Depth Adjustment"),
-  new TeasingPounding("Teasing or Pounding"),
+  new TeasingPounding("Pounding or Teasing"),
   new RoboStroke("Robo Stroke"),
   new HalfnHalf("Half'n'Half"),
   new Deeper("Deeper"),

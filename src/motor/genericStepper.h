@@ -65,7 +65,7 @@ class GenericStepperMotor: public MotorInterface {
     void setMachineGeometry(float travel, float keepout = 5.0);
 
 
-    void setSensoredHoming(int homePin, uint8_t pinMode = INPUT_PULLDOWN, bool activeHigh = true); // Assumes always homing to back of machine for safety
+    void setSensoredHoming(int homePin, uint8_t pinMode = INPUT_PULLDOWN, bool activeLow = true); // Assumes always homing to back of machine for safety
     void home(float homePosition = 0.0, float speed = 5.0);
     void home(void(*callBackHoming)(bool), float homePosition = 0.0, float speed = 5.0); 
 
@@ -89,7 +89,7 @@ class GenericStepperMotor: public MotorInterface {
 
     // Motion
     void stopMotion(); 
-    bool motionCompleted() { return _stepper->isRunning(); }
+    bool motionCompleted() { return _stepper->isRunning() ? false : true; }
 
     /**************************************************************************/
     /*!
@@ -105,7 +105,7 @@ class GenericStepperMotor: public MotorInterface {
       @return speed of the motor in [mm/s]
     */
     /**************************************************************************/
-    float getSpeed() { return (float(_stepper->getCurrentSpeedInMilliHz()) * 1.0e3) / float(_motor->stepsPerMillimeter); }
+    float getSpeed() { return (float(_stepper->getCurrentSpeedInMilliHz()) * 1.0e-3) / float(_motor->stepsPerMillimeter); }
 
     /**************************************************************************/
     /*!
@@ -138,7 +138,16 @@ class GenericStepperMotor: public MotorInterface {
       @return position in [mm]
     */
     /**************************************************************************/
-    virtual bool _atHome();
+    virtual bool _queryHome();
+
+    /**************************************************************************/
+    /*!
+      @brief  A virtual function the is called once the motor has found the home
+      position. This can be used by derived motor drivers to perform something 
+      useful.
+    */
+    /**************************************************************************/
+    virtual void _atHome() { }
 
   private:
     FastAccelStepper *_stepper;

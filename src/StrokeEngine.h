@@ -12,7 +12,7 @@
 #pragma once
 
 #include <pattern.h>
-#include <motor.h>
+#include <motor/motor.h>
 
 enum class StrokeParameter {
   // RATE - Range 0.5 to 6000 Strokes / Min

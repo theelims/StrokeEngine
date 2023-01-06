@@ -4,7 +4,7 @@
 
 void StrokeEngine::attachMotor(MotorInterface* motor) {
   // store the machine geometry and motor properties pointer
-  motor = _motor;
+  _motor = motor;
         
   // Initialize with default values
   _depth = _motor->getMaxPosition(); 
@@ -12,7 +12,6 @@ void StrokeEngine::attachMotor(MotorInterface* motor) {
   _timeOfStroke = 5.0;
   _sensation = 0.0;
 
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Max Depth = %f", _maxDepth);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Depth = %f", _depth);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke = %f", _stroke);
   ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke Rate = %f", _timeOfStroke);
@@ -35,17 +34,17 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
       
       case StrokeParameter::DEPTH:
         name = "Depth";
-        debugValue = _depth = constrain(value, 0, _motor->getMaxPosition()); 
+        debugValue = _depth = constrain(value, 0.0, _motor->getMaxPosition()); 
         break;
 
       case StrokeParameter::STROKE:
         name = "Stroke";
-        debugValue = _stroke = constrain(value, 0, _motor->getMaxPosition()); 
+        debugValue = _stroke = constrain(value, 0.0, _motor->getMaxPosition()); 
         break;
 
       case StrokeParameter::SENSATION:
         name = "Sensation";
-        debugValue = _sensation = constrain(_sensation, -100, 100); 
+        debugValue = _sensation = constrain(value, -100.0, 100.0); 
         break;
     }
 
@@ -84,7 +83,7 @@ bool StrokeEngine::setPattern(int patternIndex, bool applyNow) {
         _index = 0; 
         xSemaphoreGive(_parameterMutex);
       }
-      ESP_LOGD("StrokeEngine", "Load Pattern %i - %s", _patternIndex , getPatternName(_patternIndex));
+      ESP_LOGD("StrokeEngine", "Load Pattern %i - %s", _patternIndex , getPatternName(_patternIndex).c_str());
       return true;
     }
 
@@ -208,19 +207,16 @@ void StrokeEngine::_stroking() {
                 }
 
                 // Apply new trapezoidal motion profile to servo
-                ESP_LOGI("StrokeEngine", "Stroking Index (UPDATE): %d @ %f %f %f", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
+                ESP_LOGI("StrokeEngine", "Stroking Index (UPDATE): %d @ %05.1f mm %05.1f mm/s and %05.1f mm/s^2", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
                 _motor->goToPosition(
                   targetPosition,
                   currentMotion.speed,
                   currentMotion.acceleration
                 );
-
-                // clear update flag
-                _applyUpdate = false;
             }
 
             // If motor has stopped issue moveTo command to next position
-            else if (_motor->motionCompleted()) {
+            else if (_motor->motionCompleted() == true) {
                 // Increment index for pattern
                 _index++;
 
@@ -234,7 +230,7 @@ void StrokeEngine::_stroking() {
 
                 // Pattern may introduce pauses between strokes
                 if (currentMotion.skip == false) {
-                    ESP_LOGI("StrokeEngine", "Stroking Index (AT_TARGET): %d @ %d %d %d", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
+                    ESP_LOGI("StrokeEngine", "Stroking Index (AT_TARGET): %d @ %05.1f mm %05.1f mm/s and %05.1f mm/s^2", _index, currentMotion.stroke, currentMotion.speed, currentMotion.acceleration);
                     _motor->goToPosition(
                       targetPosition, 
                       currentMotion.speed,
@@ -246,6 +242,9 @@ void StrokeEngine::_stroking() {
                     _index--;
                 }
             }
+
+            // clear update flag, should be one pending
+            _applyUpdate = false;
 
             // give back mutex
             xSemaphoreGive(_parameterMutex);

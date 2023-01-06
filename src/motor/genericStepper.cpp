@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <genericStepper.h>
+#include <motor/genericStepper.h>
 #include <FastAccelStepper.h>
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
@@ -16,6 +16,9 @@ void GenericStepperMotor::begin(motorProperties *motor) {
         _stepper->setEnablePin(_motor->enablePin, _motor->enableActiveLow);
         _stepper->setAutoEnable(false);
         _stepper->disableOutputs(); 
+        ESP_LOGI("GenericStepper", "FastAccelStepper Engine successfully initialized!");
+    } else {
+        ESP_LOGE("GenericStepper", "Failed to load FastAccelStepper Engine!");
     }
 }
 
@@ -27,6 +30,9 @@ void GenericStepperMotor::setMachineGeometry(float travel, float keepout) {
     _maxStep = int(0.5 + _maxPosition * _motor->stepsPerMillimeter);
     _maxStepPerSecond = int(0.5 + _maxSpeed * _motor->stepsPerMillimeter);
     _maxStepAcceleration = int(0.5 + _maxAcceleration * _motor->stepsPerMillimeter);
+    ESP_LOGD("GenericStepper", "Machine Geometry Travel = %f", _travel);
+    ESP_LOGD("GenericStepper", "Machine Geometry Keepout = %f", _keepout);
+    ESP_LOGD("GenericStepper", "Machine Geometry MaxPosition = %f", _maxPosition);
 }
 
 // Assumes always homing to back of machine for safety
@@ -35,11 +41,13 @@ void GenericStepperMotor::setSensoredHoming(int homePin = 0, uint8_t arduinoPinM
     _homingPin = homePin;
     pinMode(_homingPin, arduinoPinMode);
     _homingActiveLow = activeLow;
+    ESP_LOGI("GenericStepper", "Homing switch on pin %i in pin mode %i is %s", _homingPin, arduinoPinMode, _homingActiveLow ? "active low" : "active high");
 } 
 
 void GenericStepperMotor::home(float homePosition, float speed) {
-    _homePosition = homePosition;
+    _homePosition = int(0.5 + homePosition / float(_motor->stepsPerMillimeter));
     _homingSpeed = speed * _motor->stepsPerMillimeter;
+    ESP_LOGI("GenericStepper", "Search home with %05.1f mm/s at %05.1f mm.", speed, homePosition);
 
     // set homed to false so that isActive() becomes false
     _homed = false;
@@ -49,7 +57,7 @@ void GenericStepperMotor::home(float homePosition, float speed) {
 
     // Quit if stepper not enabled
     if (_enabled == false) {
-        //ESP_LOGW Motor not enabled.
+        ESP_LOGE("GenericStepper", "Homing not possible! --> Enable stepper first!");
         return;
     } 
 
@@ -57,12 +65,13 @@ void GenericStepperMotor::home(float homePosition, float speed) {
     xTaskCreatePinnedToCore(
         this->_homingProcedureImpl,     // Function that should be called
         "Homing",                       // Name of the task (for debugging)
-        2048,                           // Stack size (bytes)
+        4096,                           // Stack size (bytes)
         this,                           // Pass reference to this class instance
-        20,                             // Pretty high task priority
+        1,                              // Pretty high task priority
         &_taskHomingHandle,             // Task handle
         1                               // Have it on application core
     ); 
+    ESP_LOGD("GenericStepper", "Created Homing Task.");
 }
 
 void GenericStepperMotor::home(void(*callBackHoming)(bool), float homePosition, float speed) {
@@ -77,10 +86,15 @@ void GenericStepperMotor::attachPositionFeedback(void(*cbMotionPoint)(float, flo
 
 // Control
 void GenericStepperMotor::enable() {
+    ESP_LOGI("GenericStepper", "Stepper Enabled!");
     // Enable stepper
     _enabled = true;
     _stepper->enableOutputs();
 
+    if (_cbMotionPoint == NULL) {
+        return;
+    }
+    
     // Create / resume motion feedback task
     if (_taskPositionFeedbackHandle == NULL) {
         // Create Stroke Task
@@ -93,13 +107,16 @@ void GenericStepperMotor::enable() {
             &_taskPositionFeedbackHandle,    // Task handle
             1                               // Pin to application core
         ); 
+        ESP_LOGD("GenericStepper", "Created Position Feedback Task.");
     } else {
         // Resume task, if it already exists
         vTaskResume(_taskPositionFeedbackHandle);
+        ESP_LOGD("GenericStepper", "Resumed Position Feedback Task.");
     }
 }
 
 void GenericStepperMotor::disable() {
+    ESP_LOGI("GenericStepper", "Stepper Disabled!");
     // Disable stepper
     _enabled = false; 
     _stepper->disableOutputs();
@@ -108,20 +125,25 @@ void GenericStepperMotor::disable() {
     if (_taskHomingHandle != NULL) {
         vTaskDelete(_taskHomingHandle);
         _taskHomingHandle = NULL;
+        ESP_LOGD("GenericStepper", "Deleted Homing Task.");
     }
 
     // Suspend motion feedback task if it exists already
     if (_taskPositionFeedbackHandle != NULL) {
         vTaskSuspend(_taskPositionFeedbackHandle);
+        ESP_LOGD("GenericStepper", "Suspended Position Feedback Task.");
     }
 }
 
 void GenericStepperMotor::stopMotion() { 
 
+    ESP_LOGW("GenericStepper", "STOP MOTION!");
+
     // Delete homing task should the homing sequence be running
     if (_taskHomingHandle != NULL) {
         vTaskDelete(_taskHomingHandle);
         _taskHomingHandle = NULL;
+        ESP_LOGD("GenericStepper", "Deleted Homing Task.");
     }
 
     if (_stepper->isRunning()) {
@@ -129,6 +151,7 @@ void GenericStepperMotor::stopMotion() {
         _stepper->setAcceleration(_maxStepAcceleration);
         _stepper->applySpeedAcceleration();
         _stepper->stopMove();
+        ESP_LOGD("GenericStepper", "Bring stepper to a safe halt.");
     }
 
     // Wait for servo stopped
@@ -140,6 +163,7 @@ void GenericStepperMotor::_unsafeGoToPosition(float position, float speed, float
     int speedInHz = int(0.5 + speed * _motor->stepsPerMillimeter);
     int stepAcceleration = int(0.5 + acceleration * _motor->stepsPerMillimeter);
     int positionInSteps = int(0.5 + position * _motor->stepsPerMillimeter);
+    ESP_LOGD("GenericStepper", "Going to unsafe position %i steps @ %i steps/s, %i steps/s^2", positionInSteps, speedInHz, stepAcceleration);
 
     // write values to stepper
     _stepper->setSpeedInHz(speedInHz);
@@ -147,7 +171,7 @@ void GenericStepperMotor::_unsafeGoToPosition(float position, float speed, float
     _stepper->moveTo(positionInSteps);
 }
 
-bool GenericStepperMotor::_atHome() {
+bool GenericStepperMotor::_queryHome() {
     return (digitalRead(_homingPin) == !_homingActiveLow) ? true : false;
 }
 
@@ -157,7 +181,8 @@ void GenericStepperMotor::_homingProcedure() {
     _stepper->setAcceleration(_maxStepAcceleration / 10);    
 
     // Check if we are already at the home position
-    if (_atHome()) {
+    if (_queryHome()) {
+        ESP_LOGD("GenericStepper", "Already at home position. Backing up and try again.");
         //back off 2*keepout from switch
         _stepper->move(_motor->stepsPerMillimeter * 2 * _keepout);
 
@@ -171,6 +196,7 @@ void GenericStepperMotor::_homingProcedure() {
         _stepper->move(-_motor->stepsPerMillimeter * 4 * _keepout);
 
     } else {
+        ESP_LOGD("GenericStepper", "Start searching for home.");
         // Move maximum travel distance + 2*keepout towards the homing switch
         _stepper->move(-_motor->stepsPerMillimeter * (_maxPosition + 4 * _keepout));
     }
@@ -179,11 +205,14 @@ void GenericStepperMotor::_homingProcedure() {
     while (_stepper->isRunning()) {
 
         // Are we at the home position?
-        if (_atHome()) {
-
+        if (_queryHome()) {
+            ESP_LOGD("GenericStepper", "Found home!");
             // Set home position
             // Switch is at -KEEPOUT
             _stepper->forceStopAndNewPosition(_motor->stepsPerMillimeter * int(_homePosition - _keepout));
+
+            // Do what needs to be done at the home position
+            _atHome();
 
             // drive free of switch and set axis to lower end
             _stepper->moveTo(_minStep);
@@ -192,11 +221,6 @@ void GenericStepperMotor::_homingProcedure() {
 
             // drive free of switch and set axis to 0
             _stepper->moveTo(0);
-            
-
-#ifdef DEBUG_TALKATIVE
-        Serial.println("Homing succeeded");
-#endif
 
             // Break loop, home was found
             break;
@@ -209,11 +233,7 @@ void GenericStepperMotor::_homingProcedure() {
     // disable Servo if homing has not found the homing switch
     if (!_homed) {
         _stepper->disableOutputs();
-
-#ifdef DEBUG_TALKATIVE
-        Serial.println("Homing failed");
-#endif
-
+        ESP_LOGE("GenericStepper", "Homing failed! Did not find home position.");
     }  
 
     // Call notification callback, if it was defined.
@@ -224,6 +244,7 @@ void GenericStepperMotor::_homingProcedure() {
     // delete one-time task
     _taskHomingHandle = NULL;
     vTaskDelete(NULL);
+    ESP_LOGV("GenericStepper", "Homing task self-terminated");
 }
 
 void GenericStepperMotor::_positionFeedbackTask() {

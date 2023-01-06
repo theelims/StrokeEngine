@@ -125,7 +125,10 @@ class MotorInterface {
     virtual void setMachineGeometry(float travel, float keepout = 5.0) {
       _travel = travel;
       _keepout = keepout;
-      _maxPosition = travel - (keepout * 2);
+      _maxPosition = travel - (keepout * 2.0);
+      ESP_LOGD("AbstractMotor", "Machine Geometry Travel = %f", _travel);
+      ESP_LOGD("AbstractMotor", "Machine Geometry Keepout = %f", _keepout);
+      ESP_LOGD("AbstractMotor", "Machine Geometry MaxPosition = %f", _maxPosition);
     };
 
     /**************************************************************************/
@@ -144,7 +147,10 @@ class MotorInterface {
       @param speed maximum allowed speed of the motor in [mm/s] 
     */
     /**************************************************************************/
-    virtual void setMaxSpeed(float speed) { _maxSpeed = speed; }
+    virtual void setMaxSpeed(float speed) { 
+      _maxSpeed = speed; 
+      ESP_LOGD("AbstractMotor", "Set maximum speed to %05.2f mm/s", _maxSpeed);
+    }
 
     /**************************************************************************/
     /*!
@@ -160,7 +166,10 @@ class MotorInterface {
       @param acceleration maximum allowed acceleration of the motor in [mm/s²] 
     */
     /**************************************************************************/
-    virtual void setMaxAcceleration(float acceleration) { _maxAcceleration = acceleration; }
+    virtual void setMaxAcceleration(float acceleration) { 
+      _maxAcceleration = acceleration; 
+      ESP_LOGD("AbstractMotor", "Set maximum acceleration to %05.2f mm/s^2", _maxAcceleration);
+    }
 
     /**************************************************************************/
     /*!
@@ -191,6 +200,7 @@ class MotorInterface {
       // Ensure in ACTIVE and valid movement state
       if (!_enabled || !_homed) {
         //throw new MotorInvalidStateError("Unable to command motion while motor is not ENABLED or HOMED!");
+        ESP_LOGE("AbstractMotor", "Unable to command motion while motor is not ENABLED or HOMED!");
       }
 
 /*       // Take Semaphore for movement
@@ -204,19 +214,18 @@ class MotorInterface {
       float safeAcceleration = constrain(acceleration, 0.0, _maxAcceleration);
       
       if (safePosition != position) {
-        ESP_LOGW("motor", "Clipped position to fit within bounds! %05.1f was clipped to %05.1f", position, safePosition);
+        ESP_LOGW("AbstractMotor", "Clipped position to fit within bounds! %05.1f was clipped to %05.1f", position, safePosition);
       }
 
       if (safeSpeed != speed) {
-        ESP_LOGW("motor", "Clipped speed to fit within bounds! %05.1f was clipped to %05.1f", speed, safeSpeed);
+        ESP_LOGW("AbstractMotor", "Clipped speed to fit within bounds! %05.1f was clipped to %05.1f", speed, safeSpeed);
       }
 
       if (safeAcceleration != acceleration) {
-        ESP_LOGW("motor", "Clipped acceleration to fit within bounds! %05.1f was clipped to %05.1f", acceleration, safeAcceleration);
+        ESP_LOGW("AbstractMotor", "Clipped acceleration to fit within bounds! %05.1f was clipped to %05.1f", acceleration, safeAcceleration);
       }
 
-      // TODO - Add logging based on tags. Allows user to filter out these without filtering other debug messages
-      ESP_LOGD("motor", "Going to position %05.1f mm @ %05.1f m/s, %05.1f m/s^2", safePosition, safeSpeed, safeAcceleration);
+      ESP_LOGD("AbstractMotor", "Going to position %05.1f mm @ %05.1f mm/s, %05.1f mm/s^2", safePosition, safeSpeed, safeAcceleration);
       _unsafeGoToPosition(safePosition, safeSpeed, safeAcceleration);
     }
 
@@ -282,10 +291,10 @@ class MotorInterface {
     /**************************************************************************/
     virtual void _unsafeGoToPosition(float position, float speed, float acceleration) = 0;
 
-    float _travel;
-    float _keepout;
-    float _maxPosition;
-    float _maxSpeed;
-    float _maxAcceleration;
+    float _travel = 0.0;
+    float _keepout = 0.0;
+    float _maxPosition = 0.0;
+    float _maxSpeed = 0.0;
+    float _maxAcceleration = 0.0;
 
 };
