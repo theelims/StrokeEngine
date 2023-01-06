@@ -16,8 +16,6 @@
 
 #include "motor.h"
 
-FastAccelStepperEngine engine = FastAccelStepperEngine();
-
 /**************************************************************************/
 /*!
   @brief  Struct defining the motor (stepper or servo with STEP/DIR 
@@ -49,6 +47,8 @@ typedef struct {
 /**************************************************************************/
 class GenericStepperMotor: public MotorInterface {
   public:
+
+    GenericStepperMotor() {}
 
     // Init
     void begin(motorProperties *motor);
@@ -116,7 +116,7 @@ class GenericStepperMotor: public MotorInterface {
     float getPosition() { return float(_stepper->getCurrentPosition()) / float(_motor->stepsPerMillimeter); }
 
     // Misc
-    FastAccelStepperEngine& fastAccelStepperEngineReference() { return engine; } 
+    FastAccelStepperEngine& fastAccelStepperEngineReference();// { return engine; } 
 
   protected:
     /**************************************************************************/
@@ -138,7 +138,7 @@ class GenericStepperMotor: public MotorInterface {
       @return position in [mm]
     */
     /**************************************************************************/
-    bool _atHome();
+    virtual bool _atHome();
 
   private:
     FastAccelStepper *_stepper;

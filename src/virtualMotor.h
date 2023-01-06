@@ -51,6 +51,8 @@ struct trapezoidalRampPoint {
 class VirtualMotor: public MotorInterface {
   public:
 
+    VirtualMotor() {}
+    
     /**************************************************************************/
     /*!
       @brief  Initializes the virtual motor Arduino Style. It also attaches a

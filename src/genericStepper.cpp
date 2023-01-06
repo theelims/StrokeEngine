@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include <motor/genericStepper.h>
+#include <genericStepper.h>
 #include <FastAccelStepper.h>
 
+FastAccelStepperEngine engine = FastAccelStepperEngine();
 
 // Init
 void GenericStepperMotor::begin(motorProperties *motor) { 
@@ -29,14 +30,14 @@ void GenericStepperMotor::setMachineGeometry(float travel, float keepout) {
 }
 
 // Assumes always homing to back of machine for safety
-void GenericStepperMotor::setSensoredHoming(int homePin = 0, uint8_t arduinoPinMode = INPUT_PULLDOWN, bool activeLow = true){
+void GenericStepperMotor::setSensoredHoming(int homePin = 0, uint8_t arduinoPinMode, bool activeLow){
     // set homing pin as input
     _homingPin = homePin;
     pinMode(_homingPin, arduinoPinMode);
     _homingActiveLow = activeLow;
 } 
 
-void GenericStepperMotor::home(float homePosition = 0.0, float speed = 5.0) {
+void GenericStepperMotor::home(float homePosition, float speed) {
     _homePosition = homePosition;
     _homingSpeed = speed * _motor->stepsPerMillimeter;
 
@@ -64,12 +65,12 @@ void GenericStepperMotor::home(float homePosition = 0.0, float speed = 5.0) {
     ); 
 }
 
-void GenericStepperMotor::home(void(*callBackHoming)(bool), float homePosition = 0.0, float speed = 5.0) {
+void GenericStepperMotor::home(void(*callBackHoming)(bool), float homePosition, float speed) {
     _callBackHoming = callBackHoming;
     home(homePosition, speed);
 }
 
-void GenericStepperMotor::attachPositionFeedback(void(*cbMotionPoint)(float, float, float), unsigned int timeInMs = 50) { 
+void GenericStepperMotor::attachPositionFeedback(void(*cbMotionPoint)(float, float, float), unsigned int timeInMs) { 
     _cbMotionPoint = cbMotionPoint; 
     _timeSliceInMs = timeInMs / portTICK_PERIOD_MS;
 }
@@ -245,5 +246,6 @@ void GenericStepperMotor::_positionFeedbackTask() {
     }
 }
 
-
-
+FastAccelStepperEngine& GenericStepperMotor::fastAccelStepperEngineReference() { 
+    return engine; 
+} 

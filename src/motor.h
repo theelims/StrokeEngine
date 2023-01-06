@@ -42,6 +42,8 @@
 class MotorInterface {
   public:
 
+    MotorInterface() {}
+    
     /**************************************************************************/
     /*!
       @brief  Enables the motor driver. Meaning that the coils are energized and
