@@ -92,6 +92,7 @@ void GenericStepperMotor::enable() {
     _stepper->enableOutputs();
 
     if (_cbMotionPoint == NULL) {
+        ESP_LOGD("GenericStepper", "No Position Feedback Task created.");
         return;
     }
     
@@ -103,7 +104,7 @@ void GenericStepperMotor::enable() {
             "Motion Simulation",            // Name of the task (for debugging)
             4096,                           // Stack size (bytes)
             this,                           // Pass reference to this class instance
-            24,                             // Pretty high task priority
+            10,                             // Pretty high task priority
             &_taskPositionFeedbackHandle,    // Task handle
             1                               // Pin to application core
         ); 

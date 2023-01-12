@@ -224,6 +224,7 @@ class TeasingPounding : public Pattern {
                 _nextMove.stroke = _stroke;
             }
             _index = index;
+            ESP_LOGV("Pattern", "Next pattern command created: %d @ %05.1f mm %05.1f mm/s and %05.1f mm/s^2", index, _nextMove.stroke, _nextMove.speed, _nextMove.acceleration);
             return _nextMove;
         }
     protected:
@@ -818,14 +819,14 @@ class JackHammer : public Pattern {
 */
 /**************************************************************************/
 static Pattern *patternTable[] = { 
-  new DepthAdjustment("Depth Adjustment"),
+//  new DepthAdjustment("Depth Adjustment"),
   new TeasingPounding("Pounding or Teasing"),
   new RoboStroke("Robo Stroke"),
   new HalfnHalf("Half'n'Half"),
   new Deeper("Deeper"),
   new StopNGo("Stop'n'Go"),
-  new Insist("Insist"),
-  new JackHammer("Jack Hammer")
+  new Insist("Insist")
+//  new JackHammer("Jack Hammer")
 //  new StrokeNibbler("Stroke Nibbler")
   // <-- insert your new pattern class here!
  };

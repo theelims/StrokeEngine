@@ -26,7 +26,7 @@ void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool app
   if (xSemaphoreTake(_parameterMutex, portMAX_DELAY) == pdTRUE) {
     switch (parameter) {
       case StrokeParameter::RATE:
-        name = "Stroke Rate";
+        name = "Stroke Time";
         // Convert FPM into seconds to complete a full stroke
         // Constrain stroke time between 100ms and 120 seconds
         debugValue = _timeOfStroke = constrain(60.0 / value, 0.1, 120.0);
@@ -119,7 +119,7 @@ bool StrokeEngine::startPattern() {
   }
 
   Pattern* pattern = patternTable[_patternIndex];
-  ESP_LOGE("StrokeEngine", "Starting pattern %s", pattern->getName());
+  ESP_LOGI("StrokeEngine", "Starting pattern %s", pattern->getName());
 
   // Stop current move, should one be pending (moveToMax or moveToMin)
   if (_motor->motionCompleted() == false) {
@@ -133,6 +133,9 @@ bool StrokeEngine::startPattern() {
     xSemaphoreGive(_parameterMutex);
   }
 
+  // Set active flag
+  _active = true;
+
   if (_taskStrokingHandle == NULL) {
     // Create Stroke Task
     xTaskCreatePinnedToCore(
@@ -144,19 +147,20 @@ bool StrokeEngine::startPattern() {
       &_taskStrokingHandle,   // Task handle
       1                       // Pin to application core
     ); 
+    ESP_LOGD("StrokeEngine", "Created Pattern Task.");
   } else {
     // Resume task, if it already exists
     vTaskResume(_taskStrokingHandle);
+    ESP_LOGD("StrokeEngine", "Resumed Pattern Task.");
   }
-  _active = true;
 
   return true;
 }
 
 void StrokeEngine::stopMotion() {
-  ESP_LOGI("StrokeEngine", "Suspending Pattern!");
   _active = false;
   _motor->stopMotion();
+  ESP_LOGI("StrokeEngine", "Stopping Motion!");
 }
 
 String StrokeEngine::getPatternName(int index) {
@@ -174,19 +178,25 @@ void StrokeEngine::_stroking() {
 
     //SemaphoreHandle_t semaphore = motor->claimMotorControl();
 
+    //ESP_LOGD("StrokeEngine", "Hi, I am the pattern task.");
+
     while(1) { // infinite loop
+
+        ESP_LOGV("StrokeEngine", "StrokeEngine is %s.", _active ? "active" : "not active");
 
         // Check if motor is still available
         if (_motor->isActive() == false) {
-          ESP_LOGI("StrokeEngine", "Motor is no longer active! Attempting to suspend pattern.");
+          ESP_LOGW("StrokeEngine", "Motor is no longer active! Attempting to suspend pattern.");
           _active = false;
         }
 
         // Suspend task, if motor is not active
         if (_active == false) {
             vTaskSuspend(_taskStrokingHandle);
+            ESP_LOGD("StrokeEngine", "Suspended Pattern Task.");
         }
 
+        //ESP_LOGD("StrokeEngine", "Attempting to take the mutex in pattern task.");
         // Take mutex to ensure no interference / race condition with communication threat on other core
         if (xSemaphoreTake(_parameterMutex, 0) == pdTRUE) {
 
@@ -241,6 +251,8 @@ void StrokeEngine::_stroking() {
                     // decrement _index so that it stays the same until the next valid stroke parameters are delivered
                     _index--;
                 }
+            } else {
+              //ESP_LOGV("StrokeEngine", "Trapezoidal motion still pending");
             }
 
             // clear update flag, should be one pending
