@@ -59,14 +59,14 @@ class VirtualMotor: public MotorInterface {
       callback function where the speed and position are reported on a regular 
       interval specified with timeInMs. 
       @param cbMotionPoint Callback with the signature 
-      `cbMotionPoint(float now, float position, float speed)`. time is reported
-      seconds since the controller has started (`millis()`), speed in [m/s] and
+      `cbMotionPoint(unsigned int timestamp, float position, float speed)`. time is reported
+      milliseconds since the controller has started (`millis()`), speed in [m/s] and
       position in [mm].
       @param timeInMs time interval at which speed and position should be
       reported in [ms]
     */
     /**************************************************************************/
-    void begin(void(*cbMotionPoint)(float, float, float), unsigned int timeInMs) { 
+    void begin(void(*cbMotionPoint)(unsigned int, float, float), unsigned int timeInMs) { 
         _cbMotionPoint = cbMotionPoint; 
         _timeSliceInMs = timeInMs / portTICK_PERIOD_MS;
         // Since it is virtual no homing needed
@@ -216,7 +216,7 @@ class VirtualMotor: public MotorInterface {
     }
 
   private:
-    void(*_cbMotionPoint)(float, float, float) = NULL;
+    void(*_cbMotionPoint)(unsigned int, float, float) = NULL;
     TickType_t _timeSliceInMs = 50;
     static void _motionSimulatorTaskImpl(void* _this) { static_cast<VirtualMotor*>(_this)->_motionSimulatorTask(); }
     void _motionSimulatorTask() {
@@ -241,7 +241,7 @@ class VirtualMotor: public MotorInterface {
             }
 
             // Return results of current motion point via the callback
-            _cbMotionPoint(float(now) * 1e-3, currentSpeedAndPosition.position, currentSpeedAndPosition.speed);
+            _cbMotionPoint(now, currentSpeedAndPosition.position, currentSpeedAndPosition.speed);
 
             // Delay the task until the next tick count
             vTaskDelayUntil(&xLastWakeTime, _timeSliceInMs);

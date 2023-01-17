@@ -74,14 +74,14 @@ class GenericStepperMotor: public MotorInterface {
       @brief  It also attaches a callback function where the speed and position
       are reported on a regular interval specified with timeInMs. 
       @param cbMotionPoint Callback with the signature 
-      `cbMotionPoint(float now, float position, float speed)`. time is reported
-      seconds since the controller has started (`millis()`), speed in [m/s] and
+      `cbMotionPoint(unsigned int timestamp, float position, float speed)`. time is reported
+      milliseconds since the controller has started (`millis()`), speed in [m/s] and
       position in [mm].
       @param timeInMs time interval at which speed and position should be
       reported in [ms]
     */
     /**************************************************************************/
-    void attachPositionFeedback(void(*cbMotionPoint)(float, float, float), unsigned int timeInMs = 50); 
+    void attachPositionFeedback(void(*cbMotionPoint)(unsigned int, float, float), unsigned int timeInMs = 50); 
 
     // Control
     void enable(); 
@@ -165,7 +165,7 @@ class GenericStepperMotor: public MotorInterface {
     bool _homingActiveLow;      /*> Polarity of the homing signal*/
     TaskHandle_t _taskHomingHandle = NULL;
     void(*_callBackHoming)(bool) = NULL;
-    void(*_cbMotionPoint)(float, float, float) = NULL;
+    void(*_cbMotionPoint)(unsigned int, float, float) = NULL;
     TickType_t _timeSliceInMs = 50;
     static void _positionFeedbackTaskImpl(void* _this) { static_cast<GenericStepperMotor*>(_this)->_positionFeedbackTask(); }
     void _positionFeedbackTask();

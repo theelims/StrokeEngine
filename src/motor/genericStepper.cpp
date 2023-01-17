@@ -79,7 +79,7 @@ void GenericStepperMotor::home(void(*callBackHoming)(bool), float homePosition, 
     home(homePosition, speed);
 }
 
-void GenericStepperMotor::attachPositionFeedback(void(*cbMotionPoint)(float, float, float), unsigned int timeInMs) { 
+void GenericStepperMotor::attachPositionFeedback(void(*cbMotionPoint)(unsigned int, float, float), unsigned int timeInMs) { 
     _cbMotionPoint = cbMotionPoint; 
     _timeSliceInMs = timeInMs / portTICK_PERIOD_MS;
 }
@@ -258,7 +258,7 @@ void GenericStepperMotor::_positionFeedbackTask() {
     while(true) {
         // Return results of current motion point via the callback
         _cbMotionPoint(
-            float(millis()) * 1.0e-3,
+            float(millis()),
             getPosition(),
             getSpeed()            
         );
