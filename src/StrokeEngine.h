@@ -56,9 +56,9 @@ class StrokeEngine {
 
         // TODO - Add a more robust event system
         void registerListener(StrokeEngineListener* listener) {
-          if (this->listenerCount < 10) {
-            this->listeners[this->listenerCount] = listener; // TODO - Doesn't allow additional listeners
-            this->listenerCount++;
+          if (listenerCount < 10) {
+            listeners[listenerCount] = listener; // TODO - Doesn't allow additional listeners
+            listenerCount++;
           } else {
             ESP_LOGE("stroke", "Unable to register listener due to max count reached!");
           }
@@ -97,7 +97,7 @@ class StrokeEngine {
           return patternTableSize; 
         };
 
-        bool isActive() { return this->active; }
+        bool isActive() { return active; }
     protected:
       bool active = false;
       MotorInterface *motor;

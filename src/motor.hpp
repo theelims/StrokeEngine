@@ -15,9 +15,6 @@
  *  acceleration = mm/s^2
  */
 
-#define DEBUG_CLIPPING              // Show debug messages when motions violating the machine 
-                                    // physics are commanded
-
 typedef struct {
   float start;
   float end;
@@ -25,59 +22,111 @@ typedef struct {
                   *  subtracted twice from physicalTravel. Should be 
                   *  sufficiently to completley drive clear from 
                   *  homing switch */
+
+  float length; // Bounded Space size
 } MachineGeometry;
 
-#define MOTOR_FLAG_ENABLED (1 << 0)
+typedef struct {
+  float start;
+  float end;
 
-#define MOTOR_FLAG_WARNING (1 << 1)
-#define MOTOR_FLAG_ERROR (1 << 2)
-#define MOTOR_FLAG_FATAL (1 << 3)
+  float length;
+} EnvelopeGeometry;
 
-#define MOTOR_FLAG_AT_TARGET (1 << 4)
-#define MOTOR_FLAG_MOTION_ACTIVE (1 << 5)
-#define MOTOR_FLAG_HOMED (1 << 6)
+enum class MotorState {
+  // Low-level Power - Control Logic enabled, high-power can be enabled
+  UNPOWERED = 0,
 
-typedef enum {
-  INACTIVE = 0,
-  ACTIVE = 1,
-  HOMING = 2, 
-  ERROR = 3
-} MotorState;
+  // High-level Power - Only holding torque on motor, but the coils are being supplied current
+  STOPPED = 1, 
+
+  // Machine is in active motion and accepting motion commands
+  HOMING = 2,
+  RUNNING = 3, 
+
+  // Error condition. Driver fault, voltage missing, communication lost, etc
+  FAULT = 4
+};
+
+// Machine Space [geometry.start to geometry.end] 
+//  - The physical extents of travel for the machine itself
+// Bounded Space [0 to geometry.length] 
+//  - The safe space within which a pattern can direct the motor to move
+// Pattern Space [0 to envelope.length] 
+//  - Each pattern runs in a subset of the BoundedSpace. 
+//  - This allows StrokeEngine to translate the pattern around at-will whenever Depth is changed.
+typedef float MachinePosition;
+typedef float BoundedPosition;
+typedef float EnvelopePosition;
 
 class MotorInterface {
   public:
-    void enable() { this->addStatusFlag(MOTOR_FLAG_ENABLED); }
-    // TODO - virtual void disable();
-     
+    // Motor Commands
+    void powerUp();
+    void powerDown();
+
+    // Allow motion commands. Motor will start moving. 
+    // Transitions from STOPPED to RUNNING
+    void allowMotion(); 
+
+    // Disallow motion commands, start homing sequence. 
+    // Transitions from RUNNING to HOMING. Routine will run, then transition to RUNNING
+    void startHoming(); 
+
+    // Disallow motion commands
+    void stopMotion();
+    
+    void getFault();
+    void clearFault();
+
+    // Motor State
+    bool isUnpowered();
+    bool isStopped();
+    bool isRunning();
+    bool hasFault();
+
+    // Motor Flags
+    bool isInMotion();
+    bool isMotionCompleted();
+    bool isHoming();
+    
     // Safety Bounds
-    void setMachineGeometry(MachineGeometry geometry) {
-      this->geometry = geometry;
-      this->maxPosition = abs(geometry.start - geometry.end) - (geometry.keepout * 2);
+    void setMachineGeometry(MachineGeometry _geometry) {
+      geometry = {
+        .start = _geometry.start,
+        .end = _geometry.end,
+        .keepout = _geometry.keepout,
+        .length = abs(_geometry.start - _geometry.end) - (_geometry.keepout * 2)
+      };
     };
-    MachineGeometry getMachineGeometry() { this->geometry; };
+    void setMachineGeometry(float travel, float keepout = 5.0) {
+      geometry = {
+        .start = 0,
+        .end = travel,
+        .keepout = keepout,
+        .length = travel
+      };
+    }
+    MachineGeometry getMachineGeometry() { geometry; };
 
-    // Max Position cannot be set directly, but is computed from Machine Limits
-    float getMaxPosition() { return this->maxPosition; }
+    void setMaxSpeed(float speed) { maxSpeed = speed; }
+    float getMaxSpeed() { return maxSpeed; }
 
-    void setMaxSpeed(float speed) { this->maxSpeed = speed; }
-    float getMaxSpeed() { return this->maxSpeed; }
-
-    void setMaxAcceleration(float acceleration) { this->maxAcceleration = acceleration; }
-    float getMaxAcceleration() { return this->maxAcceleration; }
+    void setMaxAcceleration(float acceleration) { maxAcceleration = acceleration; }
+    float getMaxAcceleration() { return maxAcceleration; }
 
     // Motion
-    virtual void goToHome();
-    void goToPos(float position, float speed, float acceleration) {
+    void goToPosition(BoundedPosition position, float speed, float acceleration) {
       // Map Bounded Coordinate Space into Machine Coordinate Space
 
       // Apply bounds and protections
       float safePosition = constrain(
         position, 
         0, 
-        this->maxPosition
+        geometry.length
       );
-      float safeSpeed = constrain(speed, 0, this->maxSpeed);
-      float safeAcceleration = constrain(acceleration, 1, this->maxAcceleration);
+      float safeSpeed = constrain(speed, 0, maxSpeed);
+      float safeAcceleration = constrain(acceleration, 1, maxAcceleration);
       
       if (safePosition != position) {
         ESP_LOGW("motor", "Clipped position to fit within bounds! %05.1f was clipped to %05.1f", position, safePosition);
@@ -93,52 +142,31 @@ class MotorInterface {
 
       // Acceleration cannot be lowered, only increased, unless the current motion command has finished executing
       // This prevents putting the system into a state where the acceleration is too low to come to a stop before a crash occurs
-      if (!this->isMotionCompleted() && safeAcceleration > this->currentAcceleration) {
-        ESP_LOGW("motor", "Clipped acceleration to prevent a crash! %05.1f was clipped to %05.1f", safeAcceleration, this->currentAcceleration);
-        safeAcceleration = this->currentAcceleration;
+      if (!isMotionCompleted() && safeAcceleration > currentAcceleration) {
+        ESP_LOGW("motor", "Clipped acceleration to prevent a crash! %05.1f was clipped to %05.1f", safeAcceleration, currentAcceleration);
+        safeAcceleration = currentAcceleration;
       }
 
-      this->currentAcceleration = safeAcceleration;
+      currentAcceleration = safeAcceleration;
 
       // TODO - Add logging based on tags. Allows user to filter out these without filtering other debug messages
       ESP_LOGD("motor", "Going to position %05.1f mm @ %05.1f mm/s, %05.1f mm/s^2", safePosition, safeSpeed, safeAcceleration);
-      this->unsafeGoToPos(safePosition, safeSpeed, safeAcceleration);
+      unsafeGoToPos(toMachinePosition(safePosition), safeSpeed, safeAcceleration);
     }
-    virtual void stopMotion();
-    bool isMotionCompleted() { return this->hasStatusFlag(MOTOR_FLAG_AT_TARGET) && !this->hasStatusFlag(MOTOR_FLAG_MOTION_ACTIVE); }
-
-    // Status / State flags
-    MotorState getState() { return this->state; }
-    const char* getStateString() {
-      if (this->state == MotorState::INACTIVE) { return "INACTIVE"; }
-      if (this->state == MotorState::ACTIVE) { return "ACTIVE"; }
-      if (this->state == MotorState::HOMING) { return "HOMING"; }
-      if (this->state == MotorState::ERROR) { return "ERROR"; }
-
-      return "UNKNOWN";
-    }
-    uint32_t getStatus() { return this->status; }
-    bool isInState(MotorState state) { return this->state == state; }
-    bool hasStatusFlag(uint32_t flag) { return (this->status & flag) > 0; }
 
   protected:
-    MotorState state = MotorState::INACTIVE;
-    uint32_t status = 0;
-
-    void addStatusFlag(uint32_t flag) { this->status |= flag; }
-    void removeStatusFlag(uint32_t flag) { this->status &= ~flag; }
+    MotorState state = MotorState::UNPOWERED;
 
     MachineGeometry geometry;
-    float maxPosition;
     float maxSpeed;
     float maxAcceleration;
     float currentAcceleration = 0;
 
-    virtual void unsafeGoToPos(float position, float speed, float acceleration);
-    float mapSafePosition(float position) {
-      float safeStart = this->geometry.start;
-      float safeEnd = this->geometry.end;
-      float keepout = this->geometry.keepout;
+    virtual void unsafeGoToPos(MachinePosition position, float speed, float acceleration);
+    MachinePosition toMachinePosition(BoundedPosition position) {
+      float safeStart = geometry.start;
+      float safeEnd = geometry.end;
+      float keepout = geometry.keepout;
 
       if (safeStart > safeEnd) {
         safeStart -= keepout;
@@ -149,9 +177,10 @@ class MotorInterface {
       }
 
       // (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-      float in_min = 0; float in_max = this->maxPosition;
+      float in_min = 0; float in_max = geometry.length;
       float out_min = safeStart; float out_max = safeEnd;
 
+      // Maps from 
       return (position - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
     }
 };
