@@ -8,22 +8,14 @@ StrokeEngine::StrokeEngine() {
 
 void StrokeEngine::attachMotor(MotorInterface* motor) {
   // store the machine geometry and motor properties pointer
-  motor = motor;
+  this->motor = motor;
         
   // Initialize with default values
-  maxDepth = motor->getMachineGeometry().length;
+  maxDepth = 200;
   depth = maxDepth; 
   stroke = maxDepth / 3;
   strokeRate = 1.0;
   sensation = 0.0;
-
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Max Depth = %f", maxDepth);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Depth = %f", depth);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke = %f", stroke);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Stroke Rate = %f", strokeRate);
-  ESP_LOGD("StrokeEngine", "Stroke Parameter Sensation = %f", sensation);
-
-  ESP_LOGI("StrokeEngine", "Attached Motor succesfully to Stroke Engine!");
 }
 
 void StrokeEngine::setParameter(StrokeParameter parameter, float value, bool applyNow) {
@@ -123,7 +115,7 @@ bool StrokeEngine::startPattern() {
   }
 
   Pattern* pattern = patternTable[_patternIndex];
-  ESP_LOGE("StrokeEngine", "Starting pattern %s", pattern->getName());
+  ESP_LOGI("StrokeEngine", "Starting pattern %s", pattern->getName());
 
   // Stop current move, should one be pending (moveToMax or moveToMin)
   if (motor->isInMotion()) {

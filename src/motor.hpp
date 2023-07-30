@@ -62,33 +62,70 @@ typedef float EnvelopePosition;
 class MotorInterface {
   public:
     // Motor Commands
-    void powerUp();
-    void powerDown();
+    virtual void powerUp() {
+      if (state == MotorState::UNPOWERED) {
+        state = MotorState::STOPPED;
+      ESP_LOGI("test", "STOPPED");
+      }
+    }
+
+    virtual void powerDown() {
+      state = MotorState::UNPOWERED;
+      ESP_LOGI("test", "UNPOWERED");
+    }
 
     // Allow motion commands. Motor will start moving. 
     // Transitions from STOPPED to RUNNING
-    void allowMotion(); 
+    virtual void allowMotion() {
+      if (state == MotorState::STOPPED) {
+        state = MotorState::RUNNING;
+      ESP_LOGI("test", "RUNNING");
+      }
+    }
 
     // Disallow motion commands, start homing sequence. 
     // Transitions from RUNNING to HOMING. Routine will run, then transition to RUNNING
-    void startHoming(); 
+    virtual void startHoming() {
+      if (state == MotorState::RUNNING) {
+        state = MotorState::HOMING;
+      ESP_LOGI("test", "HOMING");
+      }
+
+      // Implementation will need to start homing task which will switch back to RUNNING state
+    }
 
     // Disallow motion commands
-    void stopMotion();
-    
-    void getFault();
-    void clearFault();
+    virtual void stopMotion() {
+      if (state == MotorState::RUNNING || state == MotorState::HOMING) {
+        state = MotorState::STOPPED;
+      ESP_LOGI("test", "STOPPED");
+      }
+    }
 
     // Motor State
-    bool isUnpowered();
-    bool isStopped();
-    bool isRunning();
-    bool hasFault();
+    virtual bool isUnpowered() {
+      return state == MotorState::UNPOWERED;
+    }
+    virtual bool isStopped() {
+      return state == MotorState::STOPPED;
+    }
+    virtual bool isRunning() {
+      return state == MotorState::RUNNING;
+    }
+    virtual bool isHoming() {
+      return state == MotorState::HOMING;
+    }
+    virtual bool hasFault() {
+      return state == MotorState::FAULT;
+    }
+
+    // Fault Handling
+    void getFault() { return; }
+    void clearFault() { return; }
 
     // Motor Flags
-    bool isInMotion();
-    bool isMotionCompleted();
-    bool isHoming();
+    virtual bool isInMotion() { return false; }
+    virtual bool isMotionCompleted() { return false; }
     
     // Safety Bounds
     void setMachineGeometry(MachineGeometry _geometry) {
@@ -142,7 +179,7 @@ class MotorInterface {
 
       // Acceleration cannot be lowered, only increased, unless the current motion command has finished executing
       // This prevents putting the system into a state where the acceleration is too low to come to a stop before a crash occurs
-      if (!isMotionCompleted() && safeAcceleration > currentAcceleration) {
+      if (!isMotionCompleted() && safeAcceleration < currentAcceleration) {
         ESP_LOGW("motor", "Clipped acceleration to prevent a crash! %05.1f was clipped to %05.1f", safeAcceleration, currentAcceleration);
         safeAcceleration = currentAcceleration;
       }
@@ -162,7 +199,7 @@ class MotorInterface {
     float maxAcceleration;
     float currentAcceleration = 0;
 
-    virtual void unsafeGoToPos(MachinePosition position, float speed, float acceleration);
+    virtual void unsafeGoToPos(MachinePosition position, float speed, float acceleration) {}
     MachinePosition toMachinePosition(BoundedPosition position) {
       float safeStart = geometry.start;
       float safeEnd = geometry.end;
