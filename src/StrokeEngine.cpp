@@ -218,12 +218,12 @@ bool StrokeEngine::setPattern(int patternIndex, bool applyNow = false) {
 #endif
             }
 
+            // Reset index counter
+            _index = 0; 
+
             // give back mutex
             xSemaphoreGive(_patternMutex);
         }
-
-        // Reset index counter
-        _index = 0; 
 
 #ifdef DEBUG_TALKATIVE
     Serial.println("setPattern: [" + String(_patternIndex) + "] " + patternTable[_patternIndex]->getName());
