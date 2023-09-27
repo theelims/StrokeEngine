@@ -712,7 +712,7 @@ class JackHammer : public Pattern {
                d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
                Formula neglects acceleration. Real timing will be slower due to finite acceleration & deceleration
             */
-           _outVibrationDistance = _inVibrationDistance * (_maxSpeed - _strokeInSpeed) / (_maxSpeed + _strokeInSpeed);
+           _outVibrationDistance = _inVibrationDistance * max((_maxSpeed - _strokeInSpeed) / (_maxSpeed + _strokeInSpeed), 0);
 
 #ifdef DEBUG_PATTERN
             Serial.println("_maxSpeed: " + String(_maxSpeed) + " _strokeInSpeed: " + String(_strokeInSpeed)  + " _strokeOutSpeed: " + String(int(1.5 * _stroke/_timeOfStroke)));
@@ -824,7 +824,7 @@ class StrokeNibbler : public Pattern {
                d_out = d_in * (v_vib - v_stroke) / (v_vib + v_stroke)
                Formula neglects acceleration. Real timing will be slower due to finite acceleration & deceleration
             */
-           _outVibrationDistance = _inVibrationDistance * (_maxSpeed - _strokeSpeed) / (_maxSpeed + _strokeSpeed);
+           _outVibrationDistance = _inVibrationDistance * max((_maxSpeed - _strokeSpeed) / (_maxSpeed + _strokeSpeed), 0);
 
 #ifdef DEBUG_PATTERN
             Serial.println("_maxSpeed: " + String(_maxSpeed) + " _strokeSpeed: " + String(_strokeSpeed));
