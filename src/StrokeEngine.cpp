@@ -720,9 +720,6 @@ void StrokeEngine::_stroking() {
             // If motor has stopped issue moveTo command to next position
             else if (servo->isRunning() == false) {
 
-                // Increment index for pattern
-                _index++;
-
                 // Querey new set of pattern parameters
                 currentMotion = patternTable[_patternIndex]->nextTarget(_index);
 
@@ -734,10 +731,9 @@ void StrokeEngine::_stroking() {
 #endif
                     // Apply new trapezoidal motion profile to servo
                     _applyMotionProfile(&currentMotion);
-
-                } else {
-                    // decrement _index so that it stays the same until the next valid stroke parameters are delivered
-                    _index--;
+                    
+                    // Increment index for pattern
+                    _index++;
                 }
             }
 
