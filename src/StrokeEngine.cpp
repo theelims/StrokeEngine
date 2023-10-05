@@ -197,7 +197,7 @@ float StrokeEngine::getSensation() {
 
 bool StrokeEngine::setPattern(int patternIndex, bool applyNow = false) {
     // Check wether pattern Index is in range
-    if ((patternIndex < patternTableSize) && (patternIndex >= 0)) {
+    if ((patternIndex < patternTableSize) && (patternIndex >= 0) && (patternIndex != _patternIndex)) {
         _patternIndex = patternIndex;
 
         // Inject current motion parameters into new pattern
@@ -219,7 +219,7 @@ bool StrokeEngine::setPattern(int patternIndex, bool applyNow = false) {
             }
 
             // Reset index counter
-            _index = 0; 
+            _index = -1; 
 
             // give back mutex
             xSemaphoreGive(_patternMutex);
